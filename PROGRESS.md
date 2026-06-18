@@ -208,5 +208,36 @@
   - aclose() ошибка при shutdown устранена
 
 - **Следующий шаг:**
-  - TZ-009: Лунный календарь (страница Moon)
+  - TZ-009: Профиль пользователя ✓ (выполнен ниже)
+  - TZ-010: Лунный календарь (страница Moon)
+  - Alembic миграции (вместо create_all)
+
+## 2026-06-18 — TZ-009: Профиль пользователя + сохранение данных рождения
+
+- **Сделано:**
+  - `backend/app/api/v1/profile.py` — GET /v1/profile + PUT /v1/profile:
+    - GET: возвращает UserProfile + completion_percent (filled/4 * 100)
+    - PUT: birth_date (str→date), birth_time (str→time), birth_city, birth_name→birth_name_enc, lang→User.lang
+    - `_get_or_create`: создаёт пустой профиль если не существует
+  - `backend/app/api/router.py` — profile_router подключён
+  - `frontend/src/pages/Profile.tsx` — экран профиля:
+    - Аватар с первой буквой имени (violet bg)
+    - Знак зодиака из birth_date (getZodiacSign helper)
+    - Прогресс-бар (completion_percent из API)
+    - Форма данных рождения (день/месяц/год, час/мин, город, имя)
+    - Переключатель языка RU/EN → PUT /profile {lang}
+    - Кнопка "Выйти" → logout()
+    - Toast "Сохранено ✦" (2.5 сек)
+  - `frontend/src/pages/NatalChart.tsx` — интеграция с профилем:
+    - useEffect: GET /profile при открытии → auto-fill полей
+    - Чекбокс "Сохранить в профиль" (default true)
+    - После расчёта: PUT /profile если checked
+  - `frontend/src/App.tsx` — Profile добавлен в импорт и маршрут
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `docker-compose restart backend` — Application startup complete ✓
+
+- **Следующий шаг:**
+  - TZ-010: Лунный календарь (страница Moon)
   - Alembic миграции (вместо create_all)

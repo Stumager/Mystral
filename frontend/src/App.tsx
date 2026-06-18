@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
 import { NatalChart } from "./pages/NatalChart";
+import { Profile } from "./pages/Profile";
 import { Tarot } from "./pages/Tarot";
 
 type Page = "home" | "tarot" | "moon" | "natal" | "profile";
@@ -30,7 +31,8 @@ function AppInner() {
   if (!user) return <LoginScreen />;
 
   if (page === "tarot") return <Tarot onNavigate={navigate} />;
-  if (page === "natal") return <NatalChart onNavigate={navigate} />;
+  if (page === "natal")    return <NatalChart onNavigate={navigate} />;
+  if (page === "profile")  return <Profile    onNavigate={navigate} />;
   return <Home onNavigate={navigate} />;
 }
 

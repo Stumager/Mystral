@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BottomNav, Button, Card } from "../components/ui";
+import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
 
 interface NatalChartProps {
@@ -21,9 +22,11 @@ interface NatalResult {
 }
 
 export function NatalChart({ onNavigate }: NatalChartProps) {
+  const { token } = useAuth();
   const [step, setStep] = useState<"form" | "result">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [saveToProfile, setSaveToProfile] = useState(true);
   const [form, setForm] = useState({
     name: "", day: "", month: "", year: "",
     hour: "", minute: "", city: "",
@@ -31,6 +34,34 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [result, setResult] = useState<NatalResult | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
+
+  const profileLoaded = useRef(false);
+
+  useEffect(() => {
+    if (profileLoaded.current || !token) return;
+    profileLoaded.current = true;
+
+    fetch("/api/v1/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.birth_date || data.birth_city) {
+          const [y, m, d] = (data.birth_date ?? "").split("-");
+          const [h, min] = (data.birth_time ?? "").split(":");
+          setForm(prev => ({
+            name:   data.birth_name  || prev.name,
+            year:   y    || prev.year,
+            month:  m    || prev.month,
+            day:    d    || prev.day,
+            hour:   h    || prev.hour,
+            minute: min  || prev.minute,
+            city:   data.birth_city  || prev.city,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -59,6 +90,27 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
       if (!res.ok) throw new Error();
       setResult(await res.json());
       setStep("result");
+
+      if (saveToProfile && token) {
+        const b = buildBody();
+        const profileBody: Record<string, unknown> = {
+          birth_city: b.city,
+          birth_name: b.name,
+          birth_date: `${b.year}-${String(b.month).padStart(2, "0")}-${String(b.day).padStart(2, "0")}`,
+        };
+        if (form.hour) {
+          profileBody.birth_time = `${String(b.hour).padStart(2, "0")}:${String(b.minute).padStart(2, "0")}`;
+          profileBody.birth_time_known = true;
+        }
+        fetch("/api/v1/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(profileBody),
+        }).catch(() => {});
+      }
     } catch {
       setError("Не удалось рассчитать карту. Проверь данные.");
     } finally {
@@ -121,54 +173,14 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             />
 
             <div className="grid grid-cols-3 gap-2">
-              <input
-                className={inputCls}
-                placeholder="День"
-                type="number"
-                min="1"
-                max="31"
-                value={form.day}
-                onChange={setField("day")}
-              />
-              <input
-                className={inputCls}
-                placeholder="Месяц"
-                type="number"
-                min="1"
-                max="12"
-                value={form.month}
-                onChange={setField("month")}
-              />
-              <input
-                className={inputCls}
-                placeholder="Год"
-                type="number"
-                min="1900"
-                max="2025"
-                value={form.year}
-                onChange={setField("year")}
-              />
+              <input className={inputCls} placeholder="День"   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+              <input className={inputCls} placeholder="Месяц"  type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+              <input className={inputCls} placeholder="Год"    type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <input
-                className={inputCls}
-                placeholder="Час (0–23)"
-                type="number"
-                min="0"
-                max="23"
-                value={form.hour}
-                onChange={setField("hour")}
-              />
-              <input
-                className={inputCls}
-                placeholder="Минуты"
-                type="number"
-                min="0"
-                max="59"
-                value={form.minute}
-                onChange={setField("minute")}
-              />
+              <input className={inputCls} placeholder="Час (0–23)" type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
+              <input className={inputCls} placeholder="Минуты"     type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
 
             <input
@@ -181,6 +193,16 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             <p className="text-text-faint text-[10px] text-center">
               Время влияет на точность Асцендента
             </p>
+
+            <label className="flex items-center gap-2 cursor-pointer self-start">
+              <input
+                type="checkbox"
+                checked={saveToProfile}
+                onChange={e => setSaveToProfile(e.target.checked)}
+                className="w-3.5 h-3.5 accent-violet-600"
+              />
+              <span className="text-text-muted text-xs">Сохранить в профиль</span>
+            </label>
 
             {error && (
               <p className="text-red-400 text-xs text-center">{error}</p>
