@@ -1,6 +1,8 @@
 import json
 import os
+from datetime import date
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from groq import Groq
@@ -8,6 +10,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 TONES = {
     "ru": "мягко, образно, с душой, на русском языке",
@@ -40,6 +43,8 @@ class HoroscopeRequest(BaseModel):
 async def horoscope_stream(req: HoroscopeRequest):
     sign_name = SIGNS_RU.get(req.sign, req.sign)
     tone = TONES.get(req.lang, TONES["ru"])
+    today = date.today().isoformat()
+    cache_key = f"horoscope:{req.sign}:{req.lang}:{today}"
 
     prompt = (
         f"Напиши персональный гороскоп для знака {sign_name} "
@@ -51,6 +56,15 @@ async def horoscope_stream(req: HoroscopeRequest):
     )
 
     async def generate():
+        cached = await redis_client.get(cache_key)
+        if cached:
+            text = cached.decode()
+            for char in text:
+                yield f"data: {json.dumps({'text': char})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
+        full_text = ""
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
@@ -60,14 +74,14 @@ async def horoscope_stream(req: HoroscopeRequest):
         for chunk in stream:
             delta = chunk.choices[0].delta.content
             if delta:
+                full_text += delta
                 yield f"data: {json.dumps({'text': delta})}\n\n"
+
+        await redis_client.set(cache_key, full_text, ex=86400)
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

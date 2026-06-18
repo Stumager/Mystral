@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { ZodiacOrb } from "../components/three/ZodiacOrb";
 import { BottomNav, Card } from "../components/ui";
+import { streamRequest } from "../utils/api";
 
 interface HomeProps {
   onNavigate: (page: string) => void;
@@ -15,6 +17,21 @@ const tools = [
 ];
 
 export function Home({ onNavigate }: HomeProps) {
+  const [horoscope, setHoroscope] = useState("");
+  const [horoscopeLoading, setHoroscopeLoading] = useState(true);
+
+  useEffect(() => {
+    streamRequest(
+      "/horoscope/stream",
+      { sign: "scorpio", lang: "ru", date: new Date().toISOString().slice(0, 10) },
+      (chunk) => setHoroscope(prev => prev + chunk),
+      () => setHoroscopeLoading(false)
+    ).catch(() => {
+      setHoroscope("Звёзды временно недоступны. Попробуй позже.");
+      setHoroscopeLoading(false);
+    });
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative overflow-hidden">
 
@@ -49,16 +66,15 @@ export function Home({ onNavigate }: HomeProps) {
 
         <Card className="mb-4 relative overflow-hidden">
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-            17 июня 2026 · Гороскоп дня
+            {new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })} · Гороскоп дня
           </p>
-          <p className="text-text-primary text-sm font-medium mb-2">
-            Меркурий поддерживает ясность
-          </p>
-          <p className="text-text-muted text-xs leading-relaxed">
-            Сегодня твои идеи звучат убедительно. Хорошее время
-            для переговоров и важных разговоров. Вечером обрати
-            внимание на интуицию — она не подведёт.
-          </p>
+          {horoscopeLoading && !horoscope
+            ? <p className="text-text-muted text-xs animate-pulse">Звёзды говорят...</p>
+            : <p className="text-text-muted text-xs leading-relaxed">
+                {horoscope}
+                {horoscopeLoading && <span className="animate-pulse">▍</span>}
+              </p>
+          }
           <span className="absolute top-3 right-3 text-[9px] px-2 py-0.5
             rounded-full bg-violet-600/10 text-violet-400 border
             border-violet-600/20">AI</span>

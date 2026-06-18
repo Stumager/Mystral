@@ -128,6 +128,31 @@
     данного объёма запросов, при необходимости можно обернуть в run_in_executor.
 
 - **Следующий шаг:**
-  - TZ-006: Alembic autogenerate первой миграции + docker-compose up --build
-  - TZ-007: Auth через Telegram (initData валидация, JWT)
-  - TZ-008: Подключить реальный стриминг в Tarot.tsx / Home.tsx
+  - TZ-006 (Groq фронтенд): см. ниже
+
+## 2026-06-18 — TZ-006: Подключение реального Groq к фронтенду
+
+- **Сделано:**
+  - `frontend/src/utils/api.ts` — SSE хелпер streamRequest():
+    - fetch + ReadableStream reader, TextDecoder
+    - Парсинг `data: {...}` / `data: [DONE]`
+    - VITE_API_URL из import.meta.env (пустая строка = same origin)
+  - `frontend/src/vite-env.d.ts` — добавлен (не было), `/// <reference types="vite/client" />`
+  - `backend/app/api/v1/tarot.py` — POST /v1/tarot/interpret, SSE стриминг, 80-100 слов
+  - `backend/app/api/router.py` — подключён tarot_router с prefix="/v1"
+  - `frontend/src/pages/Tarot.tsx` — handleInterpret теперь вызывает реальный API
+  - `frontend/src/pages/Home.tsx` — useEffect загружает гороскоп при монтировании,
+    статус "Звёзды говорят..." → стриминг → финальный текст; дата из new Date()
+  - `frontend/.env` — создан, VITE_API_URL= (пустая строка, same origin)
+
+- **Найдено проблем:**
+  - TS2339: `import.meta.env` не типизирован — исправлен добавлением `vite-env.d.ts`
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `vite build` — ✓ 65 modules, 2.72s
+
+- **Следующий шаг:**
+  - TZ-007: Alembic autogenerate первой миграции
+  - TZ-008: Auth через Telegram (initData валидация, JWT)
+  - TZ-009: docker-compose up --build, smoke test всего стека

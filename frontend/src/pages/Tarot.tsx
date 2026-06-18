@@ -2,6 +2,7 @@ import { useState } from "react";
 import { TarotCard } from "../components/tarot/TarotCard";
 import { BottomNav, Button, Card } from "../components/ui";
 import { TarotCardData, drawCards } from "../data/tarot";
+import { streamRequest } from "../utils/api";
 
 interface TarotProps {
   onNavigate: (page: string) => void;
@@ -25,17 +26,27 @@ export function Tarot({ onNavigate }: TarotProps) {
     setCards(drawCards(3));
     setRevealState([false, false, false]);
     setInterpretation("");
+    setIsReading(false);
   }
 
   async function handleInterpret() {
     setIsReading(true);
     setInterpretation("");
-    const text = `${cards[0].name_ru} в позиции прошлого говорит о завершении цикла. ${cards[1].name_ru} в настоящем указывает на необходимость действия. ${cards[2].name_ru} в будущем обещает трансформацию.`;
-    for (let i = 0; i < text.length; i++) {
-      await new Promise<void>(r => setTimeout(r, 30));
-      setInterpretation(prev => prev + text[i]);
+    try {
+      await streamRequest(
+        "/tarot/interpret",
+        {
+          cards: cards.map(c => c.name_ru),
+          positions: ["прошлое", "настоящее", "будущее"],
+          lang: "ru",
+        },
+        (chunk) => setInterpretation(prev => prev + chunk),
+        () => setIsReading(false)
+      );
+    } catch {
+      setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+      setIsReading(false);
     }
-    setIsReading(false);
   }
 
   const allRevealed = revealed.every(Boolean);
