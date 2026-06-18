@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Alembic
+app/migrations/versions/*.py
+!app/migrations/versions/.gitkeep
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# Env
+.env
+*.local
+
+# Docker
+.dockerignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
