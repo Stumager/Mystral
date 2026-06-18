@@ -81,7 +81,53 @@
   - `vite build` — ✓ 1541 modules, 5.22s
 
 - **Следующий шаг:**
-  - TZ-004: `docker-compose up --build` — запуск всего стека
-  - TZ-005: Alembic autogenerate первой миграции
-  - TZ-006: Auth через Telegram (initData валидация, JWT выдача)
-  - TZ-007: react-router, навигация между страницами
+  - TZ-004 (Таро): см. ниже
+
+## 2026-06-18 — TZ-004: Экран Таро — 3D flip + расклад
+
+- **Сделано:**
+  - `src/data/tarot.ts` — 22 карты Старших Арканов + тип TarotCardData + drawCards()
+  - `src/components/tarot/TarotCard.tsx` — CSS 3D flip (perspective/preserve-3d/backfaceVisibility):
+    - Рубашка: gradient #1B0C4A→#080316, золотой ✦ + MYSTRAL 8px
+    - Лицевая: gradient #1E0E50→#0D0520, номер/символ/название, инсет-рамка
+    - Transition 0.7s ease с поддержкой delay prop
+  - `src/pages/Tarot.tsx` — полный экран расклада:
+    - 3 карты с rotations [-8,0,8]°, клик по карте открывает её
+    - Кнопка "Получить толкование" появляется после открытия всех 3
+    - Имитация стриминга (посимвольно, 30ms задержка)
+    - Кнопка "Новый расклад" — перетасовка и сброс
+  - `src/components/ui/BottomNav.tsx` — добавлен `onNavigate` prop
+  - `src/pages/Home.tsx` — клик по тулам вызывает onNavigate(tool.id)
+  - `src/App.tsx` — useState роутинг: home | tarot | moon | profile
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `vite build` — ✓ 64 modules, 2.92s
+
+- **Следующий шаг:**
+  - TZ-005 (Groq): см. ниже
+
+## 2026-06-18 — TZ-005: Groq horoscope endpoint
+
+- **Сделано:**
+  - `backend/requirements.txt` — добавлен groq==0.9.0
+  - `backend/app/api/v1/horoscope.py` — SSE стриминг endpoint:
+    - POST /v1/horoscope/stream
+    - Модель: llama-3.3-70b-versatile
+    - Поддержка lang: ru/en с разным tone prompt
+    - 22 знака зодиака (en→ru маппинг)
+    - StreamingResponse, media_type text/event-stream
+    - Формат чанков: `data: {"text": "..."}` + `data: [DONE]`
+  - `backend/app/api/router.py` — подключён horoscope_router с prefix="/v1"
+  - `.env` — плейсхолдер GROQ_API_KEY= уже был, Саша заполнит вручную
+
+- **Найдено нюансов:**
+  - Health endpoint остался на `/health` (без `/v1`). Через nginx: `GET /api/health`.
+    Задача упоминала `/api/v1/health` — это опечатка, реальный путь `/api/health`.
+  - Groq streaming использует sync iterator внутри async generator — корректно для
+    данного объёма запросов, при необходимости можно обернуть в run_in_executor.
+
+- **Следующий шаг:**
+  - TZ-006: Alembic autogenerate первой миграции + docker-compose up --build
+  - TZ-007: Auth через Telegram (initData валидация, JWT)
+  - TZ-008: Подключить реальный стриминг в Tarot.tsx / Home.tsx

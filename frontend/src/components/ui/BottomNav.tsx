@@ -15,11 +15,20 @@ const items: NavItem[] = [
 
 interface BottomNavProps {
   active?: string;
+  onNavigate?: (id: string) => void;
 }
 
-export function BottomNav({ active: activeProp }: BottomNavProps) {
+export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
   const [internalActive, setInternalActive] = useState(activeProp ?? "home");
   const active = activeProp !== undefined ? activeProp : internalActive;
+
+  function handleClick(id: string) {
+    if (onNavigate) {
+      onNavigate(id);
+    } else if (activeProp === undefined) {
+      setInternalActive(id);
+    }
+  }
 
   return (
     <nav
@@ -35,7 +44,7 @@ export function BottomNav({ active: activeProp }: BottomNavProps) {
         return (
           <button
             key={id}
-            onClick={() => { if (activeProp === undefined) setInternalActive(id); }}
+            onClick={() => handleClick(id)}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors duration-200"
             style={{ color: isActive ? "#9B8AFF" : "#9B8FBB" }}
           >

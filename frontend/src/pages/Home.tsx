@@ -1,6 +1,10 @@
 import { ZodiacOrb } from "../components/three/ZodiacOrb";
 import { BottomNav, Card } from "../components/ui";
 
+interface HomeProps {
+  onNavigate: (page: string) => void;
+}
+
 const tools = [
   { id: "tarot",  icon: "🃏", label: "Карты Таро" },
   { id: "moon",   icon: "🌙", label: "Лунный день" },
@@ -10,11 +14,10 @@ const tools = [
   { id: "runes",  icon: "ᚱ",  label: "Руны" },
 ];
 
-export function Home() {
+export function Home({ onNavigate }: HomeProps) {
   return (
     <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative overflow-hidden">
 
-      {/* Хедер */}
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
         style={{ height: 46, background: "rgba(6,4,20,0.75)" }}
@@ -26,10 +29,8 @@ export function Home() {
         </div>
       </header>
 
-      {/* Контент */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-20">
 
-        {/* Приветствие */}
         <div className="mb-4">
           <p className="text-text-faint text-xs uppercase tracking-widest mb-1">
             Добрый вечер
@@ -42,12 +43,10 @@ export function Home() {
           </p>
         </div>
 
-        {/* Three.js орба */}
         <div className="flex justify-center mb-5">
           <ZodiacOrb sign="Скорпион" symbol="♏" />
         </div>
 
-        {/* Карточка гороскопа */}
         <Card className="mb-4 relative overflow-hidden">
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
             17 июня 2026 · Гороскоп дня
@@ -65,7 +64,6 @@ export function Home() {
             border-violet-600/20">AI</span>
         </Card>
 
-        {/* Сетка инструментов */}
         <div className="grid grid-cols-3 gap-2">
           {tools.map(tool => (
             <Card
@@ -73,6 +71,7 @@ export function Home() {
               className="flex flex-col items-center py-3 px-1 gap-1
                 cursor-pointer hover:border-border-medium transition-all
                 active:scale-95"
+              onClick={() => onNavigate(tool.id)}
             >
               <span className="text-2xl">{tool.icon}</span>
               <span className="text-text-muted text-[10px] text-center leading-tight">
@@ -84,7 +83,7 @@ export function Home() {
 
       </main>
 
-      <BottomNav active="home" />
+      <BottomNav active="home" onNavigate={onNavigate} />
     </div>
   );
 }
