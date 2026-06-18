@@ -184,5 +184,29 @@
 
 - **Следующий шаг:**
   - Открыть localhost:5173 → LoginScreen → зарегистрироваться → главный экран
-  - TZ-008: Alembic миграции (вместо create_all)
   - TZ-009: Лунный календарь (страница Moon)
+
+## 2026-06-18 — TZ-008: Redis кэш + Натальная карта
+
+- **Сделано:**
+  - `frontend/src/pages/Home.tsx` — добавлен `useRef(false)` guard в useEffect (StrictMode fix)
+  - `backend/app/api/v1/natal.py` — два эндпоинта:
+    - POST /v1/natal/calculate — геокодинг Nominatim → kerykeion AstrologicalSubject(online=False)
+      → JSON: sun/moon/rising (sign + degree), mercury/venus/mars (sign)
+    - POST /v1/natal/interpret — то же + SSE стриминг Groq (100-120 слов, мягкий тон)
+    - SIGNS_RU: 3-буквенные и полные названия (Ari/Aries → Овен и т.д.)
+  - `backend/app/api/router.py` — natal_router подключён с prefix="/v1"
+  - `frontend/src/pages/NatalChart.tsx` — двухшаговый экран:
+    - Шаг 1: форма (имя, дата 3-в-ряд, время 2-в-ряд, город)
+    - Шаг 2: "Большая тройка" (gold) + планеты + SSE интерпретация
+  - `frontend/src/App.tsx` — тип Page: добавлен 'natal', рендер NatalChart
+  - `backend/app/core/redis.py` — исправлен `aclose()` → `close()` (redis-py 5.x)
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `docker-compose restart backend` — Application startup complete ✓
+  - aclose() ошибка при shutdown устранена
+
+- **Следующий шаг:**
+  - TZ-009: Лунный календарь (страница Moon)
+  - Alembic миграции (вместо create_all)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ZodiacOrb } from "../components/three/ZodiacOrb";
 import { BottomNav, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
@@ -22,7 +22,12 @@ export function Home({ onNavigate }: HomeProps) {
   const [horoscope, setHoroscope] = useState("");
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
 
+  const called = useRef(false);
+
   useEffect(() => {
+    if (called.current) return;
+    called.current = true;
+
     streamRequest(
       "/horoscope/stream",
       { sign: "scorpio", lang: "ru", date: new Date().toISOString().slice(0, 10) },

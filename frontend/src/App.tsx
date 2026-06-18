@@ -3,9 +3,10 @@ import "./i18n";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
+import { NatalChart } from "./pages/NatalChart";
 import { Tarot } from "./pages/Tarot";
 
-type Page = "home" | "tarot" | "moon" | "profile";
+type Page = "home" | "tarot" | "moon" | "natal" | "profile";
 
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
@@ -29,6 +30,7 @@ function AppInner() {
   if (!user) return <LoginScreen />;
 
   if (page === "tarot") return <Tarot onNavigate={navigate} />;
+  if (page === "natal") return <NatalChart onNavigate={navigate} />;
   return <Home onNavigate={navigate} />;
 }
 
