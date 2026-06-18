@@ -4,6 +4,7 @@ interface UserData {
   id: string;
   name: string | null;
   lang: string;
+  tier: string;
 }
 
 interface AuthContextType {
@@ -12,6 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, user: UserData) => void;
   logout: () => void;
+  updateUser: (patch: Partial<UserData>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,6 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     localStorage.removeItem("mystral_token");
+  }
+
+  function updateUser(patch: Partial<UserData>) {
+    setUser(prev => prev ? { ...prev, ...patch } : null);
   }
 
   useEffect(() => {
@@ -75,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

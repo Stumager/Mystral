@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
@@ -34,6 +35,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [result, setResult] = useState<NatalResult | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const profileLoaded = useRef(false);
 
@@ -122,15 +124,23 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     if (interpretLoading) return;
     setInterpretLoading(true);
     setInterpretation("");
-    await streamRequest(
-      "/natal/interpret",
-      buildBody(),
-      (chunk) => setInterpretation(prev => prev + chunk),
-      () => setInterpretLoading(false),
-    ).catch(() => {
-      setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+    try {
+      await streamRequest(
+        "/natal/interpret",
+        buildBody(),
+        (chunk) => setInterpretation(prev => prev + chunk),
+        () => setInterpretLoading(false),
+        token ?? undefined
+      );
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err.code === "FREE_LIMIT_REACHED") {
+        setShowPaywall(true);
+      } else {
+        setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+      }
       setInterpretLoading(false);
-    });
+    }
   }
 
   const inputCls =
@@ -285,6 +295,11 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
       </main>
 
       <BottomNav active="natal" onNavigate={onNavigate} />
+
+      <PaywallSheet
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
     </div>
   );
 }

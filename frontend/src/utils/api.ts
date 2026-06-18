@@ -4,13 +4,22 @@ export async function streamRequest(
   endpoint: string,
   body: object,
   onChunk: (text: string) => void,
-  onDone: () => void
+  onDone: () => void,
+  token?: string
 ): Promise<void> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${BASE_URL}/api/v1${endpoint}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
+
+  if (res.status === 402) {
+    const data = await res.json().catch(() => ({ detail: "FREE_LIMIT_REACHED" }));
+    throw { code: data.detail ?? "FREE_LIMIT_REACHED" };
+  }
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -40,4 +49,27 @@ export async function streamRequest(
     }
   }
   onDone();
+}
+
+export async function apiRequest<T = unknown>(
+  endpoint: string,
+  body: object,
+  token?: string
+): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}/api/v1${endpoint}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 402) {
+    const data = await res.json().catch(() => ({ detail: "FREE_LIMIT_REACHED" }));
+    throw { code: data.detail ?? "FREE_LIMIT_REACHED" };
+  }
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }

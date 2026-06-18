@@ -2,14 +2,19 @@ import json
 import os
 
 import httpx
-from fastapi import APIRouter, HTTPException
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from groq import Groq
 from kerykeion import AstrologicalSubject
 from pydantic import BaseModel
 
+from app.core.deps import get_current_user
+from app.models.user import User
+
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 SIGNS_RU = {
     "Ari": "Овен",   "Aries": "Овен",
@@ -78,7 +83,16 @@ async def natal_calculate(req: NatalRequest):
 
 
 @router.post("/natal/interpret")
-async def natal_interpret(req: NatalRequest):
+async def natal_interpret(
+    req: NatalRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.subscription_tier == "free":
+        key = f"natal_count:{current_user.id}"
+        count = await redis_client.incr(key)
+        if count > 3:
+            raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
+
     lat, lon = await geocode_city(req.city)
     chart = build_chart(req, lat, lon)
 

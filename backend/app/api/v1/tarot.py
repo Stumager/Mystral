@@ -1,13 +1,19 @@
 import json
 import os
+from datetime import date
 
-from fastapi import APIRouter
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
 
+from app.core.deps import get_current_user
+from app.models.user import User
+
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 TONES = {
     "ru": "мягко, образно, с душой, на русском языке",
@@ -22,7 +28,19 @@ class TarotRequest(BaseModel):
 
 
 @router.post("/tarot/interpret")
-async def tarot_interpret(req: TarotRequest):
+async def tarot_interpret(
+    req: TarotRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.subscription_tier == "free":
+        today = date.today().isoformat()
+        key = f"tarot_daily:{current_user.id}:{today}"
+        count = await redis_client.incr(key)
+        if count == 1:
+            await redis_client.expire(key, 86400)
+        if count > 1:
+            raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
+
     cards_desc = ", ".join(
         f"{card} ({pos})" for card, pos in zip(req.cards, req.positions)
     )

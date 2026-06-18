@@ -239,5 +239,36 @@
   - `docker-compose restart backend` — Application startup complete ✓
 
 - **Следующий шаг:**
-  - TZ-010: Лунный календарь (страница Moon)
+  - TZ-010: Монетизация ✓ (выполнен ниже)
+  - TZ-011: Лунный календарь (страница Moon)
+  - Alembic миграции (вместо create_all)
+
+## 2026-06-18 — TZ-010: Монетизация — лимиты + Telegram Stars + ЮKassa
+
+- **Сделано:**
+  - `backend/app/api/v1/tarot.py` — requires auth + daily limit:
+    - `tarot_daily:{user_id}:{today}` TTL 86400 → free:1/день, >1 → 402 FREE_LIMIT_REACHED
+  - `backend/app/api/v1/natal.py` — requires auth + total limit:
+    - `natal_count:{user_id}` (no TTL) → free:3 total, >3 → 402 FREE_LIMIT_REACHED
+  - `backend/app/api/v1/payments.py` — 4 эндпоинта:
+    - POST /v1/payments/stars/create — createInvoiceLink через Telegram Bot API (XTR)
+    - POST /v1/payments/stars/confirm — обновляет subscription_tier='pro'
+    - POST /v1/payments/yukassa/create — создаёт платёж YuKassa, возвращает payment_url
+    - POST /v1/payments/yukassa/webhook — обрабатывает payment.succeeded
+  - `backend/app/core/config.py` + `.env` — YUKASSA_SHOP_ID, YUKASSA_SECRET_KEY
+  - `backend/app/api/v1/auth.py` — tier добавлен в _user_response и /auth/me
+  - `backend/app/api/router.py` — payments_router подключён
+  - `frontend/src/utils/api.ts` — streamRequest: 5й аргумент token, 402→{code}; apiRequest<T>
+  - `frontend/src/context/AuthContext.tsx` — UserData.tier; updateUser()
+  - `frontend/src/components/PaywallSheet.tsx` — bottom sheet, Stars/YuKassa flow
+  - `frontend/src/pages/Tarot.tsx` — token в streamRequest; FREE_LIMIT_REACHED → paywall
+  - `frontend/src/pages/NatalChart.tsx` — то же для интерпретации
+  - `frontend/src/pages/Profile.tsx` — free→кнопка Pro; pro→бейдж
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `docker-compose restart backend` — Application startup complete ✓
+
+- **Следующий шаг:**
+  - TZ-011: Лунный календарь (страница Moon)
   - Alembic миграции (вместо create_all)

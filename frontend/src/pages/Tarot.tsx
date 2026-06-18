@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { PaywallSheet } from "../components/PaywallSheet";
 import { TarotCard } from "../components/tarot/TarotCard";
 import { BottomNav, Button, Card } from "../components/ui";
+import { useAuth } from "../context/AuthContext";
 import { TarotCardData, drawCards } from "../data/tarot";
 import { streamRequest } from "../utils/api";
 
@@ -9,10 +11,12 @@ interface TarotProps {
 }
 
 export function Tarot({ onNavigate }: TarotProps) {
+  const { token } = useAuth();
   const [cards, setCards] = useState<TarotCardData[]>(() => drawCards(3));
   const [revealed, setRevealState] = useState([false, false, false]);
   const [isReading, setIsReading] = useState(false);
   const [interpretation, setInterpretation] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
 
   function revealCard(i: number) {
     setRevealState(prev => {
@@ -41,10 +45,16 @@ export function Tarot({ onNavigate }: TarotProps) {
           lang: "ru",
         },
         (chunk) => setInterpretation(prev => prev + chunk),
-        () => setIsReading(false)
+        () => setIsReading(false),
+        token ?? undefined
       );
-    } catch {
-      setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err.code === "FREE_LIMIT_REACHED") {
+        setShowPaywall(true);
+      } else {
+        setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+      }
       setIsReading(false);
     }
   }
@@ -123,6 +133,11 @@ export function Tarot({ onNavigate }: TarotProps) {
       </main>
 
       <BottomNav active="tarot" onNavigate={onNavigate} />
+
+      <PaywallSheet
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
     </div>
   );
 }

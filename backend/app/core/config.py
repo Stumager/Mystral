@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     telegram_bot_token: str = ""
     telegram_webapp_url: str = ""
+    yukassa_shop_id: str = ""
+    yukassa_secret_key: str = ""
 
 
 settings = Settings()

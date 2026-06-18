@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 
@@ -49,6 +50,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [completion, setCompletion] = useState(0);
   const [toast, setToast] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [lang, setLang] = useState(user?.lang ?? "ru");
 
   const setField = (field: string) =>
@@ -228,6 +230,31 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           )}
         </Card>
 
+        {/* Subscription tier */}
+        {user?.tier === "pro" ? (
+          <Card>
+            <div className="flex items-center gap-2">
+              <span className="font-display text-sm" style={{ color: "#C9A84C" }}>✦</span>
+              <p className="font-display text-sm text-text-primary">Mystral Pro активен</p>
+            </div>
+            <p className="text-text-faint text-[10px] mt-1">Безлимитный доступ ко всем функциям</p>
+          </Card>
+        ) : (
+          <Card>
+            <p className="text-text-muted text-xs mb-3">
+              Бесплатный план · 1 расклад/день
+            </p>
+            <Button
+              variant="gold"
+              size="sm"
+              className="w-full"
+              onClick={() => setShowPaywall(true)}
+            >
+              Перейти на Pro ✦
+            </Button>
+          </Card>
+        )}
+
         {/* Settings */}
         <Card>
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
@@ -285,6 +312,11 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       )}
 
       <BottomNav active="profile" onNavigate={onNavigate} />
+
+      <PaywallSheet
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
     </div>
   );
 }

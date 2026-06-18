@@ -36,7 +36,12 @@ class LoginRequest(BaseModel):
 def _user_response(user: User, token: str) -> dict:
     return {
         "access_token": token,
-        "user": {"id": str(user.id), "name": user.display_name, "lang": user.lang},
+        "user": {
+            "id": str(user.id),
+            "name": user.display_name,
+            "lang": user.lang,
+            "tier": user.subscription_tier,
+        },
     }
 
 
@@ -138,4 +143,5 @@ async def me(current_user: User = Depends(get_current_user)):
         "id": str(current_user.id),
         "name": current_user.display_name,
         "lang": current_user.lang,
+        "tier": current_user.subscription_tier,
     }
