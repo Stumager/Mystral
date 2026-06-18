@@ -7,6 +7,6 @@ from app.api.v1.tarot import router as tarot_router
 api_router = APIRouter()
 
 api_router.include_router(health.router, tags=["health"])
-api_router.include_router(auth.router)
+api_router.include_router(auth.router, prefix="/v1")
 api_router.include_router(horoscope_router, prefix="/v1", tags=["horoscope"])
 api_router.include_router(tarot_router, prefix="/v1", tags=["tarot"])

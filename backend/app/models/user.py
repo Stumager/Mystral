@@ -24,6 +24,7 @@ class AuthProvider(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="users.id", index=True)
     provider: str
     provider_id: str
+    password_hash: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

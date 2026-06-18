@@ -153,6 +153,36 @@
   - `vite build` — ✓ 65 modules, 2.72s
 
 - **Следующий шаг:**
-  - TZ-007: Alembic autogenerate первой миграции
-  - TZ-008: Auth через Telegram (initData валидация, JWT)
-  - TZ-009: docker-compose up --build, smoke test всего стека
+  - TZ-007 (Auth): см. ниже
+
+## 2026-06-18 — TZ-007: Авторизация — Telegram TMA + Email + JWT
+
+- **Сделано:**
+  - `backend/app/core/security.py` — hash/verify password (bcrypt), create/decode JWT (30 дней),
+    validate_telegram_hash (HMAC-SHA256 по Telegram WebApp spec)
+  - `backend/app/core/deps.py` — get_current_user (HTTPBearer → JWT → User)
+  - `backend/app/core/database.py` — переключён на sqlmodel.ext.asyncio.session.AsyncSession
+    (поддержка session.exec(select(...)))
+  - `backend/app/models/user.py` — добавлен password_hash: Optional[str] в AuthProvider
+  - `backend/app/api/v1/auth.py` — 4 эндпоинта:
+    POST /v1/auth/telegram, POST /v1/auth/register, POST /v1/auth/login, GET /v1/auth/me
+  - `backend/app/api/router.py` — auth router перенесён под prefix="/v1"
+  - `backend/app/main.py` — lifespan вызывает create_db_and_tables() при старте
+  - `frontend/src/context/AuthContext.tsx` — TMA auto-login → localStorage → LoginScreen
+  - `frontend/src/pages/LoginScreen.tsx` — переключатель Войти/Регистрация, email+pass
+  - `frontend/src/App.tsx` — AuthProvider wrapper, loading splash, !user → LoginScreen
+  - `frontend/src/pages/Home.tsx` — user?.name вместо хардкода "Александра"
+
+- **Найдено нюансов:**
+  - `Redis.aclose()` не существует в redis-py 5.x — ошибка при shutdown, не при старте.
+    Фикс: заменить на `await redis_client.close()` в redis.py (не критично сейчас)
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `docker-compose restart backend` — Application startup complete ✓
+  - Таблицы создаются автоматически через create_db_and_tables() при старте
+
+- **Следующий шаг:**
+  - Открыть localhost:5173 → LoginScreen → зарегистрироваться → главный экран
+  - TZ-008: Alembic миграции (вместо create_all)
+  - TZ-009: Лунный календарь (страница Moon)

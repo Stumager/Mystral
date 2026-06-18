@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ZodiacOrb } from "../components/three/ZodiacOrb";
 import { BottomNav, Card } from "../components/ui";
+import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
 
 interface HomeProps {
@@ -17,6 +18,7 @@ const tools = [
 ];
 
 export function Home({ onNavigate }: HomeProps) {
+  const { user } = useAuth();
   const [horoscope, setHoroscope] = useState("");
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
 
@@ -53,7 +55,7 @@ export function Home({ onNavigate }: HomeProps) {
             Добрый вечер
           </p>
           <p className="text-text-primary font-display text-2xl font-light">
-            Александра ✨
+            {user?.name ?? "Гость"} ✨
           </p>
           <p className="text-text-muted text-xs mt-1">
             Скорпион · 11-й лунный день
