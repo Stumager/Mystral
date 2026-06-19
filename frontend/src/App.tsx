@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./i18n";
+import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
@@ -11,7 +12,7 @@ type Page = "home" | "tarot" | "moon" | "natal" | "profile";
 
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, pendingMerge, dismissMerge } = useAuth();
 
   const navigate = (p: string) => setPage(p as Page);
 
@@ -30,10 +31,18 @@ function AppInner() {
 
   if (!user) return <LoginScreen />;
 
-  if (page === "tarot") return <Tarot onNavigate={navigate} />;
-  if (page === "natal")    return <NatalChart onNavigate={navigate} />;
-  if (page === "profile")  return <Profile    onNavigate={navigate} />;
-  return <Home onNavigate={navigate} />;
+  let content;
+  if (page === "tarot")        content = <Tarot     onNavigate={navigate} />;
+  else if (page === "natal")   content = <NatalChart onNavigate={navigate} />;
+  else if (page === "profile") content = <Profile    onNavigate={navigate} />;
+  else                         content = <Home       onNavigate={navigate} />;
+
+  return (
+    <>
+      {content}
+      {pendingMerge && <MergeAccountPrompt onClose={dismissMerge} />}
+    </>
+  );
 }
 
 export default function App() {

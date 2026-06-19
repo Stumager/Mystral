@@ -11,9 +11,11 @@ interface AuthContextType {
   user: UserData | null;
   token: string | null;
   isLoading: boolean;
+  pendingMerge: boolean;
   login: (token: string, user: UserData) => void;
   logout: () => void;
   updateUser: (patch: Partial<UserData>) => void;
+  dismissMerge: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingMerge, setPendingMerge] = useState(false);
 
   function login(newToken: string, userData: UserData) {
     setToken(newToken);
@@ -33,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function logout() {
     setToken(null);
     setUser(null);
+    setPendingMerge(false);
     localStorage.removeItem("mystral_token");
   }
 
@@ -40,10 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(prev => prev ? { ...prev, ...patch } : null);
   }
 
+  function dismissMerge() {
+    setPendingMerge(false);
+  }
+
   useEffect(() => {
     async function init() {
-      // 1. Попытка через TMA
-      const initData = window.Telegram?.WebApp?.initData;
+      // 1. TMA auto-login
+      const initData = (window as any).Telegram?.WebApp?.initData;
       if (initData) {
         try {
           const res = await fetch("/api/v1/auth/telegram", {
@@ -54,12 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (res.ok) {
             const data = await res.json();
             login(data.access_token, data.user);
+            if (data.is_new) setPendingMerge(true);
             return;
           }
         } catch {}
       }
 
-      // 2. Восстановить сессию из localStorage
+      // 2. Restore session from localStorage
       const savedToken = localStorage.getItem("mystral_token");
       if (savedToken) {
         try {
@@ -81,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, pendingMerge, login, logout, updateUser, dismissMerge }}>
       {children}
     </AuthContext.Provider>
   );

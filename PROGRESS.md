@@ -295,3 +295,39 @@
   - `docker network ls` → обновить `shared_infra.name` в docker-compose.prod.yml
   - `sudo certbot --nginx -d mystral.app`
   - `bash deploy.sh`
+
+## 2026-06-19 — TZ-012: Связывание аккаунтов email ↔ Telegram
+
+- **Сделано:**
+  - `backend/app/core/security.py` — добавлен `validate_telegram_widget()`:
+    - Telegram Login Widget использует SHA256(bot_token) как ключ (в отличие от TMA: HMAC nested)
+  - `backend/app/api/v1/auth.py` — полная доработка:
+    - `TelegramAuthRequest` — поддержка `init_data` (TMA) и `widget_data` (Login Widget)
+    - `_resolve_tg_id()` — хелпер: валидирует любой формат, возвращает tg_id
+    - POST /auth/telegram — добавлен `is_new: bool` в ответ
+    - GET /auth/me — добавлен `providers: list[str]` (запрос к AuthProvider)
+    - POST /auth/link-email — привязывает email к текущему аккаунту (requires auth)
+    - POST /auth/link-telegram — привязывает TG к текущему аккаунту через widget (requires auth)
+    - POST /auth/merge — без auth: валидирует TG + email/pass, переносит TG-провайдер на email-аккаунт
+  - `frontend/src/context/AuthContext.tsx` — добавлены `pendingMerge` и `dismissMerge`:
+    - После TMA логина: если `is_new === true` → setPendingMerge(true)
+  - `frontend/src/App.tsx` — рендерит `<MergeAccountPrompt>` когда `pendingMerge === true`
+  - `frontend/src/pages/LoginScreen.tsx` — кнопка "Войти через Telegram":
+    - Открывает popup oauth.telegram.org/auth?bot_id=...
+    - Слушает window.message с origin https://oauth.telegram.org
+    - POST /auth/telegram с widget_data → login()
+  - `frontend/src/components/MergeAccountPrompt.tsx` — новый компонент:
+    - Bottom sheet с формой email + пароль
+    - POST /auth/merge с init_data из TMA → login() → dismissMerge()
+  - `frontend/src/pages/Profile.tsx` — раздел "Связанные аккаунты":
+    - useEffect: Promise.all([GET /profile, GET /auth/me]) → заполняет providers[]
+    - Email: кнопка "Добавить" → инлайн-форма (email + пароль + подтверждение) → POST /auth/link-email
+    - Telegram: кнопка "Привязать" → handleTelegramWebLogin → POST /auth/link-telegram
+    - Статусные бейджи "Привязан" (фиолетовый/голубой) когда provider в списке
+
+- **Проверено:**
+  - `tsc --noEmit` — требует запуска (см. ниже)
+
+- **Следующий шаг:**
+  - TZ-013: Лунный календарь (страница Moon)
+  - Alembic миграции (вместо create_all)

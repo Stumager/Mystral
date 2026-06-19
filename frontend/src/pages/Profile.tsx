@@ -39,6 +39,8 @@ const PROGRESS_HINTS = [
   "Добавь имя → персональные предсказания",
 ];
 
+const BOT_ID = "8998390466";
+
 export function Profile({ onNavigate }: ProfilePageProps) {
   const { user, token, logout } = useAuth();
   const loaded = useRef(false);
@@ -52,6 +54,12 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [saving, setSaving] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [lang, setLang] = useState(user?.lang ?? "ru");
+
+  const [providers, setProviders] = useState<string[]>([]);
+  const [showLinkEmail, setShowLinkEmail] = useState(false);
+  const [linkEmailForm, setLinkEmailForm] = useState({ email: "", password: "", confirm: "" });
+  const [linkEmailError, setLinkEmailError] = useState("");
+  const [linkingEmail, setLinkingEmail] = useState(false);
 
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -73,21 +81,24 @@ export function Profile({ onNavigate }: ProfilePageProps) {
     if (loaded.current || !token) return;
     loaded.current = true;
 
-    fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then((data: ProfileData) => {
-        setCompletion(data.completion_percent);
-        const [y, m, d] = (data.birth_date ?? "").split("-");
-        const [h, min] = (data.birth_time ?? "").split(":");
+    Promise.all([
+      fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch("/api/v1/auth/me", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ])
+      .then(([profileData, meData]: [ProfileData, { providers: string[] }]) => {
+        setCompletion(profileData.completion_percent ?? 0);
+        const [y, m, d] = (profileData.birth_date ?? "").split("-");
+        const [h, min] = (profileData.birth_time ?? "").split(":");
         setForm({
           year:   y   ?? "",
           month:  m   ?? "",
           day:    d   ?? "",
           hour:   h   ?? "",
           minute: min ?? "",
-          city:   data.birth_city  ?? "",
-          name:   data.birth_name  ?? "",
+          city:   profileData.birth_city ?? "",
+          name:   profileData.birth_name ?? "",
         });
+        setProviders(meData.providers ?? []);
       })
       .catch(() => {});
   }, [token]);
@@ -129,6 +140,69 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       headers: authHeaders(),
       body: JSON.stringify({ lang: newLang }),
     }).catch(() => {});
+  }
+
+  async function handleLinkEmail() {
+    if (linkEmailForm.password !== linkEmailForm.confirm) {
+      setLinkEmailError("Пароли не совпадают");
+      return;
+    }
+    setLinkEmailError("");
+    setLinkingEmail(true);
+    try {
+      const res = await fetch("/api/v1/auth/link-email", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ email: linkEmailForm.email, password: linkEmailForm.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Ошибка");
+      setProviders(p => [...p, "email"]);
+      setShowLinkEmail(false);
+      setLinkEmailForm({ email: "", password: "", confirm: "" });
+      showToast("Email привязан ✦");
+    } catch (e: unknown) {
+      setLinkEmailError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setLinkingEmail(false);
+    }
+  }
+
+  function handleTelegramWebLogin() {
+    const origin = encodeURIComponent(window.location.origin);
+    const url = `https://oauth.telegram.org/auth?bot_id=${BOT_ID}&origin=${origin}&request_access=write&embed=1`;
+    const popup = window.open(url, "_blank", "width=550,height=450,popup");
+    if (!popup) { showToast("Popup заблокирован"); return; }
+
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.origin !== "https://oauth.telegram.org") return;
+      const data = event.data;
+      if (!data || typeof data !== "object" || !data.id) return;
+      window.removeEventListener("message", handleMessage);
+      clearInterval(checkClosed);
+      popup.close();
+      try {
+        const res = await fetch("/api/v1/auth/link-telegram", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ widget_data: data }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.detail || "Ошибка");
+        setProviders(p => [...p, "telegram"]);
+        showToast("Telegram привязан ✦");
+      } catch (e: unknown) {
+        showToast(e instanceof Error ? e.message : "Ошибка привязки");
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        window.removeEventListener("message", handleMessage);
+      }
+    }, 1000);
   }
 
   const inputCls =
@@ -254,6 +328,115 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </Button>
           </Card>
         )}
+
+        {/* Linked accounts */}
+        <Card>
+          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-4">
+            Связанные аккаунты
+          </p>
+
+          {/* Email row */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-text-muted text-sm">Email</span>
+                {providers.includes("email") && (
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(107,78,255,0.15)", color: "#9B8AFF" }}
+                  >
+                    Привязан
+                  </span>
+                )}
+              </div>
+              {!providers.includes("email") && !showLinkEmail && (
+                <button
+                  onClick={() => setShowLinkEmail(true)}
+                  className="text-xs"
+                  style={{ color: "#9B8AFF" }}
+                >
+                  Добавить
+                </button>
+              )}
+            </div>
+
+            {showLinkEmail && (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={linkEmailForm.email}
+                  onChange={e => setLinkEmailForm(p => ({ ...p, email: e.target.value }))}
+                  className={inputCls}
+                />
+                <input
+                  type="password"
+                  placeholder="Пароль"
+                  value={linkEmailForm.password}
+                  onChange={e => setLinkEmailForm(p => ({ ...p, password: e.target.value }))}
+                  className={inputCls}
+                />
+                <input
+                  type="password"
+                  placeholder="Повторите пароль"
+                  value={linkEmailForm.confirm}
+                  onChange={e => setLinkEmailForm(p => ({ ...p, confirm: e.target.value }))}
+                  className={inputCls}
+                />
+                {linkEmailError && (
+                  <p className="text-red-400 text-xs">{linkEmailError}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="flex-1"
+                    onClick={handleLinkEmail}
+                    disabled={linkingEmail}
+                  >
+                    {linkingEmail ? "..." : "Сохранить"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowLinkEmail(false);
+                      setLinkEmailForm({ email: "", password: "", confirm: "" });
+                      setLinkEmailError("");
+                    }}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Telegram row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-text-muted text-sm">Telegram</span>
+              {providers.includes("telegram") && (
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(41,182,246,0.12)", color: "#29B6F6" }}
+                >
+                  Привязан
+                </span>
+              )}
+            </div>
+            {!providers.includes("telegram") && (
+              <button
+                onClick={handleTelegramWebLogin}
+                className="text-xs"
+                style={{ color: "#29B6F6" }}
+              >
+                Привязать
+              </button>
+            )}
+          </div>
+        </Card>
 
         {/* Settings */}
         <Card>
