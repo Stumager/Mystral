@@ -3,13 +3,17 @@ import "./i18n";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Compatibility } from "./pages/Compatibility";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
+import { LunarCalendar } from "./pages/LunarCalendar";
 import { NatalChart } from "./pages/NatalChart";
+import { Numerology } from "./pages/Numerology";
 import { Profile } from "./pages/Profile";
+import { Runes } from "./pages/Runes";
 import { Tarot } from "./pages/Tarot";
 
-type Page = "home" | "tarot" | "moon" | "natal" | "profile";
+type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes";
 
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
@@ -36,10 +40,16 @@ function AppInner() {
   const showOnboarding = !onboardingDismissed && !user.has_birth_date;
 
   let content;
-  if (page === "tarot")        content = <Tarot     onNavigate={navigate} />;
-  else if (page === "natal")   content = <NatalChart onNavigate={navigate} />;
-  else if (page === "profile") content = <Profile    onNavigate={navigate} />;
-  else                         content = <Home       onNavigate={navigate} />;
+  if (page === "tarot")           content = <Tarot         onNavigate={navigate} />;
+  else if (page === "natal")      content = <NatalChart    onNavigate={navigate} />;
+  else if (page === "profile")    content = <Profile       onNavigate={navigate} />;
+  else if (page === "moon" || page === "lunar")
+                                  content = <LunarCalendar onNavigate={navigate} />;
+  else if (page === "compat")     content = <Compatibility onNavigate={navigate} />;
+  else if (page === "numerology" || page === "numero")
+                                  content = <Numerology    onNavigate={navigate} />;
+  else if (page === "runes")      content = <Runes         onNavigate={navigate} />;
+  else                            content = <Home          onNavigate={navigate} />;
 
   return (
     <>
