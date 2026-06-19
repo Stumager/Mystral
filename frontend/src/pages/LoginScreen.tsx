@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
 
@@ -7,6 +8,7 @@ type Mode = "login" | "register";
 const BOT_USERNAME = "Mystrallbot";
 
 export function LoginScreen() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
@@ -29,10 +31,10 @@ export function LoginScreen() {
           body: JSON.stringify({ widget_data: user }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Ошибка");
+        if (!res.ok) throw new Error(data.detail || t("login.tg_error"));
         login(data.access_token, data.user);
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Ошибка входа через Telegram");
+        setError(e instanceof Error ? e.message : t("login.tg_error"));
       } finally {
         setLoading(false);
       }
@@ -67,10 +69,10 @@ export function LoginScreen() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Ошибка");
+      if (!res.ok) throw new Error(data.detail || "Error");
       login(data.access_token, data.user);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export function LoginScreen() {
         ✦ Mystral
       </h1>
       <p className="text-text-muted text-xs tracking-widest uppercase mb-10">
-        Эзотерическая платформа
+        {t("login.subtitle")}
       </p>
 
       {/* Mode switcher */}
@@ -107,7 +109,7 @@ export function LoginScreen() {
               color: mode === m ? "#9B8AFF" : "#9B8FBB",
             }}
           >
-            {m === "login" ? "Войти" : "Регистрация"}
+            {m === "login" ? t("login.tab_login") : t("login.tab_register")}
           </button>
         ))}
       </div>
@@ -115,7 +117,7 @@ export function LoginScreen() {
       <div className="w-full max-w-[320px] flex flex-col gap-3">
         {mode === "register" && (
           <input
-            placeholder="Имя"
+            placeholder={t("login.name")}
             value={name}
             onChange={e => setName(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
@@ -124,7 +126,7 @@ export function LoginScreen() {
         )}
         <input
           type="email"
-          placeholder="Email"
+          placeholder={t("login.email")}
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
@@ -132,7 +134,7 @@ export function LoginScreen() {
         />
         <input
           type="password"
-          placeholder="Пароль"
+          placeholder={t("login.password")}
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSubmit()}
@@ -150,13 +152,13 @@ export function LoginScreen() {
           onClick={handleSubmit}
           disabled={loading}
         >
-          {loading ? "..." : mode === "login" ? "Войти" : "Зарегистрироваться"}
+          {loading ? "..." : mode === "login" ? t("login.submit_login") : t("login.submit_register")}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-1">
           <div className="flex-1 h-px" style={{ background: "rgba(140,110,255,0.15)" }} />
-          <span className="text-text-faint text-[10px]">или</span>
+          <span className="text-text-faint text-[10px]">{t("login.or")}</span>
           <div className="flex-1 h-px" style={{ background: "rgba(140,110,255,0.15)" }} />
         </div>
 
@@ -165,7 +167,7 @@ export function LoginScreen() {
       </div>
 
       <p className="text-text-faint text-[10px] mt-8 text-center">
-        В Telegram-приложении вход происходит автоматически
+        {t("login.tma_hint")}
       </p>
     </div>
   );

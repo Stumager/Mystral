@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { getZodiacSign } from "../utils/zodiac";
 
 interface ProfilePageProps {
   onNavigate: (page: string) => void;
@@ -16,33 +18,11 @@ interface ProfileData {
   completion_percent: number;
 }
 
-function getZodiacSign(dateStr: string): string {
-  const [, m, d] = dateStr.split("-").map(Number);
-  if ((m === 3 && d >= 21) || (m === 4 && d <= 19)) return "Овен";
-  if ((m === 4 && d >= 20) || (m === 5 && d <= 20)) return "Телец";
-  if ((m === 5 && d >= 21) || (m === 6 && d <= 20)) return "Близнецы";
-  if ((m === 6 && d >= 21) || (m === 7 && d <= 22)) return "Рак";
-  if ((m === 7 && d >= 23) || (m === 8 && d <= 22)) return "Лев";
-  if ((m === 8 && d >= 23) || (m === 9 && d <= 22)) return "Дева";
-  if ((m === 9 && d >= 23) || (m === 10 && d <= 22)) return "Весы";
-  if ((m === 10 && d >= 23) || (m === 11 && d <= 21)) return "Скорпион";
-  if ((m === 11 && d >= 22) || (m === 12 && d <= 21)) return "Стрелец";
-  if ((m === 12 && d >= 22) || (m === 1 && d <= 19)) return "Козерог";
-  if ((m === 1 && d >= 20) || (m === 2 && d <= 18)) return "Водолей";
-  return "Рыбы";
-}
-
-const PROGRESS_HINTS = [
-  "Добавь дату → получи базовый гороскоп",
-  "Добавь время → точный Асцендент",
-  "Добавь город → натальная карта",
-  "Добавь имя → персональные предсказания",
-];
-
 const BOT_ID = "8998390466";
 
 export function Profile({ onNavigate }: ProfilePageProps) {
-  const { user, token, logout } = useAuth();
+  const { t } = useTranslation();
+  const { user, token, logout, updateUser } = useAuth();
   const loaded = useRef(false);
 
   const [form, setForm] = useState({
@@ -76,6 +56,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
   }
+
+  const progressHints = [
+    t("profile.hint_date"),
+    t("profile.hint_time"),
+    t("profile.hint_city"),
+    t("profile.hint_name"),
+  ];
 
   useEffect(() => {
     if (loaded.current || !token) return;
@@ -125,9 +112,9 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       });
       const data = await res.json();
       setCompletion(data.completion_percent);
-      showToast("Сохранено ✦");
+      showToast(t("profile.saved"));
     } catch {
-      showToast("Ошибка сохранения");
+      showToast(t("profile.save_error"));
     } finally {
       setSaving(false);
     }
@@ -135,6 +122,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   async function handleLang(newLang: string) {
     setLang(newLang);
+    updateUser({ lang: newLang });
     await fetch("/api/v1/profile", {
       method: "PUT",
       headers: authHeaders(),
@@ -144,7 +132,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   async function handleLinkEmail() {
     if (linkEmailForm.password !== linkEmailForm.confirm) {
-      setLinkEmailError("Пароли не совпадают");
+      setLinkEmailError(t("profile.passwords_mismatch"));
       return;
     }
     setLinkEmailError("");
@@ -156,13 +144,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         body: JSON.stringify({ email: linkEmailForm.email, password: linkEmailForm.password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Ошибка");
+      if (!res.ok) throw new Error(data.detail || "Error");
       setProviders(p => [...p, "email"]);
       setShowLinkEmail(false);
       setLinkEmailForm({ email: "", password: "", confirm: "" });
-      showToast("Email привязан ✦");
+      showToast(t("profile.email_linked"));
     } catch (e: unknown) {
-      setLinkEmailError(e instanceof Error ? e.message : "Ошибка");
+      setLinkEmailError(e instanceof Error ? e.message : "Error");
     } finally {
       setLinkingEmail(false);
     }
@@ -172,7 +160,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
     const origin = encodeURIComponent(window.location.origin);
     const url = `https://oauth.telegram.org/auth?bot_id=${BOT_ID}&origin=${origin}&request_access=write&embed=1`;
     const popup = window.open(url, "_blank", "width=550,height=450,popup");
-    if (!popup) { showToast("Popup заблокирован"); return; }
+    if (!popup) { showToast(t("profile.popup_blocked")); return; }
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.origin !== "https://oauth.telegram.org") return;
@@ -188,11 +176,11 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           body: JSON.stringify({ widget_data: data }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || "Ошибка");
+        if (!res.ok) throw new Error(json.detail || "Error");
         setProviders(p => [...p, "telegram"]);
-        showToast("Telegram привязан ✦");
+        showToast(t("profile.tg_linked"));
       } catch (e: unknown) {
-        showToast(e instanceof Error ? e.message : "Ошибка привязки");
+        showToast(e instanceof Error ? e.message : t("profile.link_error"));
       }
     };
 
@@ -214,9 +202,12 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const zodiac = form.year && form.month && form.day
     ? getZodiacSign(`${form.year}-${form.month.padStart(2, "0")}-${form.day.padStart(2, "0")}`)
     : null;
+  const zodiacLabel = zodiac
+    ? (user?.lang === "en" ? zodiac.en : zodiac.sign)
+    : null;
 
   const hintIndex = Math.floor(completion / 25);
-  const hint = completion < 100 ? PROGRESS_HINTS[hintIndex] ?? PROGRESS_HINTS[3] : "Профиль заполнен полностью ✦";
+  const hint = completion < 100 ? progressHints[hintIndex] ?? progressHints[3] : t("profile.hint_done");
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative">
@@ -226,7 +217,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       >
         <div className="w-8" />
         <span className="font-display text-text-primary text-base tracking-widest">
-          ✦ Профиль
+          {t("profile.title")}
         </span>
         <div className="w-8" />
       </header>
@@ -242,17 +233,17 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             {firstLetter}
           </div>
           <p className="font-display text-text-primary text-xl">
-            {user?.name ?? "Гость"}
+            {user?.name ?? t("profile.guest")}
           </p>
-          {zodiac && (
-            <p className="text-text-faint text-xs">{zodiac}</p>
+          {zodiacLabel && (
+            <p className="text-text-faint text-xs">{zodiacLabel}</p>
           )}
         </div>
 
         {/* Progress */}
         <Card>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-text-muted text-xs">Профиль заполнен на</p>
+            <p className="text-text-muted text-xs">{t("profile.completed")}</p>
             <p className="font-display text-sm" style={{ color: "#C9A84C" }}>
               {completion}%
             </p>
@@ -272,20 +263,20 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {/* Birth data form */}
         <Card>
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
-            Данные рождения
+            {t("profile.birth_data")}
           </p>
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-3 gap-2">
-              <input className={inputCls} placeholder="День"   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
-              <input className={inputCls} placeholder="Месяц"  type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
-              <input className={inputCls} placeholder="Год"    type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+              <input className={inputCls} placeholder={t("profile.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+              <input className={inputCls} placeholder={t("profile.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+              <input className={inputCls} placeholder={t("profile.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input className={inputCls} placeholder="Час (0–23)"   type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
-              <input className={inputCls} placeholder="Минуты"       type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
+              <input className={inputCls} placeholder={t("profile.hour")}    type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
+              <input className={inputCls} placeholder={t("profile.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
-            <input className={inputCls} placeholder="Город рождения" value={form.city} onChange={setField("city")} />
-            <input className={inputCls} placeholder="Имя при рождении" value={form.name} onChange={setField("name")} />
+            <input className={inputCls} placeholder={t("profile.birth_city")} value={form.city} onChange={setField("city")} />
+            <input className={inputCls} placeholder={t("profile.birth_name")} value={form.name} onChange={setField("name")} />
           </div>
 
           <Button
@@ -294,7 +285,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Сохранение..." : "Сохранить"}
+            {saving ? t("profile.saving") : t("profile.save")}
           </Button>
 
           {toast && (
@@ -309,22 +300,15 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           <Card>
             <div className="flex items-center gap-2">
               <span className="font-display text-sm" style={{ color: "#C9A84C" }}>✦</span>
-              <p className="font-display text-sm text-text-primary">Mystral Pro активен</p>
+              <p className="font-display text-sm text-text-primary">{t("profile.pro_active")}</p>
             </div>
-            <p className="text-text-faint text-[10px] mt-1">Безлимитный доступ ко всем функциям</p>
+            <p className="text-text-faint text-[10px] mt-1">{t("profile.pro_unlimited")}</p>
           </Card>
         ) : (
           <Card>
-            <p className="text-text-muted text-xs mb-3">
-              Бесплатный план · 1 расклад/день
-            </p>
-            <Button
-              variant="gold"
-              size="sm"
-              className="w-full"
-              onClick={() => setShowPaywall(true)}
-            >
-              Перейти на Pro ✦
+            <p className="text-text-muted text-xs mb-3">{t("profile.free_plan")}</p>
+            <Button variant="gold" size="sm" className="w-full" onClick={() => setShowPaywall(true)}>
+              {t("profile.upgrade")}
             </Button>
           </Card>
         )}
@@ -332,107 +316,56 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {/* Linked accounts */}
         <Card>
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-4">
-            Связанные аккаунты
+            {t("profile.linked_accounts")}
           </p>
 
-          {/* Email row */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-text-muted text-sm">Email</span>
                 {providers.includes("email") && (
-                  <span
-                    className="text-[10px] px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(107,78,255,0.15)", color: "#9B8AFF" }}
-                  >
-                    Привязан
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(107,78,255,0.15)", color: "#9B8AFF" }}>
+                    {t("profile.linked")}
                   </span>
                 )}
               </div>
               {!providers.includes("email") && !showLinkEmail && (
-                <button
-                  onClick={() => setShowLinkEmail(true)}
-                  className="text-xs"
-                  style={{ color: "#9B8AFF" }}
-                >
-                  Добавить
+                <button onClick={() => setShowLinkEmail(true)} className="text-xs" style={{ color: "#9B8AFF" }}>
+                  {t("profile.add")}
                 </button>
               )}
             </div>
 
             {showLinkEmail && (
               <div className="flex flex-col gap-2">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={linkEmailForm.email}
-                  onChange={e => setLinkEmailForm(p => ({ ...p, email: e.target.value }))}
-                  className={inputCls}
-                />
-                <input
-                  type="password"
-                  placeholder="Пароль"
-                  value={linkEmailForm.password}
-                  onChange={e => setLinkEmailForm(p => ({ ...p, password: e.target.value }))}
-                  className={inputCls}
-                />
-                <input
-                  type="password"
-                  placeholder="Повторите пароль"
-                  value={linkEmailForm.confirm}
-                  onChange={e => setLinkEmailForm(p => ({ ...p, confirm: e.target.value }))}
-                  className={inputCls}
-                />
-                {linkEmailError && (
-                  <p className="text-red-400 text-xs">{linkEmailError}</p>
-                )}
+                <input type="email" placeholder={t("login.email")} value={linkEmailForm.email} onChange={e => setLinkEmailForm(p => ({ ...p, email: e.target.value }))} className={inputCls} />
+                <input type="password" placeholder={t("profile.password")} value={linkEmailForm.password} onChange={e => setLinkEmailForm(p => ({ ...p, password: e.target.value }))} className={inputCls} />
+                <input type="password" placeholder={t("profile.confirm_password")} value={linkEmailForm.confirm} onChange={e => setLinkEmailForm(p => ({ ...p, confirm: e.target.value }))} className={inputCls} />
+                {linkEmailError && <p className="text-red-400 text-xs">{linkEmailError}</p>}
                 <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="flex-1"
-                    onClick={handleLinkEmail}
-                    disabled={linkingEmail}
-                  >
-                    {linkingEmail ? "..." : "Сохранить"}
+                  <Button variant="primary" size="sm" className="flex-1" onClick={handleLinkEmail} disabled={linkingEmail}>
+                    {linkingEmail ? "..." : t("profile.save")}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      setShowLinkEmail(false);
-                      setLinkEmailForm({ email: "", password: "", confirm: "" });
-                      setLinkEmailError("");
-                    }}
-                  >
-                    Отмена
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowLinkEmail(false); setLinkEmailForm({ email: "", password: "", confirm: "" }); setLinkEmailError(""); }}>
+                    {t("profile.cancel")}
                   </Button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Telegram row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-text-muted text-sm">Telegram</span>
               {providers.includes("telegram") && (
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded-full"
-                  style={{ background: "rgba(41,182,246,0.12)", color: "#29B6F6" }}
-                >
-                  Привязан
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(41,182,246,0.12)", color: "#29B6F6" }}>
+                  {t("profile.linked")}
                 </span>
               )}
             </div>
             {!providers.includes("telegram") && (
-              <button
-                onClick={handleTelegramWebLogin}
-                className="text-xs"
-                style={{ color: "#29B6F6" }}
-              >
-                Привязать
+              <button onClick={handleTelegramWebLogin} className="text-xs" style={{ color: "#29B6F6" }}>
+                {t("profile.link")}
               </button>
             )}
           </div>
@@ -441,11 +374,11 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {/* Settings */}
         <Card>
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
-            Настройки
+            {t("profile.settings")}
           </p>
 
           <div className="flex items-center justify-between mb-4">
-            <span className="text-text-muted text-sm">Язык</span>
+            <span className="text-text-muted text-sm">{t("profile.language")}</span>
             <div className="flex rounded-xl overflow-hidden border border-border-subtle">
               {(["ru", "en"] as const).map(l => (
                 <button
@@ -463,13 +396,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full"
-            onClick={logout}
-          >
-            Выйти
+          <Button variant="ghost" size="sm" className="w-full" onClick={logout}>
+            {t("profile.logout")}
           </Button>
         </Card>
 
@@ -477,18 +405,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
       {/* Toast overlay */}
       {toast && (
-        <div
-          className="fixed top-14 left-0 right-0 flex justify-center pointer-events-none"
-          style={{ zIndex: 50 }}
-        >
-          <span
-            className="text-xs px-4 py-2 rounded-full"
-            style={{
-              background: "rgba(107,78,255,0.2)",
-              border: "0.5px solid rgba(107,78,255,0.4)",
-              color: "#C9A84C",
-            }}
-          >
+        <div className="fixed top-14 left-0 right-0 flex justify-center pointer-events-none" style={{ zIndex: 50 }}>
+          <span className="text-xs px-4 py-2 rounded-full" style={{ background: "rgba(107,78,255,0.2)", border: "0.5px solid rgba(107,78,255,0.4)", color: "#C9A84C" }}>
             {toast}
           </span>
         </div>
@@ -496,10 +414,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
       <BottomNav active="profile" onNavigate={onNavigate} />
 
-      <PaywallSheet
-        open={showPaywall}
-        onClose={() => setShowPaywall(false)}
-      />
+      <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
     </div>
   );
 }

@@ -15,7 +15,7 @@ from app.core.security import (
     validate_telegram_widget,
     verify_password,
 )
-from app.models.user import AuthProvider, User
+from app.models.user import AuthProvider, User, UserProfile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -53,7 +53,11 @@ class MergeRequest(BaseModel):
     password: str
 
 
-def _user_response(user: User, token: str) -> dict:
+async def _user_response(user: User, token: str, session: AsyncSession) -> dict:
+    profile_result = await session.exec(
+        select(UserProfile).where(UserProfile.user_id == user.id)
+    )
+    profile = profile_result.first()
     return {
         "access_token": token,
         "user": {
@@ -61,6 +65,7 @@ def _user_response(user: User, token: str) -> dict:
             "name": user.display_name,
             "lang": user.lang,
             "tier": user.subscription_tier,
+            "has_birth_date": profile is not None and profile.birth_date is not None,
         },
     }
 
@@ -121,7 +126,7 @@ async def auth_telegram(
         await session.commit()
         await session.refresh(user)
 
-    response = _user_response(user, create_jwt(str(user.id)))
+    response = await _user_response(user, create_jwt(str(user.id)), session)
     response["is_new"] = is_new
     return response
 
@@ -148,7 +153,7 @@ async def register(
     await session.commit()
     await session.refresh(user)
 
-    return _user_response(user, create_jwt(str(user.id)))
+    return await _user_response(user, create_jwt(str(user.id)), session)
 
 
 @router.post("/login")
@@ -173,7 +178,7 @@ async def login(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
-    return _user_response(user, create_jwt(str(user.id)))
+    return await _user_response(user, create_jwt(str(user.id)), session)
 
 
 @router.get("/me")
@@ -185,12 +190,17 @@ async def me(
         select(AuthProvider).where(AuthProvider.user_id == current_user.id)
     )
     providers = [p.provider for p in result.all()]
+    profile_result = await session.exec(
+        select(UserProfile).where(UserProfile.user_id == current_user.id)
+    )
+    profile = profile_result.first()
     return {
         "id": str(current_user.id),
         "name": current_user.display_name,
         "lang": current_user.lang,
         "tier": current_user.subscription_tier,
         "providers": providers,
+        "has_birth_date": profile is not None and profile.birth_date is not None,
     }
 
 
@@ -292,4 +302,4 @@ async def merge_accounts(
 
     await session.commit()
     await session.refresh(email_user)
-    return _user_response(email_user, create_jwt(str(email_user.id)))
+    return await _user_response(email_user, create_jwt(str(email_user.id)), session)

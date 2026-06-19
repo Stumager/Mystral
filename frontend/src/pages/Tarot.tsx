@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { TarotCard } from "../components/tarot/TarotCard";
 import { BottomNav, Button, Card } from "../components/ui";
@@ -11,7 +12,8 @@ interface TarotProps {
 }
 
 export function Tarot({ onNavigate }: TarotProps) {
-  const { token } = useAuth();
+  const { t } = useTranslation();
+  const { user, token } = useAuth();
   const [cards, setCards] = useState<TarotCardData[]>(() => drawCards(3));
   const [revealed, setRevealState] = useState([false, false, false]);
   const [isReading, setIsReading] = useState(false);
@@ -41,8 +43,8 @@ export function Tarot({ onNavigate }: TarotProps) {
         "/tarot/interpret",
         {
           cards: cards.map(c => c.name_ru),
-          positions: ["прошлое", "настоящее", "будущее"],
-          lang: "ru",
+          positions: [t("tarot.past"), t("tarot.present"), t("tarot.future")],
+          lang: user?.lang ?? "ru",
         },
         (chunk) => setInterpretation(prev => prev + chunk),
         () => setIsReading(false),
@@ -53,7 +55,7 @@ export function Tarot({ onNavigate }: TarotProps) {
       if (err.code === "FREE_LIMIT_REACHED") {
         setShowPaywall(true);
       } else {
-        setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+        setInterpretation(t("tarot.error"));
       }
       setIsReading(false);
     }
@@ -82,10 +84,10 @@ export function Tarot({ onNavigate }: TarotProps) {
       <main className="flex-1 px-4 pt-6 pb-24 overflow-y-auto">
 
         <p className="text-text-faint text-[10px] uppercase tracking-widest mb-1">
-          Расклад дня
+          {t("tarot.title")}
         </p>
         <p className="font-display text-xl text-text-primary font-light mb-6">
-          Прошлое · Настоящее · Будущее
+          {t("tarot.spread")}
         </p>
 
         <div className="flex justify-center gap-3 mb-8" style={{ perspective: "800px" }}>
@@ -102,20 +104,20 @@ export function Tarot({ onNavigate }: TarotProps) {
 
         {!allRevealed && (
           <p className="text-text-faint text-xs text-center mb-6">
-            Коснись карты чтобы открыть
+            {t("tarot.tap_hint")}
           </p>
         )}
 
         {allRevealed && !isReading && !interpretation && (
           <Button variant="primary" className="w-full mb-4" onClick={handleInterpret}>
-            Получить толкование ✦
+            {t("tarot.interpret")}
           </Button>
         )}
 
         {interpretation && (
           <Card className="mb-4">
             <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-              Толкование · AI
+              {t("tarot.interpretation_label")}
             </p>
             <p className="text-text-muted text-xs leading-relaxed">
               {interpretation}
@@ -126,7 +128,7 @@ export function Tarot({ onNavigate }: TarotProps) {
 
         {allRevealed && !isReading && (
           <Button variant="ghost" className="w-full" onClick={newSpread}>
-            Новый расклад
+            {t("tarot.new_spread")}
           </Button>
         )}
 

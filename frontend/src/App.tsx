@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./i18n";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
+import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
@@ -12,7 +13,8 @@ type Page = "home" | "tarot" | "moon" | "natal" | "profile";
 
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
-  const { user, isLoading, pendingMerge, dismissMerge } = useAuth();
+  const { user, isLoading, pendingMerge, dismissMerge, updateUser } = useAuth();
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const navigate = (p: string) => setPage(p as Page);
 
@@ -31,6 +33,8 @@ function AppInner() {
 
   if (!user) return <LoginScreen />;
 
+  const showOnboarding = !onboardingDismissed && !user.has_birth_date;
+
   let content;
   if (page === "tarot")        content = <Tarot     onNavigate={navigate} />;
   else if (page === "natal")   content = <NatalChart onNavigate={navigate} />;
@@ -41,6 +45,12 @@ function AppInner() {
     <>
       {content}
       {pendingMerge && <MergeAccountPrompt onClose={dismissMerge} />}
+      {showOnboarding && !pendingMerge && (
+        <OnboardingModal onClose={() => {
+          setOnboardingDismissed(true);
+          updateUser({ has_birth_date: true });
+        }} />
+      )}
     </>
   );
 }

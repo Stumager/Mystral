@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
@@ -23,7 +24,8 @@ interface NatalResult {
 }
 
 export function NatalChart({ onNavigate }: NatalChartProps) {
-  const { token } = useAuth();
+  const { t } = useTranslation();
+  const { user, token } = useAuth();
   const [step, setStep] = useState<"form" | "result">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -77,7 +79,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     hour: parseInt(form.hour || "12"),
     minute: parseInt(form.minute || "0"),
     city: form.city,
-    lang: "ru",
+    lang: user?.lang ?? "ru",
   });
 
   async function handleCalculate() {
@@ -114,7 +116,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         }).catch(() => {});
       }
     } catch {
-      setError("Не удалось рассчитать карту. Проверь данные.");
+      setError(t("natal.calc_error"));
     } finally {
       setLoading(false);
     }
@@ -137,7 +139,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
       if (err.code === "FREE_LIMIT_REACHED") {
         setShowPaywall(true);
       } else {
-        setInterpretation("Ошибка соединения. Попробуй ещё раз.");
+        setInterpretation(t("natal.connection_error"));
       }
       setInterpretLoading(false);
     }
@@ -163,7 +165,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
           ‹
         </button>
         <span className="font-display text-text-primary text-base tracking-widest">
-          ✦ Натальная карта
+          {t("natal.title")}
         </span>
         <div className="w-8" />
       </header>
@@ -172,36 +174,36 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         {step === "form" ? (
           <div className="flex flex-col gap-3">
             <p className="text-text-muted text-xs text-center mb-1">
-              Введи данные рождения для расчёта карты
+              {t("natal.subtitle")}
             </p>
 
             <input
               className={inputCls}
-              placeholder="Имя"
+              placeholder={t("natal.name")}
               value={form.name}
               onChange={setField("name")}
             />
 
             <div className="grid grid-cols-3 gap-2">
-              <input className={inputCls} placeholder="День"   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
-              <input className={inputCls} placeholder="Месяц"  type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
-              <input className={inputCls} placeholder="Год"    type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+              <input className={inputCls} placeholder={t("natal.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+              <input className={inputCls} placeholder={t("natal.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+              <input className={inputCls} placeholder={t("natal.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <input className={inputCls} placeholder="Час (0–23)" type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
-              <input className={inputCls} placeholder="Минуты"     type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
+              <input className={inputCls} placeholder={t("natal.hour")}    type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
+              <input className={inputCls} placeholder={t("natal.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
 
             <input
               className={inputCls}
-              placeholder="Город рождения"
+              placeholder={t("natal.birth_city")}
               value={form.city}
               onChange={setField("city")}
             />
 
             <p className="text-text-faint text-[10px] text-center">
-              Время влияет на точность Асцендента
+              {t("natal.time_hint")}
             </p>
 
             <label className="flex items-center gap-2 cursor-pointer self-start">
@@ -211,7 +213,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 onChange={e => setSaveToProfile(e.target.checked)}
                 className="w-3.5 h-3.5 accent-violet-600"
               />
-              <span className="text-text-muted text-xs">Сохранить в профиль</span>
+              <span className="text-text-muted text-xs">{t("natal.save_to_profile")}</span>
             </label>
 
             {error && (
@@ -224,20 +226,20 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               onClick={handleCalculate}
               disabled={loading || !canSubmit}
             >
-              {loading ? "Расчёт..." : "Рассчитать карту ✦"}
+              {loading ? t("natal.calculating") : t("natal.calculate")}
             </Button>
           </div>
         ) : result ? (
           <div className="flex flex-col gap-4">
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
-                Большая тройка
+                {t("natal.big_three")}
               </p>
               <div className="flex flex-col gap-2.5">
                 {[
-                  { icon: "☀️", label: "Солнце",    planet: result.sun },
-                  { icon: "🌙", label: "Луна",       planet: result.moon },
-                  { icon: "⬆️", label: "Асцендент", planet: result.rising },
+                  { icon: "☀️", label: t("natal.sun"),       planet: result.sun },
+                  { icon: "🌙", label: t("natal.moon"),      planet: result.moon },
+                  { icon: "⬆️", label: t("natal.ascendant"), planet: result.rising },
                 ].map(({ icon, label, planet }) => (
                   <div key={label} className="flex items-center justify-between">
                     <span className="text-text-muted text-sm">{icon} {label}</span>
@@ -254,7 +256,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
-                Планеты
+                {t("natal.planets")}
               </p>
               <div className="flex flex-col gap-2.5">
                 {[
@@ -273,7 +275,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {interpretation ? (
               <Card>
                 <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-                  Интерпретация
+                  {t("natal.interpretation")}
                 </p>
                 <p className="text-text-muted text-xs leading-relaxed">
                   {interpretation}
@@ -287,7 +289,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 onClick={handleInterpret}
                 disabled={interpretLoading}
               >
-                {interpretLoading ? "Читаю карту..." : "Получить интерпретацию ✦"}
+                {interpretLoading ? t("natal.reading") : t("natal.get_interpretation")}
               </Button>
             )}
           </div>

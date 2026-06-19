@@ -1,43 +1,81 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ZodiacOrb } from "../components/three/ZodiacOrb";
 import { BottomNav, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { getZodiacSign, ZodiacInfo } from "../utils/zodiac";
 
 interface HomeProps {
   onNavigate: (page: string) => void;
 }
 
-const tools = [
-  { id: "tarot",  icon: "🃏", label: "Карты Таро" },
-  { id: "moon",   icon: "🌙", label: "Лунный день" },
-  { id: "natal",  icon: "🌟", label: "Натальная" },
-  { id: "compat", icon: "💑", label: "Совместимость" },
-  { id: "numero", icon: "🔢", label: "Нумерология" },
-  { id: "runes",  icon: "ᚱ",  label: "Руны" },
-];
+function getGreeting(t: (k: string) => string): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return t("home.greeting_morning");
+  if (h >= 12 && h < 18) return t("home.greeting_afternoon");
+  if (h >= 18 && h < 23) return t("home.greeting_evening");
+  return t("home.greeting_night");
+}
 
 export function Home({ onNavigate }: HomeProps) {
-  const { user } = useAuth();
+  const { t } = useTranslation();
+  const { user, token } = useAuth();
   const [horoscope, setHoroscope] = useState("");
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
+  const [zodiac, setZodiac] = useState<ZodiacInfo | null>(null);
 
   const called = useRef(false);
+
+  const tools = [
+    { id: "tarot",  icon: "🃏", label: t("home.tool_tarot") },
+    { id: "moon",   icon: "🌙", label: t("home.tool_moon") },
+    { id: "natal",  icon: "🌟", label: t("home.tool_natal") },
+    { id: "compat", icon: "💑", label: t("home.tool_compat") },
+    { id: "numero", icon: "🔢", label: t("home.tool_numero") },
+    { id: "runes",  icon: "ᚱ",  label: t("home.tool_runes") },
+  ];
 
   useEffect(() => {
     if (called.current) return;
     called.current = true;
 
-    streamRequest(
-      "/horoscope/stream",
-      { sign: "scorpio", lang: "ru", date: new Date().toISOString().slice(0, 10) },
-      (chunk) => setHoroscope(prev => prev + chunk),
-      () => setHoroscopeLoading(false)
-    ).catch(() => {
-      setHoroscope("Звёзды временно недоступны. Попробуй позже.");
-      setHoroscopeLoading(false);
-    });
+    const lang = user?.lang ?? "ru";
+
+    async function load() {
+      let sign = "aries";
+      if (token) {
+        try {
+          const res = await fetch("/api/v1/profile", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.birth_date) {
+            const z = getZodiacSign(data.birth_date);
+            setZodiac(z);
+            sign = z.en.toLowerCase();
+          }
+        } catch {}
+      }
+
+      streamRequest(
+        "/horoscope/stream",
+        { sign, lang, date: new Date().toISOString().slice(0, 10) },
+        (chunk) => setHoroscope(prev => prev + chunk),
+        () => setHoroscopeLoading(false),
+      ).catch(() => {
+        setHoroscope(t("home.stars_unavailable"));
+        setHoroscopeLoading(false);
+      });
+    }
+
+    load();
   }, []);
+
+  const zodiacLabel = zodiac
+    ? (user?.lang === "en" ? zodiac.en : zodiac.sign)
+    : null;
+  const dateFmt = user?.lang === "en" ? "en-US" : "ru-RU";
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative overflow-hidden">
@@ -57,26 +95,31 @@ export function Home({ onNavigate }: HomeProps) {
 
         <div className="mb-4">
           <p className="text-text-faint text-xs uppercase tracking-widest mb-1">
-            Добрый вечер
+            {getGreeting(t)}
           </p>
           <p className="text-text-primary font-display text-2xl font-light">
-            {user?.name ?? "Гость"} ✨
+            {user?.name ?? t("profile.guest")} ✨
           </p>
           <p className="text-text-muted text-xs mt-1">
-            Скорпион · 11-й лунный день
+            {zodiacLabel
+              ? `${zodiacLabel} · ${t("home.lunar_day")}`
+              : t("home.zodiac_fallback")}
           </p>
         </div>
 
         <div className="flex justify-center mb-5">
-          <ZodiacOrb sign="Скорпион" symbol="♏" />
+          <ZodiacOrb
+            sign={zodiacLabel ?? "Mystral"}
+            symbol={zodiac?.symbol ?? "✦"}
+          />
         </div>
 
         <Card className="mb-4 relative overflow-hidden">
           <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-            {new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })} · Гороскоп дня
+            {new Date().toLocaleDateString(dateFmt, { day: "numeric", month: "long", year: "numeric" })} · {t("home.daily_horoscope")}
           </p>
           {horoscopeLoading && !horoscope
-            ? <p className="text-text-muted text-xs animate-pulse">Звёзды говорят...</p>
+            ? <p className="text-text-muted text-xs animate-pulse">{t("home.stars_loading")}</p>
             : <p className="text-text-muted text-xs leading-relaxed">
                 {horoscope}
                 {horoscopeLoading && <span className="animate-pulse">▍</span>}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function MergeAccountPrompt({ onClose }: Props) {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,11 +28,11 @@ export function MergeAccountPrompt({ onClose }: Props) {
         body: JSON.stringify({ init_data: initData, email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Ошибка");
+      if (!res.ok) throw new Error(data.detail || t("merge.error"));
       login(data.access_token, data.user);
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка объединения аккаунтов");
+      setError(e instanceof Error ? e.message : t("merge.error"));
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export function MergeAccountPrompt({ onClose }: Props) {
       >
         <div className="flex items-center justify-between">
           <p className="font-display text-text-primary text-base">
-            Связать с аккаунтом
+            {t("merge.title")}
           </p>
           <button
             onClick={onClose}
@@ -63,12 +65,12 @@ export function MergeAccountPrompt({ onClose }: Props) {
         </div>
 
         <p className="text-text-muted text-sm leading-relaxed">
-          Есть аккаунт с email? Введите данные — и Telegram привяжется к нему автоматически.
+          {t("merge.subtitle")}
         </p>
 
         <input
           type="email"
-          placeholder="Email"
+          placeholder={t("merge.email")}
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
@@ -76,7 +78,7 @@ export function MergeAccountPrompt({ onClose }: Props) {
         />
         <input
           type="password"
-          placeholder="Пароль"
+          placeholder={t("merge.password")}
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleMerge()}
@@ -89,14 +91,14 @@ export function MergeAccountPrompt({ onClose }: Props) {
         )}
 
         <Button variant="primary" className="w-full" onClick={handleMerge} disabled={loading || !email || !password}>
-          {loading ? "..." : "Связать аккаунты"}
+          {loading ? "..." : t("merge.submit")}
         </Button>
 
         <button
           onClick={onClose}
           className="text-text-faint text-xs text-center py-1"
         >
-          Пропустить
+          {t("merge.skip")}
         </button>
       </div>
     </div>

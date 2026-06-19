@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import i18n from "../i18n";
 
 interface UserData {
   id: string;
   name: string | null;
   lang: string;
   tier: string;
+  has_birth_date: boolean;
 }
 
 interface AuthContextType {
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(newToken);
     setUser(userData);
     localStorage.setItem("mystral_token", newToken);
+    if (userData.lang) i18n.changeLanguage(userData.lang);
     setIsLoading(false);
   }
 
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function updateUser(patch: Partial<UserData>) {
     setUser(prev => prev ? { ...prev, ...patch } : null);
+    if (patch.lang) i18n.changeLanguage(patch.lang);
   }
 
   function dismissMerge() {
@@ -79,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const userData = await res.json();
             setToken(savedToken);
             setUser(userData);
+            if (userData.lang) i18n.changeLanguage(userData.lang);
             return;
           }
         } catch {}

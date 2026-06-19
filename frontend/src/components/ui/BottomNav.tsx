@@ -1,17 +1,5 @@
 import { useState } from "react";
-
-type NavItem = {
-  id: string;
-  label: string;
-  emoji: string;
-};
-
-const items: NavItem[] = [
-  { id: "home",    label: "Главная", emoji: "🏠" },
-  { id: "tarot",   label: "Таро",    emoji: "🃏" },
-  { id: "moon",    label: "Луна",    emoji: "🌙" },
-  { id: "profile", label: "Профиль", emoji: "☽" },
-];
+import { useTranslation } from "react-i18next";
 
 interface BottomNavProps {
   active?: string;
@@ -19,8 +7,16 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
+  const { t } = useTranslation();
   const [internalActive, setInternalActive] = useState(activeProp ?? "home");
   const active = activeProp !== undefined ? activeProp : internalActive;
+
+  const items = [
+    { id: "home",    label: t("nav.home"),    emoji: "🏠" },
+    { id: "tarot",   label: t("nav.tarot"),   emoji: "🃏" },
+    { id: "moon",    label: t("nav.moon"),    emoji: "🌙" },
+    { id: "profile", label: t("nav.profile"), emoji: "☽" },
+  ];
 
   function handleClick(id: string) {
     if (onNavigate) {
