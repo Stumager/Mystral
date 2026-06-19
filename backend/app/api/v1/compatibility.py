@@ -20,17 +20,33 @@ SIGNS_RU = ["Овен", "Телец", "Близнецы", "Рак", "Лев", "�
 SYMBOLS = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
 
 
+SIGN_RANGES = [
+    #  index, from_month, from_day, to_month, to_day
+    (9,  1, 1,   1, 19),   # Capricorn
+    (10, 1, 20,  2, 18),   # Aquarius
+    (11, 2, 19,  3, 20),   # Pisces
+    (0,  3, 21,  4, 19),   # Aries
+    (1,  4, 20,  5, 20),   # Taurus
+    (2,  5, 21,  6, 20),   # Gemini
+    (3,  6, 21,  7, 22),   # Cancer
+    (4,  7, 23,  8, 22),   # Leo
+    (5,  8, 23,  9, 22),   # Virgo
+    (6,  9, 23,  10, 22),  # Libra
+    (7,  10, 23, 11, 21),  # Scorpio
+    (8,  11, 22, 12, 21),  # Sagittarius
+    (9,  12, 22, 12, 31),  # Capricorn
+]
+
+
 def _sign_index(birth_date: str) -> int:
     _, m, d = birth_date.split("-")
     m, d = int(m), int(d)
-    bounds = [(1,20),(2,19),(3,21),(4,20),(5,21),(6,21),(7,23),(8,23),(9,23),(10,23),(11,22),(12,22)]
-    indices = [10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for i, (bm, bd) in enumerate(bounds):
-        if m == bm and d < bd:
-            return indices[i]
-    # fallback: use month-based
-    month_signs = [9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8]
-    return month_signs[m - 1]
+    for idx, fm, fd, tm, td in SIGN_RANGES:
+        after_from = m > fm or (m == fm and d >= fd)
+        before_to = m < tm or (m == tm and d <= td)
+        if after_from and before_to:
+            return idx
+    return 9
 
 
 def _sun_compat(idx1: int, idx2: int) -> int:
