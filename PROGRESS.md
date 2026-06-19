@@ -326,8 +326,30 @@
     - Статусные бейджи "Привязан" (фиолетовый/голубой) когда provider в списке
 
 - **Проверено:**
-  - `tsc --noEmit` — требует запуска (см. ниже)
+  - `tsc --noEmit` — 0 ошибок
+
+## 2026-06-19 — TZ-013: Официальный Telegram Login Widget (замена popup)
+
+- **Проблема:** popup oauth.telegram.org/auth давал "Bot domain invalid"
+- **Решение:** официальный `<script>` виджет от Telegram
+
+- **Сделано:**
+  - `backend/app/core/security.py` — добавлен `validate_telegram_widget_hash(data: dict) -> bool`
+    (bool-обёртка над `validate_telegram_widget`, для удобства)
+  - `frontend/src/pages/LoginScreen.tsx` — заменён popup на script-виджет:
+    - `tgBtnRef = useRef<HTMLDivElement>()` — контейнер для виджета
+    - useEffect: регистрирует `window.onTelegramWidgetAuth` → POST /auth/telegram (widget_data)
+    - Динамически вставляет `<script data-telegram-login="Mystrallbot" data-size="large" ...>`
+    - Cleanup: `delete window.onTelegramWidgetAuth`
+    - Убрана кнопка-заглушка, вместо неё `<div ref={tgBtnRef} />`
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено в main
+
+- **На VPS:**
+  - `git pull && docker compose -f docker-compose.prod.yml up --build -d frontend && docker compose -f docker-compose.prod.yml restart nginx`
 
 - **Следующий шаг:**
-  - TZ-013: Лунный календарь (страница Moon)
+  - TZ-014: Лунный календарь (страница Moon)
   - Alembic миграции (вместо create_all)
