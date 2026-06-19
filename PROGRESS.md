@@ -351,5 +351,38 @@
   - `git pull && docker compose -f docker-compose.prod.yml up --build -d frontend && docker compose -f docker-compose.prod.yml restart nginx`
 
 - **Следующий шаг:**
-  - TZ-014: Лунный календарь (страница Moon)
+  - TZ-014: Онбординг + динамический знак + EN ✓ (выполнен ниже)
+
+## 2026-06-19 — TZ-014: Онбординг + динамический знак + EN локализация
+
+- **Сделано:**
+  - **БЛОК А — Онбординг:**
+    - `backend/app/api/v1/auth.py` — `_user_response` теперь async, включает `has_birth_date: bool`
+      (запрос UserProfile из БД). GET /auth/me тоже возвращает поле.
+    - `frontend/src/context/AuthContext.tsx` — `has_birth_date` в UserData,
+      `i18n.changeLanguage()` при login/updateUser
+    - `frontend/src/components/OnboardingModal.tsx` — bottom sheet при первом входе:
+      День/Месяц/Год → PUT /profile → updateUser({has_birth_date:true})
+    - `frontend/src/App.tsx` — рендерит OnboardingModal когда user && !has_birth_date
+  - **БЛОК Б — Динамический знак:**
+    - `frontend/src/utils/zodiac.ts` — getZodiacSign(date) → { sign, symbol, en }
+      12 знаков с русскими/английскими названиями + Unicode символами
+    - `frontend/src/pages/Home.tsx` — убран хардкод "Скорпион ♏":
+      GET /profile при монтировании → getZodiacSign → передаётся в ZodiacOrb и streamRequest.
+      Приветствие на основе времени суток (greeting_morning/afternoon/evening/night)
+    - `frontend/src/pages/Profile.tsx` — zodiac из zodiac.ts (убран дублирующий getZodiacSign)
+  - **БЛОК В — EN локализация:**
+    - `frontend/src/i18n/locales/ru.json` — ~100 ключей по 9 неймспейсам
+    - `frontend/src/i18n/locales/en.json` — полный английский перевод
+    - 8 компонентов с `useTranslation() + t('key')`:
+      Home, Tarot, NatalChart, Profile, LoginScreen,
+      BottomNav, PaywallSheet, MergeAccountPrompt, OnboardingModal
+    - Profile: переключатель языка вызывает `updateUser({lang}) + i18n.changeLanguage()`
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (15 файлов, +691 –298)
+
+- **Следующий шаг:**
+  - TZ-015: Лунный календарь (страница Moon)
   - Alembic миграции (вместо create_all)
