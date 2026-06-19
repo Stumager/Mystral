@@ -384,5 +384,40 @@
   - `git push` — запушено (15 файлов, +691 –298)
 
 - **Следующий шаг:**
-  - TZ-015: Лунный календарь (страница Moon)
+  - TZ-015: Недостающие экраны ✓ (выполнен ниже)
+
+## 2026-06-19 — TZ-015: Недостающие экраны — Луна, Совместимость, Нумерология, Руны
+
+- **Сделано:**
+  - **Backend — 4 новых API модуля:**
+    - `lunar.py` — GET /lunar/today (лунный день, фаза, знак луны, рекомендации, энергия),
+      GET /lunar/month (массив дней с фазами). Чистая математика от новолуния 2000-01-06.
+    - `compatibility.py` — POST /compatibility/calculate (совместимость по стихиям,
+      процент + описание), POST /compatibility/interpret (Pro, SSE Groq)
+    - `numerology.py` — POST /numerology/calculate (Life Path, Expression, Soul Urge,
+      Personality). Таблицы Пифагора для латиницы и кириллицы. Free: только Life Path.
+      POST /numerology/interpret (Pro, SSE Groq)
+    - `runes.py` — 24 руны Elder Futhark с RU/EN значениями. POST /runes/draw
+      (1 или 3, 30% вероятность переворота, free: 1/день через Redis).
+      POST /runes/interpret (SSE Groq)
+    - `router.py` — подключены все 4 новых роутера
+  - **Frontend — 4 новых страницы:**
+    - `LunarCalendar.tsx` — Орба луны (CSS), инфо дня, 3 рекомендации,
+      календарь месяца (grid 7 колонок, сегодня подсвечен)
+    - `Compatibility.tsx` — 2 шага form→result. Автозаполнение из профиля.
+      Процент + прогресс-бар + описание. Pro: SSE интерпретация. Free: paywall.
+    - `Numerology.tsx` — Форма с автозаполнением. Life Path крупно + gold.
+      Free: остальные числа заблюрены с замком. Pro: все числа + интерпретация.
+    - `Runes.tsx` — 3 режима idle→drawing→result. Выбор 1/3 руны (3 = Pro).
+      Анимация появления. Карточки с символом, позицией, значением.
+    - `App.tsx` — роуты: moon/lunar → LunarCalendar, compat → Compatibility,
+      numerology/numero → Numerology, runes → Runes
+    - i18n: ~50 новых ключей в ru.json + en.json
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (12 файлов, +1511)
+
+- **Следующий шаг:**
   - Alembic миграции (вместо create_all)
+  - Тестирование на VPS
