@@ -58,6 +58,11 @@ def validate_telegram_hash(init_data: str) -> dict | None:
     return parsed
 
 
+def validate_telegram_widget_hash(data: dict) -> bool:
+    """Boolean check for Telegram Login Widget data validity."""
+    return validate_telegram_widget(data) is not None
+
+
 def validate_telegram_widget(data: dict) -> dict | None:
     """Telegram Login Widget validation — uses SHA256(bot_token) as secret, not nested HMAC."""
     data = dict(data)
