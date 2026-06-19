@@ -20,6 +20,7 @@ dist/
 
 # Env
 .env
+.env.prod
 *.local
 
 # Docker

@@ -1,50 +1,67 @@
+version: '3.8'
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mystral
+      POSTGRES_USER: mystral
+      POSTGRES_PASSWORD: mystral123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mystral-net
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - mystral-net
+    restart: always
+
   backend:
     build: ./backend
-    restart: always
     env_file: .env.prod
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
-    networks:
-      - mystral_net
-      - shared_infra
     depends_on:
-      - nginx
-
-  bot:
-    build: ./bot
-    restart: always
-    env_file: .env.prod
+      - postgres
+      - redis
     networks:
-      - mystral_net
-      - shared_infra
+      - mystral-net
+    restart: always
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
-    restart: always
     networks:
-      - mystral_net
+      - mystral-net
+    restart: always
+
+  bot:
+    build: ./bot
+    env_file: .env.prod
+    depends_on:
+      - backend
+    networks:
+      - mystral-net
+    restart: always
 
   nginx:
     image: nginx:alpine
-    restart: always
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
     depends_on:
       - backend
       - frontend
     networks:
-      - mystral_net
+      - mystral-net
+    restart: always
+
+volumes:
+  postgres_data:
 
 networks:
-  mystral_net:
+  mystral-net:
     driver: bridge
-  shared_infra:
-    external: true
-    # Run `docker network ls` on VPS to find SweetSin's network name and update here
-    name: sweetsin_default
-
-volumes: {}

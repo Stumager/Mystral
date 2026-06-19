@@ -270,5 +270,28 @@
   - `docker-compose restart backend` — Application startup complete ✓
 
 - **Следующий шаг:**
-  - TZ-011: Лунный календарь (страница Moon)
+  - TZ-011: Production deploy ✓ (выполнен ниже)
+  - TZ-012: Лунный календарь (страница Moon)
   - Alembic миграции (вместо create_all)
+
+## 2026-06-18 — TZ-011: Production деплой
+
+- **Сделано:**
+  - `docker-compose.prod.yml` — external network shared_infra (sweetsin_default), nginx 8080:80
+  - `frontend/Dockerfile.prod` — node:20-alpine build → nginx:alpine serve
+  - `frontend/nginx.conf` — SPA routing + /api/ → backend:8000
+  - `nginx/nginx.prod.conf` — /api/ → backend, / → frontend
+  - `nginx/mystral.conf` — референс конфиг для главного VPS nginx
+  - `.env.prod` — шаблон с CHANGE_ME плейсхолдерами (в .gitignore)
+  - `.gitignore` — добавлен .env.prod
+  - `deploy.sh` — git pull → build → up -d; chmod +x
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+
+- **Саша делает на VPS:**
+  - Купить домен, A-запись → VPS IP
+  - `git clone` + заполнить `.env.prod`
+  - `docker network ls` → обновить `shared_infra.name` в docker-compose.prod.yml
+  - `sudo certbot --nginx -d mystral.app`
+  - `bash deploy.sh`
