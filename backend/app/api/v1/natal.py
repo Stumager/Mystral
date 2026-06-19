@@ -10,6 +10,7 @@ from kerykeion import AstrologicalSubject
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
@@ -96,22 +97,39 @@ async def natal_interpret(
     lat, lon = await geocode_city(req.city)
     chart = build_chart(req, lat, lon)
 
-    prompt = (
-        f"Натальная карта {req.name}: "
-        f"Солнце в {chart['sun']['sign']}, "
-        f"Луна в {chart['moon']['sign']}, "
-        f"Асцендент {chart['rising']['sign']}. "
-        f"Меркурий в {chart['mercury']['sign']}, "
-        f"Венера в {chart['venus']['sign']}, "
-        f"Марс в {chart['mars']['sign']}. "
-        f"Дай мягкую, женственную интерпретацию о характере, эмоциях и внутренней силе человека. "
-        f"На русском языке. 100-120 слов. Без вступлений, сразу по делу."
-    )
+    sys = system_prompt(req.lang)
+    sun = chart["sun"]["sign"]
+    moon = chart["moon"]["sign"]
+    rising = chart["rising"]["sign"]
+
+    if req.lang == "ru":
+        prompt = (
+            f"Натальная карта: Солнце в {sun}, Луна в {moon}, Асцендент {rising}.\n"
+            f"Дай интерпретацию характера человека. Обязательно:\n"
+            f"1. Главная черта характера (Солнце) — конкретно\n"
+            f"2. Эмоциональная природа (Луна) — конкретно\n"
+            f"3. Как человек воспринимается окружающими (Асцендент)\n"
+            f"4. Главное противоречие или вызов этого сочетания\n"
+            f"Объём: 100-120 слов."
+        )
+    else:
+        prompt = (
+            f"Natal chart: Sun in {sun}, Moon in {moon}, Ascendant {rising}.\n"
+            f"Interpret this person's character. Must include:\n"
+            f"1. Core personality trait (Sun) — be specific\n"
+            f"2. Emotional nature (Moon) — be specific\n"
+            f"3. How others perceive them (Ascendant)\n"
+            f"4. The main tension or challenge of this combination\n"
+            f"100-120 words."
+        )
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=300,
         )

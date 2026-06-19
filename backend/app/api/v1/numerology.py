@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.core.deps import get_current_user
+from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
@@ -155,17 +156,45 @@ async def interpret(
         parts.append(f"Soul Urge: {_vowel_number(req.full_name)}")
         parts.append(f"Personality: {_consonant_number(req.full_name)}")
 
-    lang_prompt = "на русском" if req.lang == "ru" else "in English"
-    prompt = (
-        f"Ты — мудрый нумеролог. Дай интерпретацию нумерологического профиля: "
-        f"{', '.join(parts)}. Объясни как числа взаимодействуют и что означают вместе. "
-        f"100-120 слов, тёплый духовный тон, {lang_prompt}."
-    )
+    sys = system_prompt(req.lang)
+    name_parts = ""
+    if req.full_name:
+        name_parts = (
+            f"\nЧисло Выражения: {_name_number(req.full_name)}, "
+            f"Число Души: {_vowel_number(req.full_name)}"
+        ) if req.lang == "ru" else (
+            f"\nExpression: {_name_number(req.full_name)}, "
+            f"Soul Urge: {_vowel_number(req.full_name)}"
+        )
+
+    if req.lang == "ru":
+        prompt = (
+            f"Число Жизненного Пути: {lp}.{name_parts}\n"
+            f"Дай нумерологическую характеристику. Обязательно:\n"
+            f"1. Главная жизненная задача этого числа — конкретно\n"
+            f"2. Сильные стороны — два-три конкретных качества\n"
+            f"3. Скрытые вызовы и как с ними работать\n"
+            f"4. В какой сфере реализация наиболее вероятна\n"
+            f"Объём: 100-120 слов."
+        )
+    else:
+        prompt = (
+            f"Life Path Number: {lp}.{name_parts}\n"
+            f"Give a numerological profile. Must include:\n"
+            f"1. Core life mission of this number — be specific\n"
+            f"2. Strengths — two or three concrete qualities\n"
+            f"3. Hidden challenges and how to work with them\n"
+            f"4. Which area of life is best for fulfillment\n"
+            f"100-120 words."
+        )
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=400,
         )

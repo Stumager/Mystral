@@ -9,16 +9,12 @@ from groq import Groq
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-
-TONES = {
-    "ru": "мягко, образно, с душой, на русском языке",
-    "en": "empowering and mystical, in English",
-}
 
 
 class TarotRequest(BaseModel):
@@ -44,20 +40,34 @@ async def tarot_interpret(
     cards_desc = ", ".join(
         f"{card} ({pos})" for card, pos in zip(req.cards, req.positions)
     )
-    tone = TONES.get(req.lang, TONES["ru"])
+    sys = system_prompt(req.lang)
 
-    prompt = (
-        f"Дай толкование расклада Таро: {cards_desc}. "
-        f"Объясни что означает каждая карта в своей позиции "
-        f"и как они связаны между собой. "
-        f"Тон: {tone}. "
-        f"Объём: 80-100 слов. Без вступлений сразу по делу."
-    )
+    if req.lang == "ru":
+        prompt = (
+            f"Расклад Таро: {cards_desc}.\n"
+            f"Дай толкование. Обязательно:\n"
+            f"1. Что означает каждая карта в своей позиции конкретно\n"
+            f"2. Как три карты связаны между собой\n"
+            f"3. Один практический вывод для человека\n"
+            f"Объём: 90-110 слов. Без общих фраз о 'пути' и 'энергии'."
+        )
+    else:
+        prompt = (
+            f"Tarot spread: {cards_desc}.\n"
+            f"Give an interpretation. Must include:\n"
+            f"1. What each card means in its position specifically\n"
+            f"2. How the three cards connect to each other\n"
+            f"3. One practical takeaway for the person\n"
+            f"90-110 words. No vague phrases about 'paths' and 'energy'."
+        )
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=250,
         )

@@ -8,6 +8,7 @@ from groq import Groq
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
@@ -124,17 +125,34 @@ async def interpret(
     s1 = SIGNS[idx1]
     s2 = SIGNS[idx2]
 
-    lang_prompt = "на русском" if req.lang == "ru" else "in English"
-    prompt = (
-        f"Ты — мудрый астролог. Дай интерпретацию совместимости пары: "
-        f"{s1} и {s2}. Опиши динамику отношений, сильные стороны и зоны роста. "
-        f"80-100 слов, тёплый женственный тон, {lang_prompt}."
-    )
+    sys = system_prompt(req.lang)
+
+    if req.lang == "ru":
+        prompt = (
+            f"Синастрия: первый человек — Солнце {s1}, второй — Солнце {s2}.\n"
+            f"Опиши совместимость. Обязательно:\n"
+            f"1. В чём сила этой пары конкретно\n"
+            f"2. Главный источник конфликтов\n"
+            f"3. Что помогает — один практический совет\n"
+            f"Объём: 90-110 слов. Говори 'вы' обращаясь к паре."
+        )
+    else:
+        prompt = (
+            f"Synastry: first person — Sun in {s1}, second — Sun in {s2}.\n"
+            f"Describe their compatibility. Must include:\n"
+            f"1. The specific strength of this pair\n"
+            f"2. The main source of conflicts\n"
+            f"3. One practical tip that helps\n"
+            f"90-110 words. Address as 'you' speaking to the couple."
+        )
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=300,
         )

@@ -8,14 +8,11 @@ from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
 
+from app.core.prompts import system_prompt
+
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
-
-TONES = {
-    "ru": "мягко, образно, с душой, на русском языке",
-    "en": "empowering, wellness-focused, in English",
-}
 
 SIGNS_RU = {
     "aries": "Овен",
@@ -42,18 +39,28 @@ class HoroscopeRequest(BaseModel):
 @router.post("/horoscope/stream")
 async def horoscope_stream(req: HoroscopeRequest):
     sign_name = SIGNS_RU.get(req.sign, req.sign)
-    tone = TONES.get(req.lang, TONES["ru"])
     today = date.today().isoformat()
     cache_key = f"horoscope:{req.sign}:{req.lang}:{today}"
+    sys = system_prompt(req.lang)
 
-    prompt = (
-        f"Напиши персональный гороскоп для знака {sign_name} "
-        f"на {req.date or 'сегодня'}. "
-        f"Тон: {tone}. "
-        f"Объём: 60-80 слов. "
-        f"Без вступлений, без 'Дорогой знак', сразу по делу. "
-        f"Без дисклеймеров."
-    )
+    if req.lang == "ru":
+        prompt = (
+            f"Знак: {sign_name}. Дата: {req.date or today}.\n"
+            f"Напиши гороскоп на день. Обязательно укажи:\n"
+            f"1. Одну конкретную сферу жизни (работа/отношения/финансы/здоровье)\n"
+            f"2. Один конкретный совет что сделать или избежать\n"
+            f"3. Благоприятное время дня если уместно\n"
+            f"Объём: 60-70 слов. Без вступлений типа 'Дорогой Скорпион'."
+        )
+    else:
+        prompt = (
+            f"Sign: {req.sign.capitalize()}. Date: {req.date or today}.\n"
+            f"Write a daily horoscope. Must include:\n"
+            f"1. One specific life area (work/relationships/finances/health)\n"
+            f"2. One concrete tip — what to do or avoid\n"
+            f"3. Best time of day if relevant\n"
+            f"60-70 words. No greetings like 'Dear Scorpio'."
+        )
 
     async def generate():
         cached = await redis_client.get(cache_key)
@@ -67,7 +74,10 @@ async def horoscope_stream(req: HoroscopeRequest):
         full_text = ""
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=200,
         )

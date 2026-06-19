@@ -10,6 +10,7 @@ from groq import Groq
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
@@ -150,17 +151,34 @@ async def interpret(
         pos = "reversed" if r.get("reversed") else "upright"
         parts.append(f"{r.get('name', '?')} ({pos})")
 
-    lang_prompt = "на русском" if req.lang == "ru" else "in English"
-    prompt = (
-        f"Ты — мудрый рунолог-провидец. Выпали руны: {', '.join(parts)}. "
-        f"Дай глубокое толкование расклада. Свяжи значения рун в единое послание. "
-        f"80-100 слов, загадочный мудрый Nordic стиль, {lang_prompt}."
-    )
+    sys = system_prompt(req.lang)
+
+    if req.lang == "ru":
+        prompt = (
+            f"Выпавшие руны: {', '.join(parts)}.\n"
+            f"Дай толкование. Обязательно:\n"
+            f"1. Значение каждой руны в её положении — конкретно\n"
+            f"2. Общий посыл расклада одним предложением\n"
+            f"3. Что конкретно рекомендуют руны сделать или избегать\n"
+            f"Объём: 80-100 слов. Стиль: мудрый северный наставник, не поэт."
+        )
+    else:
+        prompt = (
+            f"Runes drawn: {', '.join(parts)}.\n"
+            f"Give an interpretation. Must include:\n"
+            f"1. Meaning of each rune in its position — be specific\n"
+            f"2. Overall message in one sentence\n"
+            f"3. What exactly the runes recommend to do or avoid\n"
+            f"80-100 words. Style: wise Norse mentor, not a poet."
+        )
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": prompt},
+            ],
             stream=True,
             max_tokens=300,
         )
