@@ -24,6 +24,7 @@ export function Home({ onNavigate }: HomeProps) {
   const [horoscope, setHoroscope] = useState("");
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
   const [zodiac, setZodiac] = useState<ZodiacInfo | null>(null);
+  const [lunarDay, setLunarDay] = useState<number | null>(null);
 
   const called = useRef(false);
 
@@ -44,6 +45,12 @@ export function Home({ onNavigate }: HomeProps) {
 
     async function load() {
       let sign = "aries";
+
+      fetch(`/api/v1/lunar/today?lang=${lang}`)
+        .then(r => r.json())
+        .then(d => setLunarDay(d.lunar_day))
+        .catch(() => {});
+
       if (token) {
         try {
           const res = await fetch("/api/v1/profile", {
@@ -102,7 +109,7 @@ export function Home({ onNavigate }: HomeProps) {
           </p>
           <p className="text-text-muted text-xs mt-1">
             {zodiacLabel
-              ? `${zodiacLabel} · ${t("home.lunar_day")}`
+              ? `${zodiacLabel}${lunarDay ? ` · ${lunarDay} ${t("home.lunar_day")}` : ""}`
               : t("home.zodiac_fallback")}
           </p>
         </div>
