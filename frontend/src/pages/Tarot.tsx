@@ -98,6 +98,13 @@ export function Tarot({ onNavigate }: TarotProps) {
               onClick={() => revealCard(i)}
             >
               <TarotCard card={card} revealed={revealed[i]} delay={0} />
+              {revealed[i] && (
+                <div style={{ textAlign: "center", marginTop: 6 }}>
+                  <span style={{ fontSize: 9, color: "rgba(200,180,255,0.6)", fontFamily: "serif", letterSpacing: "0.05em" }}>
+                    {card.name_ru}
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>

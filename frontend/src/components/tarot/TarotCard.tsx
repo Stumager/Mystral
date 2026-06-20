@@ -1,4 +1,3 @@
-import { CSSProperties } from "react";
 import { TarotCardData } from "../../data/tarot";
 
 interface TarotCardProps {
@@ -6,20 +5,6 @@ interface TarotCardProps {
   revealed: boolean;
   delay?: number;
 }
-
-const faceStyle: CSSProperties = {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "100%",
-  borderRadius: 10,
-  backfaceVisibility: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-};
 
 export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
   return (
@@ -32,31 +17,63 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
           transformStyle: "preserve-3d",
           transition: `transform 0.7s ease ${delay}ms`,
           transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)",
+          boxShadow: revealed
+            ? "0 8px 24px rgba(107,78,255,0.3), 0 2px 8px rgba(0,0,0,0.5)"
+            : "0 4px 12px rgba(0,0,0,0.4)",
+          borderRadius: 10,
         }}
       >
-        {/* Рубашка */}
+        {/* Рубашка — SVG паттерн */}
         <div
           style={{
-            ...faceStyle,
-            background: "linear-gradient(135deg, #1B0C4A, #080316)",
-            border: "1px solid rgba(140,110,255,0.3)",
+            backfaceVisibility: "hidden",
+            position: "absolute",
+            inset: 0,
+            borderRadius: 10,
+            background: "linear-gradient(160deg, #1B0C4A, #080316)",
+            border: "1px solid rgba(140,110,255,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
           }}
         >
-          <span style={{ fontSize: 24, color: "#C9A84C" }}>✦</span>
-          <span
+          <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <pattern id="rub" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1" fill="rgba(140,110,255,0.15)" />
+                <line x1="0" y1="10" x2="20" y2="10" stroke="rgba(140,110,255,0.06)" strokeWidth="0.5" />
+                <line x1="10" y1="0" x2="10" y2="20" stroke="rgba(140,110,255,0.06)" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#rub)" />
+            <rect x="5" y="5" width="78" height="134" rx="6" fill="none" stroke="rgba(200,160,80,0.3)" strokeWidth="1" />
+          </svg>
+          <div
             style={{
-              fontSize: 8,
-              color: "#C9A84C",
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              marginTop: 6,
+              position: "relative",
+              zIndex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
             }}
           >
-            MYSTRAL
-          </span>
+            <span style={{ fontSize: 28, opacity: 0.9, color: "#C9A84C" }}>✦</span>
+            <span
+              style={{
+                fontSize: 8,
+                letterSpacing: "0.2em",
+                color: "rgba(200,160,80,0.7)",
+                fontFamily: "serif",
+              }}
+            >
+              MYSTRAL
+            </span>
+          </div>
         </div>
 
-        {/* Лицевая сторона — Rider-Waite изображение */}
+        {/* Лицевая сторона — Rider-Waite */}
         <div
           style={{
             backfaceVisibility: "hidden",
@@ -81,27 +98,6 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
               e.currentTarget.style.display = "none";
             }}
           />
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: "rgba(0,0,0,0.6)",
-              padding: "4px 6px",
-              textAlign: "center",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9,
-                color: "rgba(232,224,255,0.9)",
-                fontFamily: "serif",
-              }}
-            >
-              {card.name_ru}
-            </span>
-          </div>
         </div>
       </div>
     </div>
