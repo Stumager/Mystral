@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import i18n from "../i18n";
+import { isTMA } from "../utils/telegram";
 
 interface UserData {
   id: string;
@@ -37,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
+    if (isTMA()) {
+      (window as any).Telegram?.WebApp?.close();
+      return;
+    }
     setToken(null);
     setUser(null);
     setPendingMerge(false);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
+import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 
 interface Props {
   onClose: () => void;
@@ -13,12 +14,27 @@ export function OnboardingModal({ onClose }: Props) {
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = day && month && year;
+  function clearFieldError(field: string) {
+    setErrors(prev => ({ ...prev, [field]: "" }));
+  }
 
   async function handleSubmit() {
-    if (!canSubmit) return;
+    const errs: Record<string, string> = {};
+    const dayErr = validateDay(day);
+    const monthErr = validateMonth(month);
+    const yearErr = validateYear(year);
+    if (dayErr) errs.day = dayErr;
+    if (monthErr) errs.month = monthErr;
+    if (yearErr) errs.year = yearErr;
+    if (!dayErr && !monthErr && !yearErr) {
+      const dateErr = validateDateExists(day, month, year);
+      if (dateErr) errs.date = dateErr;
+    }
+    if (Object.values(errs).some(Boolean)) { setErrors(errs); return; }
+
     setLoading(true);
     try {
       const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
@@ -35,7 +51,7 @@ export function OnboardingModal({ onClose }: Props) {
         onClose();
       }
     } catch {
-      // silently fail — user can fill in profile later
+      // user can fill in profile later
     } finally {
       setLoading(false);
     }
@@ -45,6 +61,7 @@ export function OnboardingModal({ onClose }: Props) {
     "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 " +
     "text-text-primary text-sm text-center placeholder:text-text-faint " +
     "focus:outline-none focus:border-violet-600 transition-colors";
+  const errCls = "text-red-400 text-[10px] mt-1 text-center";
 
   return (
     <div
@@ -72,41 +89,25 @@ export function OnboardingModal({ onClose }: Props) {
           {t("onboarding.subtitle")}
         </p>
 
-        <div className="grid grid-cols-3 gap-2">
-          <input
-            className={inputCls}
-            placeholder={t("onboarding.day")}
-            type="number"
-            min="1"
-            max="31"
-            value={day}
-            onChange={e => setDay(e.target.value)}
-          />
-          <input
-            className={inputCls}
-            placeholder={t("onboarding.month")}
-            type="number"
-            min="1"
-            max="12"
-            value={month}
-            onChange={e => setMonth(e.target.value)}
-          />
-          <input
-            className={inputCls}
-            placeholder={t("onboarding.year")}
-            type="number"
-            min="1900"
-            max="2025"
-            value={year}
-            onChange={e => setYear(e.target.value)}
-          />
+        <div>
+          <div className="grid grid-cols-3 gap-2">
+            <input className={inputCls} placeholder={t("onboarding.day")} type="number" min="1" max="31"
+              value={day} onChange={e => { setDay(e.target.value); clearFieldError("day"); clearFieldError("date"); }} />
+            <input className={inputCls} placeholder={t("onboarding.month")} type="number" min="1" max="12"
+              value={month} onChange={e => { setMonth(e.target.value); clearFieldError("month"); clearFieldError("date"); }} />
+            <input className={inputCls} placeholder={t("onboarding.year")} type="number" min="1900" max="2025"
+              value={year} onChange={e => { setYear(e.target.value); clearFieldError("year"); clearFieldError("date"); }} />
+          </div>
+          {(errors.day || errors.month || errors.year || errors.date) && (
+            <p className={errCls}>{errors.day || errors.month || errors.year || errors.date}</p>
+          )}
         </div>
 
         <Button
           variant="primary"
           className="w-full"
           onClick={handleSubmit}
-          disabled={loading || !canSubmit}
+          disabled={loading || !day || !month || !year}
         >
           {loading ? "..." : t("onboarding.continue")}
         </Button>

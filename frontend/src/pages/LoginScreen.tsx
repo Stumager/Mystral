@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
+import { validateEmail, validatePassword, validateName } from "../utils/validate";
 
 type Mode = "login" | "register";
 
@@ -15,6 +16,7 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const tgBtnRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +56,22 @@ export function LoginScreen() {
     };
   }, []);
 
+  function clearFieldError(field: string) {
+    setErrors(prev => ({ ...prev, [field]: "" }));
+  }
+
   async function handleSubmit() {
+    const errs: Record<string, string> = {};
+    const emailErr = validateEmail(email);
+    const passErr = validatePassword(password);
+    if (emailErr) errs.email = emailErr;
+    if (passErr) errs.password = passErr;
+    if (mode === "register") {
+      const nameErr = validateName(name);
+      if (nameErr) errs.name = nameErr;
+    }
+    if (Object.values(errs).some(Boolean)) { setErrors(errs); return; }
+
     setError("");
     setLoading(true);
     try {
@@ -81,6 +98,7 @@ export function LoginScreen() {
   const inputStyle = {
     border: "0.5px solid rgba(140,110,255,0.2)",
   };
+  const errCls = "text-red-400 text-xs mt-1";
 
   return (
     <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center px-6">
@@ -102,7 +120,7 @@ export function LoginScreen() {
         {(["login", "register"] as const).map(m => (
           <button
             key={m}
-            onClick={() => { setMode(m); setError(""); }}
+            onClick={() => { setMode(m); setError(""); setErrors({}); }}
             className="px-6 py-2 text-sm transition-colors"
             style={{
               background: mode === m ? "rgba(107,78,255,0.2)" : "transparent",
@@ -116,31 +134,40 @@ export function LoginScreen() {
 
       <div className="w-full max-w-[320px] flex flex-col gap-3">
         {mode === "register" && (
+          <div>
+            <input
+              placeholder={t("login.name")}
+              value={name}
+              onChange={e => { setName(e.target.value); clearFieldError("name"); }}
+              className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
+              style={inputStyle}
+            />
+            {errors.name && <p className={errCls}>{errors.name}</p>}
+          </div>
+        )}
+        <div>
           <input
-            placeholder={t("login.name")}
-            value={name}
-            onChange={e => setName(e.target.value)}
+            type="email"
+            placeholder={t("login.email")}
+            value={email}
+            onChange={e => { setEmail(e.target.value); clearFieldError("email"); }}
             className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
             style={inputStyle}
           />
-        )}
-        <input
-          type="email"
-          placeholder={t("login.email")}
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder={t("login.password")}
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
-          style={inputStyle}
-        />
+          {errors.email && <p className={errCls}>{errors.email}</p>}
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder={t("login.password")}
+            value={password}
+            onChange={e => { setPassword(e.target.value); clearFieldError("password"); }}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
+            style={inputStyle}
+          />
+          {errors.password && <p className={errCls}>{errors.password}</p>}
+        </div>
 
         {error && (
           <p className="text-red-400 text-xs text-center">{error}</p>

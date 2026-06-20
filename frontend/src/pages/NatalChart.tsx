@@ -4,6 +4,7 @@ import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { validateDay, validateMonth, validateYear, validateDateExists, validateName, validateCity } from "../utils/validate";
 
 interface NatalChartProps {
   onNavigate: (page: string) => void;
@@ -34,6 +35,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     name: "", day: "", month: "", year: "",
     hour: "", minute: "", city: "",
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<NatalResult | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
@@ -68,8 +70,11 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   }, [token]);
 
   const setField = (field: string) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm(prev => ({ ...prev, [field]: e.target.value }));
+      clearFieldError(field);
+      clearFieldError("date");
+    };
 
   const buildBody = () => ({
     name: form.name,
@@ -82,7 +87,22 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     lang: user?.lang ?? "ru",
   });
 
+  function clearFieldError(field: string) {
+    setFormErrors(prev => ({ ...prev, [field]: "" }));
+  }
+
   async function handleCalculate() {
+    const errs: Record<string, string> = {};
+    const nameErr = validateName(form.name); if (nameErr) errs.name = nameErr;
+    const dayErr = validateDay(form.day); if (dayErr) errs.day = dayErr;
+    const monthErr = validateMonth(form.month); if (monthErr) errs.month = monthErr;
+    const yearErr = validateYear(form.year); if (yearErr) errs.year = yearErr;
+    const cityErr = validateCity(form.city); if (cityErr) errs.city = cityErr;
+    if (!dayErr && !monthErr && !yearErr) {
+      const dateErr = validateDateExists(form.day, form.month, form.year);
+      if (dateErr) errs.date = dateErr;
+    }
+    if (Object.values(errs).some(Boolean)) { setFormErrors(errs); return; }
     setLoading(true);
     setError("");
     try {
@@ -177,17 +197,20 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               {t("natal.subtitle")}
             </p>
 
-            <input
-              className={inputCls}
-              placeholder={t("natal.name")}
-              value={form.name}
-              onChange={setField("name")}
-            />
+            <div>
+              <input className={inputCls} placeholder={t("natal.name")} value={form.name} onChange={setField("name")} />
+              {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
+            </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <input className={inputCls} placeholder={t("natal.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
-              <input className={inputCls} placeholder={t("natal.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
-              <input className={inputCls} placeholder={t("natal.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+            <div>
+              <div className="grid grid-cols-3 gap-2">
+                <input className={inputCls} placeholder={t("natal.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+                <input className={inputCls} placeholder={t("natal.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+                <input className={inputCls} placeholder={t("natal.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+              </div>
+              {(formErrors.day || formErrors.month || formErrors.year || formErrors.date) && (
+                <p className="text-red-400 text-xs mt-1">{formErrors.day || formErrors.month || formErrors.year || formErrors.date}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -195,12 +218,10 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               <input className={inputCls} placeholder={t("natal.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
 
-            <input
-              className={inputCls}
-              placeholder={t("natal.birth_city")}
-              value={form.city}
-              onChange={setField("city")}
-            />
+            <div>
+              <input className={inputCls} placeholder={t("natal.birth_city")} value={form.city} onChange={setField("city")} />
+              {formErrors.city && <p className="text-red-400 text-xs mt-1">{formErrors.city}</p>}
+            </div>
 
             <p className="text-text-faint text-[10px] text-center">
               {t("natal.time_hint")}

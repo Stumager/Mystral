@@ -101,6 +101,7 @@
     "link_error": "Link error",
     "settings": "Settings",
     "language": "Language",
+    "tg_account": "Account linked to Telegram",
     "logout": "Log out",
     "cancel": "Cancel"
   },

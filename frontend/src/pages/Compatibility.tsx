@@ -4,6 +4,7 @@ import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 
 interface CompatibilityProps {
   onNavigate: (page: string) => void;
@@ -46,7 +47,25 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
       .catch(() => {});
   }, [token]);
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  function validateDates(): boolean {
+    const errs: Record<string, string> = {};
+    let d, m, y, de;
+    d = validateDay(me.day); if (d) errs.me_day = d;
+    m = validateMonth(me.month); if (m) errs.me_month = m;
+    y = validateYear(me.year); if (y) errs.me_year = y;
+    if (!d && !m && !y) { de = validateDateExists(me.day, me.month, me.year); if (de) errs.me_date = de; }
+    d = validateDay(partner.day); if (d) errs.p_day = d;
+    m = validateMonth(partner.month); if (m) errs.p_month = m;
+    y = validateYear(partner.year); if (y) errs.p_year = y;
+    if (!d && !m && !y) { de = validateDateExists(partner.day, partner.month, partner.year); if (de) errs.p_date = de; }
+    setFormErrors(errs);
+    return !Object.values(errs).some(Boolean);
+  }
+
   async function handleCalculate() {
+    if (!validateDates()) return;
     setLoading(true);
     setError("");
     try {
@@ -117,20 +136,26 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("compat.you")}</p>
               <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={me.day} onChange={e => setMe(p => ({ ...p, day: e.target.value }))} />
-                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={me.month} onChange={e => setMe(p => ({ ...p, month: e.target.value }))} />
-                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={me.year} onChange={e => setMe(p => ({ ...p, year: e.target.value }))} />
+                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={me.day} onChange={e => { setMe(p => ({ ...p, day: e.target.value })); setFormErrors(p => ({ ...p, me_day: "", me_date: "" })); }} />
+                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={me.month} onChange={e => { setMe(p => ({ ...p, month: e.target.value })); setFormErrors(p => ({ ...p, me_month: "", me_date: "" })); }} />
+                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={me.year} onChange={e => { setMe(p => ({ ...p, year: e.target.value })); setFormErrors(p => ({ ...p, me_year: "", me_date: "" })); }} />
               </div>
+              {(formErrors.me_day || formErrors.me_month || formErrors.me_year || formErrors.me_date) && (
+                <p className="text-red-400 text-xs mt-1">{formErrors.me_day || formErrors.me_month || formErrors.me_year || formErrors.me_date}</p>
+              )}
             </Card>
 
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("compat.partner")}</p>
               <input className={inputCls + " mb-2"} placeholder={t("compat.partner_name")} value={partner.name} onChange={e => setPartner(p => ({ ...p, name: e.target.value }))} />
               <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={partner.day} onChange={e => setPartner(p => ({ ...p, day: e.target.value }))} />
-                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={partner.month} onChange={e => setPartner(p => ({ ...p, month: e.target.value }))} />
-                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={partner.year} onChange={e => setPartner(p => ({ ...p, year: e.target.value }))} />
+                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={partner.day} onChange={e => { setPartner(p => ({ ...p, day: e.target.value })); setFormErrors(p => ({ ...p, p_day: "", p_date: "" })); }} />
+                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={partner.month} onChange={e => { setPartner(p => ({ ...p, month: e.target.value })); setFormErrors(p => ({ ...p, p_month: "", p_date: "" })); }} />
+                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={partner.year} onChange={e => { setPartner(p => ({ ...p, year: e.target.value })); setFormErrors(p => ({ ...p, p_year: "", p_date: "" })); }} />
               </div>
+              {(formErrors.p_day || formErrors.p_month || formErrors.p_year || formErrors.p_date) && (
+                <p className="text-red-400 text-xs mt-1">{formErrors.p_day || formErrors.p_month || formErrors.p_year || formErrors.p_date}</p>
+              )}
             </Card>
 
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}

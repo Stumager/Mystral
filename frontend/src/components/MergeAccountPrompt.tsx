@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
+import { validateEmail, validatePassword } from "../utils/validate";
 
 interface Props {
   onClose: () => void;
@@ -17,8 +18,19 @@ export function MergeAccountPrompt({ onClose }: Props) {
 
   const initData = (window as any).Telegram?.WebApp?.initData ?? "";
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function clearFieldError(field: string) {
+    setErrors(prev => ({ ...prev, [field]: "" }));
+  }
+
   async function handleMerge() {
-    if (!email || !password) return;
+    const errs: Record<string, string> = {};
+    const emailErr = validateEmail(email);
+    const passErr = validatePassword(password);
+    if (emailErr) errs.email = emailErr;
+    if (passErr) errs.password = passErr;
+    if (Object.values(errs).some(Boolean)) { setErrors(errs); return; }
     setError("");
     setLoading(true);
     try {
@@ -68,23 +80,29 @@ export function MergeAccountPrompt({ onClose }: Props) {
           {t("merge.subtitle")}
         </p>
 
-        <input
-          type="email"
-          placeholder={t("merge.email")}
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder={t("merge.password")}
-          value={password}
-          onChange={e => setPassword(e.target.value)}
+        <div>
+          <input
+            type="email"
+            placeholder={t("merge.email")}
+            value={email}
+            onChange={e => { setEmail(e.target.value); clearFieldError("email"); }}
+            className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
+            style={inputStyle}
+          />
+          {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder={t("merge.password")}
+            value={password}
+            onChange={e => { setPassword(e.target.value); clearFieldError("password"); }}
           onKeyDown={e => e.key === "Enter" && handleMerge()}
           className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
           style={inputStyle}
-        />
+          />
+          {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
+        </div>
 
         {error && (
           <p className="text-red-400 text-xs text-center">{error}</p>

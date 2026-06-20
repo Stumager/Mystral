@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { isTMA } from "../utils/telegram";
+import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 import { getZodiacSign } from "../utils/zodiac";
 
 interface ProfilePageProps {
@@ -42,8 +44,10 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [linkingEmail, setLinkingEmail] = useState(false);
 
   const setField = (field: string) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm(prev => ({ ...prev, [field]: e.target.value }));
+      setFormErrors(prev => ({ ...prev, [field]: "", date: "" }));
+    };
 
   function authHeaders() {
     return {
@@ -90,7 +94,20 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       .catch(() => {});
   }, [token]);
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   async function handleSave() {
+    if (form.day || form.month || form.year) {
+      const errs: Record<string, string> = {};
+      if (form.day) { const e = validateDay(form.day); if (e) errs.day = e; }
+      if (form.month) { const e = validateMonth(form.month); if (e) errs.month = e; }
+      if (form.year) { const e = validateYear(form.year); if (e) errs.year = e; }
+      if (form.day && form.month && form.year && !errs.day && !errs.month && !errs.year) {
+        const de = validateDateExists(form.day, form.month, form.year);
+        if (de) errs.date = de;
+      }
+      if (Object.values(errs).some(Boolean)) { setFormErrors(errs); return; }
+    }
     setSaving(true);
     const body: Record<string, unknown> = {
       birth_city: form.city || null,
@@ -266,10 +283,15 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             {t("profile.birth_data")}
           </p>
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-3 gap-2">
-              <input className={inputCls} placeholder={t("profile.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
-              <input className={inputCls} placeholder={t("profile.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
-              <input className={inputCls} placeholder={t("profile.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+            <div>
+              <div className="grid grid-cols-3 gap-2">
+                <input className={inputCls} placeholder={t("profile.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+                <input className={inputCls} placeholder={t("profile.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+                <input className={inputCls} placeholder={t("profile.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+              </div>
+              {(formErrors.day || formErrors.month || formErrors.year || formErrors.date) && (
+                <p className="text-red-400 text-xs mt-1">{formErrors.day || formErrors.month || formErrors.year || formErrors.date}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <input className={inputCls} placeholder={t("profile.hour")}    type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
@@ -396,9 +418,16 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" className="w-full" onClick={logout}>
-            {t("profile.logout")}
-          </Button>
+          {isTMA() ? (
+            <div className="flex items-center justify-between py-3">
+              <span className="text-text-muted text-sm">{t("profile.tg_account")}</span>
+              <span className="text-xs text-violet-400">✓ Telegram</span>
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" className="w-full" onClick={logout}>
+              {t("profile.logout")}
+            </Button>
+          )}
         </Card>
 
       </main>

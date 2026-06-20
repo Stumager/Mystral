@@ -101,6 +101,7 @@
     "link_error": "Ошибка привязки",
     "settings": "Настройки",
     "language": "Язык",
+    "tg_account": "Аккаунт привязан к Telegram",
     "logout": "Выйти",
     "cancel": "Отмена"
   },

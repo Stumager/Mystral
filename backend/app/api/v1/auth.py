@@ -136,6 +136,12 @@ async def register(
     req: RegisterRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    from email_validator import validate_email, EmailNotValidError
+    try:
+        validate_email(req.email, check_deliverability=False)
+    except EmailNotValidError:
+        raise HTTPException(status_code=400, detail="Некорректный email")
+
     result = await session.exec(select(User).where(User.email == req.email))
     if result.first():
         raise HTTPException(status_code=400, detail="Email already registered")
