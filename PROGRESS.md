@@ -444,5 +444,29 @@
   - На VPS: `docker compose restart backend` (пересборка не нужна)
 
 - **Следующий шаг:**
+  - TZ-017: Адаптивный дизайн ✓ (выполнен ниже)
+
+## 2026-06-20 — TZ-017: Адаптивный дизайн под ПК
+
+- **Сделано:**
+  - `frontend/src/components/layout/AppLayout.tsx` — обёртка с 3-колоночным layout:
+    - Левая панель (220px, sticky, hidden <768px): логотип gold, вертикальная навигация
+      (8 пунктов с emoji, active = violet bg), статус подписки внизу
+    - Центр (390px fixed): рендерит children, бордеры по бокам
+    - Правая панель (220px, sticky, hidden <768px): лунный день, знак зодиака, tier
+  - `frontend/src/components/layout/RightPanel.tsx` — правая панель:
+    - GET /lunar/today → лунная карточка (фаза, знак, энергия)
+    - GET /profile → getZodiacSign() → карточка знака
+    - Pro/Free бейдж
+  - `frontend/src/components/ui/BottomNav.tsx` — добавлен `md:hidden`
+  - `frontend/src/App.tsx` — оборачивает весь контент в `<AppLayout>`
+  - 8 страниц: убран `max-w-[390px] mx-auto` (AppLayout контролирует ширину)
+  - i18n: добавлены nav ключи для compat/natal/numerology/runes
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (14 файлов, +224)
+
+- **Следующий шаг:**
   - Alembic миграции (вместо create_all)
   - Тестирование на VPS
