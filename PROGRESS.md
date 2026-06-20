@@ -501,5 +501,25 @@
   - `docker compose -f docker-compose.prod.yml restart nginx`
 
 - **Следующий шаг:**
+  - TZ-019: Rider-Waite карты ✓ (выполнен ниже)
+
+## 2026-06-20 — TZ-019: Rider-Waite карты Таро — реальные изображения
+
+- **Сделано:**
+  - `backend/scripts/download_tarot.py` — скрипт скачивания 22 карт с Wikimedia Commons
+    - Rider-Waite 1909 (public domain)
+    - Исправлены URL для Magician (#1) и Lovers (#6) через Wikipedia API
+  - `frontend/public/tarot/0-21.jpg` — 22 изображений Старших Арканов
+  - `frontend/src/components/tarot/TarotCard.tsx` — лицевая сторона:
+    - `<img src="/tarot/{id}.jpg" objectFit="cover">` вместо emoji+текст
+    - Полупрозрачная подпись с названием карты внизу
+    - Fallback: скрывает img при ошибке загрузки (onError)
+    - Рубашка (✦ MYSTRAL) без изменений
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (24 файла: 22 jpg + script + component)
+
+- **Следующий шаг:**
   - Alembic миграции (вместо create_all)
   - Тестирование на VPS
