@@ -468,5 +468,38 @@
   - `git push` — запушено (14 файлов, +224)
 
 - **Следующий шаг:**
+  - TZ-018: Валидация + защита TMA ✓ (выполнен ниже)
+
+## 2026-06-20 — TZ-018: Валидация форм + защита TMA аккаунта
+
+- **Сделано:**
+  - **БЛОК А — Валидация (frontend/src/utils/validate.ts):**
+    - validateEmail, validatePassword, validateName, validateCity
+    - validateDay/Month/Year (диапазоны), validateDateExists (Date roundtrip)
+  - **БЛОК Б — Применение в 6 формах:**
+    - LoginScreen: email + password (+ name при register)
+    - OnboardingModal: day/month/year + validateDateExists
+    - NatalChart: name + date + city, per-field ошибки
+    - Profile: date поля при сохранении
+    - MergeAccountPrompt: email + password
+    - Compatibility: оба блока дат
+    - Паттерн: Record<string, string> errors, красный текст под полем, очистка при onChange
+  - **БЛОК В — Backend email-validator:**
+    - requirements.txt: email-validator==2.1.0
+    - auth.py register(): validate_email(check_deliverability=False)
+  - **БЛОК Г — Защита TMA:**
+    - AuthContext.logout(): isTMA() → WebApp.close() вместо logout
+    - Profile: вместо "Выйти" → "Аккаунт привязан к Telegram ✓"
+    - i18n: profile.tg_account ключ (RU/EN)
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (12 файлов, +286 –100)
+
+- **На VPS:**
+  - `docker compose -f docker-compose.prod.yml up --build -d frontend backend`
+  - `docker compose -f docker-compose.prod.yml restart nginx`
+
+- **Следующий шаг:**
   - Alembic миграции (вместо create_all)
   - Тестирование на VPS
