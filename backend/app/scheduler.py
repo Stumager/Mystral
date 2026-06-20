@@ -1,10 +1,10 @@
+import json
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import httpx
 import redis.asyncio as aioredis
-from aiogram import Bot
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlmodel import select
 
@@ -21,6 +21,8 @@ from app.services.horoscope import (
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
+TG_API = "https://api.telegram.org/bot{token}/sendMessage"
+
 
 def _format_message(text: str, sign: str, lang: str) -> str:
     emoji = SIGNS_EMOJI.get(sign, "✨")
@@ -29,13 +31,22 @@ def _format_message(text: str, sign: str, lang: str) -> str:
     return f"{emoji} <b>Today's horoscope</b>\n\n{text}\n\n<i>✨ Mystral</i>"
 
 
-def _open_app_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(
-            text="Открыть Mystral ✨",
-            url=f"https://t.me/Mystrallbot/app",
-        )
-    ]])
+async def _send_tg_message(http: httpx.AsyncClient, chat_id: int, text: str) -> bool:
+    keyboard = {
+        "inline_keyboard": [[
+            {"text": "Открыть Mystral ✨", "url": "https://t.me/Mystrallbot/app"}
+        ]]
+    }
+    resp = await http.post(
+        TG_API.format(token=settings.telegram_bot_token),
+        json={
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "reply_markup": json.dumps(keyboard),
+        },
+    )
+    return resp.status_code == 200
 
 
 async def send_daily_horoscopes():
@@ -43,7 +54,6 @@ async def send_daily_horoscopes():
         return
 
     now_utc = datetime.now(ZoneInfo("UTC"))
-    bot = Bot(token=settings.telegram_bot_token)
     redis = aioredis.from_url(settings.redis_url)
 
     try:
@@ -60,37 +70,35 @@ async def send_daily_horoscopes():
             )
             results = (await session.exec(stmt)).all()
 
-        for profile, provider in results:
-            try:
-                tz = ZoneInfo(profile.timezone)
-                local_time = now_utc.astimezone(tz)
+        async with httpx.AsyncClient(timeout=15) as http:
+            for profile, provider in results:
+                try:
+                    tz = ZoneInfo(profile.timezone)
+                    local_time = now_utc.astimezone(tz)
 
-                if local_time.hour != 9 or local_time.minute >= 5:
-                    continue
+                    if local_time.hour != 9 or local_time.minute >= 5:
+                        continue
 
-                today = local_time.strftime("%Y-%m-%d")
-                redis_key = f"daily_notif:{provider.user_id}:{today}"
-                if await redis.exists(redis_key):
-                    continue
+                    today = local_time.strftime("%Y-%m-%d")
+                    redis_key = f"daily_notif:{provider.user_id}:{today}"
+                    if await redis.exists(redis_key):
+                        continue
 
-                sign = zodiac_from_date(profile.birth_date)
-                lang = "ru"
-                sign_name = SIGNS_RU.get(sign, sign)
-                text = await generate_horoscope(sign, lang)
+                    sign = zodiac_from_date(profile.birth_date)
+                    lang = "ru"
+                    text = await generate_horoscope(sign, lang)
+                    msg = _format_message(text, sign, lang)
 
-                await bot.send_message(
-                    chat_id=int(provider.provider_id),
-                    text=_format_message(text, sign, lang),
-                    parse_mode="HTML",
-                    reply_markup=_open_app_keyboard(),
-                )
+                    ok = await _send_tg_message(http, int(provider.provider_id), msg)
+                    if ok:
+                        await redis.setex(redis_key, 90000, "1")
+                        logger.info("Sent daily horoscope to user %s (%s)",
+                                    provider.user_id, SIGNS_RU.get(sign, sign))
+                    else:
+                        logger.warning("TG API failed for user %s", provider.user_id)
 
-                await redis.setex(redis_key, 90000, "1")
-                logger.info("Sent daily horoscope to user %s (%s)", provider.user_id, sign_name)
-
-            except Exception as e:
-                logger.error("Failed to send notification to user %s: %s", provider.user_id, e)
+                except Exception as e:
+                    logger.error("Failed notification for user %s: %s", provider.user_id, e)
 
     finally:
         await redis.close()
-        await bot.session.close()
