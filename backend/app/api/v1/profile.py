@@ -1,5 +1,6 @@
 from datetime import date, time
 from typing import Optional
+from zoneinfo import available_timezones
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -8,9 +9,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.core.deps import get_current_user
-from app.models.user import User, UserProfile
+from app.models.user import AuthProvider, User, UserProfile
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+VALID_TIMEZONES = available_timezones()
 
 
 class ProfileUpdate(BaseModel):
@@ -20,6 +23,12 @@ class ProfileUpdate(BaseModel):
     birth_city: Optional[str] = None
     birth_name: Optional[str] = None
     lang: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
+    timezone: Optional[str] = None
+
+
+class ToggleNotifRequest(BaseModel):
+    telegram_id: str
 
 
 def _completion(profile: UserProfile) -> int:
@@ -35,6 +44,8 @@ def _serialize(profile: UserProfile) -> dict:
         "birth_city": profile.birth_city,
         "birth_name": profile.birth_name_enc,
         "completion_percent": _completion(profile),
+        "notifications_enabled": profile.notifications_enabled,
+        "timezone": profile.timezone,
     }
 
 
@@ -93,6 +104,36 @@ async def update_profile(
         current_user.lang = req.lang
         session.add(current_user)
 
+    if req.notifications_enabled is not None:
+        profile.notifications_enabled = req.notifications_enabled
+
+    if req.timezone is not None:
+        if req.timezone not in VALID_TIMEZONES:
+            raise HTTPException(status_code=400, detail="Invalid timezone")
+        profile.timezone = req.timezone
+
     await session.commit()
     await session.refresh(profile)
     return _serialize(profile)
+
+
+@router.post("/toggle-notifications")
+async def toggle_notifications(
+    req: ToggleNotifRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(AuthProvider).where(
+            AuthProvider.provider == "telegram",
+            AuthProvider.provider_id == req.telegram_id,
+        )
+    )
+    provider = result.first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = await _get_or_create(provider.user_id, session)
+    profile.notifications_enabled = not profile.notifications_enabled
+    await session.commit()
+    await session.refresh(profile)
+    return {"notifications_enabled": profile.notifications_enabled}

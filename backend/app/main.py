@@ -7,13 +7,23 @@ import app.models  # noqa: F401 — register models with SQLModel.metadata
 from app.api.router import api_router
 from app.core.database import create_db_and_tables
 from app.core.redis import close_redis, init_redis
+from app.scheduler import scheduler, send_daily_horoscopes
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     await create_db_and_tables()
     await init_redis()
+    scheduler.add_job(
+        send_daily_horoscopes,
+        trigger="cron",
+        minute="*/5",
+        id="daily_horoscope",
+        replace_existing=True,
+    )
+    scheduler.start()
     yield
+    scheduler.shutdown()
     await close_redis()
 
 

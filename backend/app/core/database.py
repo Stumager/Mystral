@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
@@ -19,6 +22,16 @@ async def get_session():
         yield session
 
 
+@asynccontextmanager
+async def get_session_context():
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
 async def create_db_and_tables() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.execute(text(
+            "ALTER TABLE user_profiles "
+            "ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT FALSE"
+        ))

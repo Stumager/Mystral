@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
+import { TIMEZONES } from "../constants/timezones";
 import { useAuth } from "../context/AuthContext";
 import { isTMA } from "../utils/telegram";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
@@ -18,6 +19,8 @@ interface ProfileData {
   birth_city: string | null;
   birth_name: string | null;
   completion_percent: number;
+  notifications_enabled: boolean;
+  timezone: string | null;
 }
 
 const BOT_ID = "8998390466";
@@ -42,6 +45,9 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [linkEmailForm, setLinkEmailForm] = useState({ email: "", password: "", confirm: "" });
   const [linkEmailError, setLinkEmailError] = useState("");
   const [linkingEmail, setLinkingEmail] = useState(false);
+
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifTz, setNotifTz] = useState("Europe/Moscow");
 
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +96,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           name:   profileData.birth_name ?? "",
         });
         setProviders(meData.providers ?? []);
+        setNotifEnabled(profileData.notifications_enabled ?? false);
+        if (profileData.timezone) setNotifTz(profileData.timezone);
       })
       .catch(() => {});
   }, [token]);
@@ -208,6 +216,24 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         window.removeEventListener("message", handleMessage);
       }
     }, 1000);
+  }
+
+  async function handleToggleNotif(enabled: boolean) {
+    setNotifEnabled(enabled);
+    await fetch("/api/v1/profile", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ notifications_enabled: enabled }),
+    }).catch(() => {});
+  }
+
+  async function handleChangeTz(newTz: string) {
+    setNotifTz(newTz);
+    await fetch("/api/v1/profile", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ timezone: newTz }),
+    }).catch(() => {});
   }
 
   const inputCls =
@@ -391,6 +417,40 @@ export function Profile({ onNavigate }: ProfilePageProps) {
               </button>
             )}
           </div>
+        </Card>
+
+        {/* Notifications */}
+        <Card>
+          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+            {t("profile.notifications")}
+          </p>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-text-muted text-sm">{t("profile.daily_horoscope")}</span>
+            <button
+              onClick={() => handleToggleNotif(!notifEnabled)}
+              className="w-10 h-5 rounded-full transition-colors relative"
+              style={{ background: notifEnabled ? "#6B4EFF" : "rgba(107,78,255,0.2)" }}
+            >
+              <span
+                className="block w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all"
+                style={{ left: notifEnabled ? 22 : 2 }}
+              />
+            </button>
+          </div>
+          {notifEnabled && (
+            <div className="flex items-center justify-between">
+              <span className="text-text-faint text-xs">{t("profile.notif_timezone")}</span>
+              <select
+                value={notifTz}
+                onChange={e => handleChangeTz(e.target.value)}
+                className="bg-bg-surface border border-border-subtle rounded-lg px-2 py-1 text-text-primary text-xs focus:outline-none max-w-[160px]"
+              >
+                {TIMEZONES.map(tz => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </Card>
 
         {/* Settings */}

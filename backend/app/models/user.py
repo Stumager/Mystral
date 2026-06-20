@@ -41,6 +41,7 @@ class UserProfile(SQLModel, table=True):
     birth_name_enc: Optional[str] = None
     current_name_enc: Optional[str] = None
     timezone: Optional[str] = None
+    notifications_enabled: bool = Field(default=False)
 
 
 class UserPartner(SQLModel, table=True):

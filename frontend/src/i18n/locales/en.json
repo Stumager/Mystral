@@ -101,6 +101,9 @@
     "link_error": "Link error",
     "settings": "Settings",
     "language": "Language",
+    "notifications": "Notifications",
+    "daily_horoscope": "Daily horoscope at 9:00",
+    "notif_timezone": "Timezone",
     "tg_account": "Account linked to Telegram",
     "logout": "Log out",
     "cancel": "Cancel"
@@ -208,6 +211,11 @@
     "month": "Month",
     "year": "Year",
     "continue": "Continue",
-    "hint": "You can adjust later in profile"
+    "hint": "You can adjust later in profile",
+    "notif_title": "Daily horoscope ✨",
+    "notif_subtitle": "Want to receive a personal horoscope every morning at 9:00?",
+    "notif_tz": "Choose your timezone",
+    "notif_yes": "Yes, I want!",
+    "notif_skip": "Skip"
   }
 }
