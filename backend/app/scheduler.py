@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -10,7 +10,7 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.core.database import get_session_context
-from app.models.user import AuthProvider, UserProfile
+from app.models.user import AuthProvider, User, UserProfile
 from app.services.horoscope import (
     SIGNS_EMOJI,
     SIGNS_RU,
@@ -100,5 +100,62 @@ async def send_daily_horoscopes():
                 except Exception as e:
                     logger.error("Failed notification for user %s: %s", provider.user_id, e)
 
+    finally:
+        await redis.close()
+
+
+async def send_subscription_reminders():
+    if not settings.telegram_bot_token:
+        return
+
+    today = datetime.utcnow().date()
+    in_3_days = today + timedelta(days=3)
+    redis = aioredis.from_url(settings.redis_url)
+
+    try:
+        async with get_session_context() as session:
+            stmt = (
+                select(User, AuthProvider)
+                .join(AuthProvider, AuthProvider.user_id == User.id)
+                .where(
+                    User.subscription_tier == "pro",
+                    User.subscription_expires_at.is_not(None),
+                    AuthProvider.provider == "telegram",
+                )
+            )
+            results = (await session.exec(stmt)).all()
+
+        async with httpx.AsyncClient(timeout=15) as http:
+            for user, provider in results:
+                exp_date = user.subscription_expires_at.date()
+                chat_id = int(provider.provider_id)
+                today_str = today.isoformat()
+
+                if exp_date == in_3_days:
+                    key = f"reminder_3d:{user.id}:{today_str}"
+                    if await redis.exists(key):
+                        continue
+                    msg = (
+                        "⚠️ Твоя подписка <b>Mystral Pro</b> истекает через 3 дня.\n"
+                        "Продли, чтобы не потерять доступ."
+                    )
+                    if await _send_tg_message(http, chat_id, msg):
+                        await redis.setex(key, 90000, "1")
+                        logger.info("Sent 3-day reminder to user %s", user.id)
+
+                elif exp_date == today:
+                    key = f"reminder_exp:{user.id}:{today_str}"
+                    if await redis.exists(key):
+                        continue
+                    msg = (
+                        "❌ Подписка <b>Mystral Pro</b> истекла.\n"
+                        "Возобнови доступ ко всем функциям."
+                    )
+                    if await _send_tg_message(http, chat_id, msg):
+                        await redis.setex(key, 90000, "1")
+                        logger.info("Sent expiry reminder to user %s", user.id)
+
+    except Exception as e:
+        logger.error("Subscription reminders failed: %s", e)
     finally:
         await redis.close()

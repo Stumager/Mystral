@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -25,4 +26,16 @@ async def get_current_user(
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    if (
+        user.subscription_tier == "pro"
+        and user.subscription_expires_at
+        and user.subscription_expires_at < datetime.utcnow()
+    ):
+        user.subscription_tier = "free"
+        user.subscription_expires_at = None
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
     return user

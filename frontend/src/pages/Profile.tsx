@@ -21,6 +21,8 @@ interface ProfileData {
   completion_percent: number;
   notifications_enabled: boolean;
   timezone: string | null;
+  subscription_expires_at: string | null;
+  days_left: number | null;
 }
 
 const BOT_ID = "8998390466";
@@ -48,6 +50,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifTz, setNotifTz] = useState("Europe/Moscow");
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +102,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         setProviders(meData.providers ?? []);
         setNotifEnabled(profileData.notifications_enabled ?? false);
         if (profileData.timezone) setNotifTz(profileData.timezone);
+        setDaysLeft(profileData.days_left);
+        setExpiresAt(profileData.subscription_expires_at);
       })
       .catch(() => {});
   }, [token]);
@@ -346,11 +352,28 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {/* Subscription tier */}
         {user?.tier === "pro" ? (
           <Card>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <span className="font-display text-sm" style={{ color: "#C9A84C" }}>✦</span>
               <p className="font-display text-sm text-text-primary">{t("profile.pro_active")}</p>
             </div>
-            <p className="text-text-faint text-[10px] mt-1">{t("profile.pro_unlimited")}</p>
+            {expiresAt && daysLeft !== null && (
+              <p
+                className="text-[10px] mt-1"
+                style={{ color: daysLeft <= 3 ? "#f87171" : "#9B8FBB" }}
+              >
+                {t("profile.pro_until", {
+                  date: new Date(expiresAt).toLocaleDateString(user?.lang === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "long" }),
+                })} · {t("profile.days_left", { count: daysLeft })}
+              </p>
+            )}
+            {daysLeft !== null && daysLeft <= 3 && (
+              <p className="text-[10px] mt-1" style={{ color: "#C9A84C" }}>
+                {t("profile.pro_expiring_soon")}
+              </p>
+            )}
+            <Button variant="gold" size="sm" className="w-full mt-2" onClick={() => setShowPaywall(true)}>
+              {t("profile.renew")}
+            </Button>
           </Card>
         ) : (
           <Card>

@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Optional
 from zoneinfo import available_timezones
 
@@ -36,8 +36,8 @@ def _completion(profile: UserProfile) -> int:
     return round(sum(1 for f in fields if f is not None) / 4 * 100)
 
 
-def _serialize(profile: UserProfile) -> dict:
-    return {
+def _serialize(profile: UserProfile, user: Optional["User"] = None) -> dict:
+    result = {
         "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
         "birth_time": profile.birth_time.strftime("%H:%M") if profile.birth_time else None,
         "birth_time_known": profile.birth_time_known,
@@ -46,7 +46,14 @@ def _serialize(profile: UserProfile) -> dict:
         "completion_percent": _completion(profile),
         "notifications_enabled": profile.notifications_enabled,
         "timezone": profile.timezone,
+        "subscription_expires_at": None,
+        "days_left": None,
     }
+    if user and user.subscription_tier == "pro" and user.subscription_expires_at:
+        result["subscription_expires_at"] = user.subscription_expires_at.isoformat()
+        delta = (user.subscription_expires_at - datetime.utcnow()).days
+        result["days_left"] = max(0, delta)
+    return result
 
 
 async def _get_or_create(user_id, session: AsyncSession) -> UserProfile:
@@ -66,7 +73,7 @@ async def get_profile(
     session: AsyncSession = Depends(get_session),
 ):
     profile = await _get_or_create(current_user.id, session)
-    return _serialize(profile)
+    return _serialize(profile, current_user)
 
 
 @router.put("")
@@ -114,7 +121,7 @@ async def update_profile(
 
     await session.commit()
     await session.refresh(profile)
-    return _serialize(profile)
+    return _serialize(profile, current_user)
 
 
 @router.post("/toggle-notifications")
