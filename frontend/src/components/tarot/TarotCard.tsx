@@ -56,50 +56,52 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
           </span>
         </div>
 
-        {/* Лицевая сторона */}
+        {/* Лицевая сторона — Rider-Waite изображение */}
         <div
           style={{
-            ...faceStyle,
-            background: "linear-gradient(160deg, #1E0E50, #0D0520)",
-            border: "1px solid rgba(140,110,255,0.35)",
+            backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
-            justifyContent: "space-between",
-            padding: "8px 6px",
+            position: "absolute",
+            inset: 0,
+            borderRadius: 10,
+            overflow: "hidden",
+            border: "1px solid rgba(140,110,255,0.35)",
+            background: "linear-gradient(160deg, #1E0E50, #0D0520)",
           }}
         >
-          {/* Внутренняя рамка */}
+          <img
+            src={`/tarot/${card.id}.jpg`}
+            alt={card.name_ru}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
           <div
             style={{
               position: "absolute",
-              inset: 3,
-              borderRadius: 8,
-              border: "0.5px solid rgba(200,160,80,0.18)",
-              pointerEvents: "none",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 10,
-              color: "#C9A84C",
-              letterSpacing: "0.08em",
-              zIndex: 1,
-            }}
-          >
-            {card.number}
-          </span>
-          <span style={{ fontSize: 32, zIndex: 1 }}>{card.symbol}</span>
-          <span
-            style={{
-              fontSize: 9,
-              color: "#9B8FBB",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: "rgba(0,0,0,0.6)",
+              padding: "4px 6px",
               textAlign: "center",
-              lineHeight: 1.3,
-              zIndex: 1,
-              padding: "0 4px",
             }}
           >
-            {card.name_ru}
-          </span>
+            <span
+              style={{
+                fontSize: 9,
+                color: "rgba(232,224,255,0.9)",
+                fontFamily: "serif",
+              }}
+            >
+              {card.name_ru}
+            </span>
+          </div>
         </div>
       </div>
     </div>
