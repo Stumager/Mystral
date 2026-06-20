@@ -521,5 +521,37 @@
   - `git push` — запушено (24 файла: 22 jpg + script + component)
 
 - **Следующий шаг:**
+  - TZ-021: Уведомления ✓ (выполнен ниже)
+
+## 2026-06-20 — TZ-021: Telegram-уведомления — ежедневный гороскоп в 9:00
+
+- **Сделано:**
+  - **Модель + миграция:**
+    - UserProfile: `notifications_enabled: bool = False`
+    - database.py: `ALTER TABLE IF NOT EXISTS` + `get_session_context()` async CM
+  - **Scheduler (APScheduler):**
+    - scheduler.py: каждые 5 минут проверяет кому сейчас 9:00 в их таймзоне
+    - Генерирует гороскоп через services/horoscope.py (zodiac_from_date + Groq non-streaming)
+    - Отправляет через aiogram Bot, Redis dedup (25h TTL)
+    - main.py: scheduler.start() в lifespan
+  - **Profile API:**
+    - ProfileUpdate: + notifications_enabled, timezone (с валидацией zoneinfo)
+    - POST /profile/toggle-notifications — для бота (без JWT, по telegram_id)
+  - **Bot:**
+    - /notifications команда: toggle через HTTP к backend
+  - **Frontend:**
+    - OnboardingModal: 2 шага — дата рождения → уведомления (timezone selector)
+    - Profile: карточка "Уведомления" с toggle + dropdown таймзоны
+    - constants/timezones.ts: 21 таймзона (Россия, СНГ, мир)
+    - i18n: все ключи (RU/EN)
+
+- **Проверено:**
+  - `tsc --noEmit` — 0 ошибок
+  - `git push` — запушено (14 файлов, +461)
+
+- **На VPS:**
+  - `docker compose -f docker-compose.prod.yml up --build -d`
+
+- **Следующий шаг:**
   - Alembic миграции (вместо create_all)
-  - Тестирование на VPS
+  - Тестирование уведомлений на VPS
