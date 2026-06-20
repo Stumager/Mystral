@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     telegram_webapp_url: str = ""
     yukassa_shop_id: str = ""
     yukassa_secret_key: str = ""
+    support_telegram_id: str = ""
 
 
 settings = Settings()

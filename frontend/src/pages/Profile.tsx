@@ -501,6 +501,15 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </div>
           </div>
 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mb-3"
+            onClick={() => window.open("https://t.me/Mystrallbot?start=support", "_blank")}
+          >
+            {t("profile.support")}
+          </Button>
+
           {isTMA() ? (
             <div className="flex items-center justify-between py-3">
               <span className="text-text-muted text-sm">{t("profile.tg_account")}</span>

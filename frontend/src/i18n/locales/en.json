@@ -108,6 +108,7 @@
     "notifications": "Notifications",
     "daily_horoscope": "Daily horoscope at 9:00",
     "notif_timezone": "Timezone",
+    "support": "Contact support",
     "tg_account": "Account linked to Telegram",
     "logout": "Log out",
     "cancel": "Cancel"

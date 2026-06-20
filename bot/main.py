@@ -3,8 +3,11 @@ import logging
 import os
 
 import httpx
+import redis.asyncio as aioredis
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -19,22 +22,60 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("TELEGRAM_WEBAPP_URL", "")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
+SUPPORT_TG_ID = os.getenv("SUPPORT_TELEGRAM_ID", "")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
-@dp.message(Command("start"))
+class SupportStates(StatesGroup):
+    waiting_for_message = State()
+
+
+@dp.message(CommandStart(deep_link=True))
+async def cmd_start_deep(message: Message, state: FSMContext) -> None:
+    if not message.from_user:
+        return
+    args = message.text or ""
+    if "support" in args:
+        await state.set_state(SupportStates.waiting_for_message)
+        await message.answer(
+            "📩 Опиши свою проблему — я передам её команде Mystral.\n"
+            "Обычно отвечаем в течение нескольких часов."
+        )
+        return
+
+    button = InlineKeyboardButton(
+        text="Открыть Mystral",
+        web_app=WebAppInfo(url=WEBAPP_URL) if WEBAPP_URL else None,
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
+    await message.answer(
+        "Добро пожаловать в Mystral!\n\nЭзотерическая платформа для вашего пути.",
+        reply_markup=keyboard if WEBAPP_URL else None,
+    )
+
+
+@dp.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     button = InlineKeyboardButton(
         text="Открыть Mystral",
         web_app=WebAppInfo(url=WEBAPP_URL) if WEBAPP_URL else None,
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
-
     await message.answer(
         "Добро пожаловать в Mystral!\n\nЭзотерическая платформа для вашего пути.",
         reply_markup=keyboard if WEBAPP_URL else None,
+    )
+
+
+@dp.message(Command("support"))
+async def cmd_support(message: Message, state: FSMContext) -> None:
+    await state.set_state(SupportStates.waiting_for_message)
+    await message.answer(
+        "📩 Опиши свою проблему — я передам её команде Mystral.\n"
+        "Обычно отвечаем в течение нескольких часов."
     )
 
 
@@ -56,7 +97,6 @@ async def cmd_notifications(message: Message) -> None:
                     "Сначала авторизуйся в Mystral, чтобы управлять уведомлениями."
                 )
                 return
-
             data = res.json()
             enabled = data.get("notifications_enabled", False)
 
@@ -76,6 +116,95 @@ async def cmd_notifications(message: Message) -> None:
     except Exception as e:
         logger.error("Failed to toggle notifications: %s", e)
         await message.answer("Произошла ошибка. Попробуй позже.")
+
+
+@dp.message(SupportStates.waiting_for_message)
+async def handle_support_message(message: Message, state: FSMContext) -> None:
+    if not message.from_user or not message.text:
+        return
+
+    await state.clear()
+
+    if not SUPPORT_TG_ID:
+        await message.answer("Поддержка временно недоступна.")
+        return
+
+    user = message.from_user
+    username = f"@{user.username}" if user.username else "нет"
+
+    tier = "?"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            res = await client.post(
+                f"{BACKEND_URL}/api/v1/profile/toggle-notifications",
+                json={"telegram_id": str(user.id)},
+            )
+            if res.status_code == 200:
+                # toggle back — we just wanted to check existence
+                await client.post(
+                    f"{BACKEND_URL}/api/v1/profile/toggle-notifications",
+                    json={"telegram_id": str(user.id)},
+                )
+    except Exception:
+        pass
+
+    support_text = (
+        f"🆘 <b>Обращение в поддержку</b>\n\n"
+        f"👤 Имя: {user.full_name}\n"
+        f"🔗 Username: {username} / tg_id: {user.id}\n\n"
+        f"💬 {message.text}"
+    )
+
+    try:
+        sent = await bot.send_message(
+            chat_id=int(SUPPORT_TG_ID),
+            text=support_text,
+            parse_mode="HTML",
+        )
+
+        r = aioredis.from_url(REDIS_URL)
+        await r.setex(f"support:{sent.message_id}", 604800, str(user.id))
+        await r.close()
+
+        await message.answer(
+            "✅ Сообщение отправлено в поддержку. Мы ответим в ближайшее время!"
+        )
+        logger.info("Support message from %s (tg_id=%s)", user.full_name, user.id)
+    except Exception as e:
+        logger.error("Failed to forward support message: %s", e)
+        await message.answer("Не удалось отправить сообщение. Попробуй позже.")
+
+
+@dp.message(F.reply_to_message)
+async def handle_admin_reply(message: Message) -> None:
+    if not message.from_user or not message.text or not SUPPORT_TG_ID:
+        return
+    if str(message.from_user.id) != SUPPORT_TG_ID:
+        return
+    if not message.reply_to_message:
+        return
+
+    replied_id = message.reply_to_message.message_id
+
+    try:
+        r = aioredis.from_url(REDIS_URL)
+        user_tg_id = await r.get(f"support:{replied_id}")
+        await r.close()
+
+        if not user_tg_id:
+            await message.answer("Не удалось определить пользователя (ключ истёк).")
+            return
+
+        await bot.send_message(
+            chat_id=int(user_tg_id),
+            text=f"💬 <b>Ответ поддержки Mystral:</b>\n\n{message.text}",
+            parse_mode="HTML",
+        )
+        await message.answer("✅ Ответ доставлен.")
+        logger.info("Support reply sent to tg_id=%s", user_tg_id.decode())
+    except Exception as e:
+        logger.error("Failed to deliver support reply: %s", e)
+        await message.answer("Ошибка доставки ответа.")
 
 
 @dp.pre_checkout_query()
