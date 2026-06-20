@@ -35,3 +35,7 @@ async def create_db_and_tables() -> None:
             "ALTER TABLE user_profiles "
             "ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT FALSE"
         ))
+        await conn.execute(text(
+            "ALTER TABLE users "
+            "ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP"
+        ))

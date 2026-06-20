@@ -1,24 +1,34 @@
 import base64
 import json
+import logging
+from datetime import datetime, timedelta
 from typing import Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
-from app.models.user import User
+from app.models.user import AuthProvider, User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+logger = logging.getLogger(__name__)
 
 PRODUCTS = {
-    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 300,  "rub": "299.00"},
-    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 2400, "rub": "1990.00"},
+    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 150,  "rub": "149.00", "days": 30},
+    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 1200, "rub": "990.00", "days": 365},
 }
+
+
+def _activate_pro(user: User, product_key: str) -> None:
+    product = PRODUCTS.get(product_key, PRODUCTS["pro_month"])
+    user.subscription_tier = "pro"
+    user.subscription_expires_at = datetime.utcnow() + timedelta(days=product["days"])
 
 
 class StarsCreateRequest(BaseModel):
@@ -27,6 +37,10 @@ class StarsCreateRequest(BaseModel):
 
 class StarsConfirmRequest(BaseModel):
     telegram_payment_charge_id: Optional[str] = ""
+    payload: str
+
+
+class StarsActivateRequest(BaseModel):
     payload: str
 
 
@@ -74,11 +88,39 @@ async def stars_confirm(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    current_user.subscription_tier = "pro"
+    product_key = req.payload.split("_")[0] if "_" in req.payload else "pro_month"
+    _activate_pro(current_user, product_key)
     session.add(current_user)
     await session.commit()
     await session.refresh(current_user)
+    logger.info("Stars confirm: user %s activated %s via frontend", current_user.id, product_key)
     return {"status": "ok", "tier": "pro"}
+
+
+@router.post("/stars/activate")
+async def stars_activate(
+    req: StarsActivateRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    parts = req.payload.rsplit("_", 1)
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    product_key, user_id_str = parts[0], parts[1]
+
+    try:
+        user = await session.get(User, UUID(user_id_str))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    _activate_pro(user, product_key)
+    session.add(user)
+    await session.commit()
+    logger.info("Stars activate: user %s activated %s via bot", user.id, product_key)
+    return {"status": "ok"}
 
 
 @router.post("/yukassa/create")
@@ -142,15 +184,15 @@ async def yukassa_webhook(
 
     metadata = body.get("object", {}).get("metadata", {})
     user_id = metadata.get("user_id")
+    product_key = metadata.get("product", "pro_month")
     if not user_id:
         return {"status": "no_user_id"}
 
-    from uuid import UUID
-    from app.models.user import User as UserModel
-    user = await session.get(UserModel, UUID(user_id))
+    user = await session.get(User, UUID(user_id))
     if user:
-        user.subscription_tier = "pro"
+        _activate_pro(user, product_key)
         session.add(user)
         await session.commit()
+        logger.info("YuKassa webhook: user %s activated %s", user_id, product_key)
 
     return {"status": "ok"}

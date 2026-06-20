@@ -3,9 +3,15 @@ import logging
 import os
 
 import httpx
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    PreCheckoutQuery,
+    WebAppInfo,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -70,6 +76,43 @@ async def cmd_notifications(message: Message) -> None:
     except Exception as e:
         logger.error("Failed to toggle notifications: %s", e)
         await message.answer("Произошла ошибка. Попробуй позже.")
+
+
+@dp.pre_checkout_query()
+async def on_pre_checkout(query: PreCheckoutQuery) -> None:
+    await query.answer(ok=True)
+    logger.info("Pre-checkout approved: payload=%s", query.invoice_payload)
+
+
+@dp.message(F.successful_payment)
+async def on_successful_payment(message: Message) -> None:
+    payment = message.successful_payment
+    if not payment:
+        return
+
+    payload = payment.invoice_payload
+    logger.info("Successful payment: payload=%s, amount=%s %s",
+                payload, payment.total_amount, payment.currency)
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.post(
+                f"{BACKEND_URL}/api/v1/payments/stars/activate",
+                json={"payload": payload},
+            )
+            if res.status_code == 200:
+                logger.info("Pro activated via bot for payload=%s", payload)
+            else:
+                logger.error("Activate failed: %s %s", res.status_code, res.text)
+    except Exception as e:
+        logger.error("Failed to activate after payment: %s", e)
+
+    if message.from_user:
+        await message.answer(
+            "✨ <b>Mystral Pro активирован!</b>\n\n"
+            "Все функции разблокированы. Приятного пользования!",
+            parse_mode="HTML",
+        )
 
 
 async def main() -> None:
