@@ -78,7 +78,7 @@ export function Home({ onNavigate }: HomeProps) {
   const dateFmt = user?.lang === "en" ? "en-US" : "ru-RU";
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-bg-deep relative overflow-hidden">
 
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"

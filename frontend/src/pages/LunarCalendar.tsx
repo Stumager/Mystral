@@ -50,7 +50,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
     : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto relative">
+    <div className="flex flex-col min-h-screen bg-bg-deep relative">
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
         style={{ height: 46, background: "rgba(6,4,20,0.75)" }}

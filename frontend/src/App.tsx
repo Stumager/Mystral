@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./i18n";
+import { AppLayout } from "./components/layout/AppLayout";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -52,7 +53,7 @@ function AppInner() {
   else                            content = <Home          onNavigate={navigate} />;
 
   return (
-    <>
+    <AppLayout page={page} onNavigate={navigate} user={user}>
       {content}
       {pendingMerge && <MergeAccountPrompt onClose={dismissMerge} />}
       {showOnboarding && !pendingMerge && (
@@ -61,7 +62,7 @@ function AppInner() {
           updateUser({ has_birth_date: true });
         }} />
       )}
-    </>
+    </AppLayout>
   );
 }
 

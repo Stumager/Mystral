@@ -28,7 +28,7 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 flex justify-around items-center"
+      className="fixed bottom-0 left-0 right-0 flex justify-around items-center md:hidden"
       style={{
         height: 56,
         background: "rgba(6,4,20,0.94)",

@@ -3,6 +3,10 @@
     "home": "Home",
     "tarot": "Tarot",
     "moon": "Moon",
+    "compat": "Compatibility",
+    "natal": "Natal Chart",
+    "numerology": "Numerology",
+    "runes": "Runes",
     "profile": "Profile"
   },
   "home": {

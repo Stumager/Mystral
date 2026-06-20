@@ -65,7 +65,7 @@ export function Tarot({ onNavigate }: TarotProps) {
   const rotations = [-8, 0, 8];
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep max-w-[390px] mx-auto">
+    <div className="flex flex-col min-h-screen bg-bg-deep">
 
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
