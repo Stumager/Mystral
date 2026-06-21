@@ -11,6 +11,7 @@ from sqlmodel import select
 from app.core.config import settings
 from app.core.database import get_session_context
 from app.models.user import AuthProvider, User, UserProfile
+from app.api.v1.lunar import get_lunar_today_data
 from app.services.horoscope import (
     SIGNS_EMOJI,
     SIGNS_RU,
@@ -26,9 +27,17 @@ TG_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 def _format_message(text: str, sign: str, lang: str) -> str:
     emoji = SIGNS_EMOJI.get(sign, "✨")
+    lunar = get_lunar_today_data(lang)
+    lunar_line = f"\n──────────────\n🌙 {lunar['lunar_day']}-й лунный день · {lunar['phase_name']}\n{lunar['day_title']}"
+    if lunar["energy"] == "hecat":
+        lunar_line += "\n⚠️ День Гекаты — будьте осторожны"
     if lang == "ru":
-        return f"{emoji} <b>Гороскоп на сегодня</b>\n\n{text}\n\n<i>✨ Mystral</i>"
-    return f"{emoji} <b>Today's horoscope</b>\n\n{text}\n\n<i>✨ Mystral</i>"
+        return f"{emoji} <b>Гороскоп на сегодня</b>\n\n{text}{lunar_line}\n\n<i>✨ Mystral</i>"
+    lunar_en = get_lunar_today_data("en")
+    lunar_line_en = f"\n──────────────\n🌙 Lunar day {lunar_en['lunar_day']} · {lunar_en['phase_name']}\n{lunar_en['day_title']}"
+    if lunar_en["energy"] == "hecat":
+        lunar_line_en += "\n⚠️ Hecate Day — be careful"
+    return f"{emoji} <b>Today's horoscope</b>\n\n{text}{lunar_line_en}\n\n<i>✨ Mystral</i>"
 
 
 async def _send_tg_message(http: httpx.AsyncClient, chat_id: int, text: str) -> bool:
