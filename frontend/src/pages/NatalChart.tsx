@@ -11,17 +11,21 @@ interface NatalChartProps { onNavigate: (page: string) => void; }
 interface PlanetData {
   name: string; name_ru: string; symbol: string;
   sign: string; sign_ru: string; degree: number;
-  house: number | null; retrograde: boolean;
+  house: number | null; retrograde: boolean; type?: string;
 }
 interface HouseData { number: number; sign: string; sign_ru: string; degree: number; }
 interface AspectData {
-  planet1: string; planet1_ru: string; planet2: string; planet2_ru: string;
+  planet1_ru: string; planet2_ru: string;
   type: string; name_ru: string; symbol: string; orb: number; harmony: boolean;
 }
+interface Stellium { type: string; name: string; planets: string[]; }
 interface ChartResult {
-  planets: PlanetData[]; houses: HouseData[]; aspects: AspectData[];
+  planets: PlanetData[]; extra_points: PlanetData[]; houses: HouseData[];
+  aspects: AspectData[];
   ascendant: { sign: string; sign_ru: string; degree: number };
   midheaven: { sign: string; sign_ru: string; degree: number };
+  part_of_fortune: { sign: string; sign_ru: string; degree: number; house: number | null };
+  stelliums: Stellium[];
   element_balance: { fire: number; earth: number; air: number; water: number };
   modality_balance: { cardinal: number; fixed: number; mutable: number };
   dominant_sign: string; dominant_sign_ru: string;
@@ -44,6 +48,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [form, setForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [chart, setChart] = useState<ChartResult | null>(null);
+  const [svgContent, setSvgContent] = useState("");
   const [activeSection, setActiveSection] = useState<Section>("personality");
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
@@ -98,10 +103,16 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         const errData = await res.json().catch(() => ({ detail: "Server error" }));
         throw new Error(errData.detail || `HTTP ${res.status}`);
       }
-      setChart(await res.json());
+      const data = await res.json();
+      setChart(data);
       setStep("result");
-      setInterpretation("");
-      setActiveSection("personality");
+      setInterpretation(""); setActiveSection("personality"); setSvgContent("");
+
+      // Load SVG in background
+      fetch("/api/v1/natal/svg", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildBody()),
+      }).then(r => r.ok ? r.text() : "").then(setSvgContent).catch(() => {});
 
       if (saveToProfile && token) {
         const b = buildBody();
@@ -188,28 +199,49 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         ) : chart ? (
           <div className="flex flex-col gap-4">
 
-            {/* Block 1: Big Three */}
+            {/* SVG Chart Wheel */}
+            {svgContent && (
+              <Card className="overflow-hidden">
+                <div
+                  dangerouslySetInnerHTML={{ __html: svgContent }}
+                  className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[300px]"
+                />
+              </Card>
+            )}
+
+            {/* Stelliums */}
+            {chart.stelliums.length > 0 && chart.stelliums.map((s, i) => (
+              <div key={i} className="rounded-xl px-4 py-3" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)" }}>
+                <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
+                  ✦ {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {s.name}
+                </span>
+                <p className="text-text-muted text-xs mt-1">{s.planets.join(", ")}</p>
+              </div>
+            ))}
+
+            {/* Big Three */}
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.big_three")}</p>
               <div className="flex flex-col gap-2.5">
                 {[
-                  { icon: "☀️", label: lang === "ru" ? "Солнце" : "Sun", p: chart.planets[0] },
-                  { icon: "🌙", label: lang === "ru" ? "Луна" : "Moon", p: chart.planets[1] },
+                  { icon: "☀️", label: lang === "ru" ? "Солнце" : "Sun", data: chart.planets[0] },
+                  { icon: "🌙", label: lang === "ru" ? "Луна" : "Moon", data: chart.planets[1] },
                   { icon: "⬆️", label: lang === "ru" ? "Асцендент" : "Ascendant",
-                    p: { sign_ru: chart.ascendant.sign_ru, sign: chart.ascendant.sign, degree: chart.ascendant.degree, house: null, retrograde: false } },
-                ].map(({ icon, label, p }) => (
+                    data: { sign_ru: chart.ascendant.sign_ru, sign: chart.ascendant.sign, degree: chart.ascendant.degree } },
+                  { icon: "🔝", label: lang === "ru" ? "MC (Середина Неба)" : "MC (Midheaven)",
+                    data: { sign_ru: chart.midheaven.sign_ru, sign: chart.midheaven.sign, degree: chart.midheaven.degree } },
+                ].map(({ icon, label, data }) => (
                   <div key={label} className="flex items-center justify-between">
                     <span className="text-text-muted text-sm">{icon} {label}</span>
                     <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
-                      {lang === "ru" ? p.sign_ru : p.sign}
-                      <span className="text-text-faint text-xs ml-1">{p.degree}°</span>
+                      {lang === "ru" ? data.sign_ru : data.sign} <span className="text-text-faint text-xs">{data.degree}°</span>
                     </span>
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* Block 2: All Planets */}
+            {/* All Planets */}
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.planets")}</p>
               <div className="flex flex-col gap-1.5">
@@ -221,48 +253,86 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                     </span>
                     <span className="text-text-primary">
                       {lang === "ru" ? p.sign_ru : p.sign} {p.degree}°
-                      {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "house"} {p.house})</span>}
+                      {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}
                     </span>
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* Block 3: Element Balance */}
+            {/* Extra Points */}
+            {(chart.extra_points.length > 0 || chart.part_of_fortune) && (
+              <Card>
+                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+                  {lang === "ru" ? "Дополнительные точки" : "Additional Points"}
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {chart.extra_points.map(p => (
+                    <div key={p.name} className="flex items-center justify-between text-xs">
+                      <span className="text-text-muted">{p.symbol} {lang === "ru" ? p.name_ru : p.name}</span>
+                      <span className="text-text-primary">
+                        {lang === "ru" ? p.sign_ru : p.sign} {p.degree}°
+                        {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}
+                      </span>
+                    </div>
+                  ))}
+                  {chart.part_of_fortune && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-text-muted">⊕ {lang === "ru" ? "Часть Фортуны" : "Part of Fortune"}</span>
+                      <span className="text-text-primary">
+                        {lang === "ru" ? chart.part_of_fortune.sign_ru : chart.part_of_fortune.sign} {chart.part_of_fortune.degree}°
+                        {chart.part_of_fortune.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {chart.part_of_fortune.house})</span>}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Houses Table */}
+            <Card>
+              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+                {lang === "ru" ? "Куспиды домов" : "House Cusps"}
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {chart.houses.map(h => (
+                  <div key={h.number} className="flex items-center justify-between text-xs py-0.5">
+                    <span className="text-text-muted">{lang === "ru" ? "Дом" : "House"} {h.number}</span>
+                    <span className="text-text-primary">{lang === "ru" ? h.sign_ru : h.sign} {h.degree}°</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Element Balance */}
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
                 {lang === "ru" ? "Баланс стихий" : "Element Balance"}
               </p>
               <div className="flex flex-col gap-2">
-                {(["fire", "earth", "air", "water"] as const).map(el => {
-                  const count = chart.element_balance[el];
-                  const total = 10;
-                  return (
-                    <div key={el} className="flex items-center gap-2">
-                      <span className="text-xs w-16">{elIcons[el]} {elLabels[el]}</span>
-                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(107,78,255,0.1)" }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${(count / total) * 100}%`, background: elColors[el] }} />
-                      </div>
-                      <span className="text-text-faint text-[10px] w-4 text-right">{count}</span>
+                {(["fire", "earth", "air", "water"] as const).map(el => (
+                  <div key={el} className="flex items-center gap-2">
+                    <span className="text-xs w-16">{elIcons[el]} {elLabels[el]}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(107,78,255,0.1)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${(chart.element_balance[el] / 10) * 100}%`, background: elColors[el] }} />
                     </div>
-                  );
-                })}
+                    <span className="text-text-faint text-[10px] w-4 text-right">{chart.element_balance[el]}</span>
+                  </div>
+                ))}
               </div>
               <p className="text-text-faint text-[10px] mt-2">
-                {lang === "ru" ? "Доминантный знак" : "Dominant sign"}: <span style={{ color: "#C9A84C" }}>{chart.dominant_sign_ru || chart.dominant_sign}</span>
+                {lang === "ru" ? "Доминантный знак" : "Dominant"}: <span style={{ color: "#C9A84C" }}>{chart.dominant_sign_ru || chart.dominant_sign}</span>
               </p>
             </Card>
 
-            {/* Block 4: Aspects */}
+            {/* Aspects */}
             {chart.aspects.length > 0 && (
               <Card>
                 <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.aspects_label")}</p>
                 <div className="flex flex-col gap-1.5">
                   {chart.aspects.slice(0, 7).map((a, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">
-                        {lang === "ru" ? a.planet1_ru : a.planet1} {a.symbol} {lang === "ru" ? a.planet2_ru : a.planet2}
-                      </span>
+                      <span className="text-text-muted">{a.planet1_ru} {a.symbol} {a.planet2_ru}</span>
                       <span style={{ color: a.harmony ? "#4ade80" : "#f87171" }}>
                         {a.name_ru} <span className="text-text-faint">{a.orb}°</span>
                       </span>
@@ -272,39 +342,32 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               </Card>
             )}
 
-            {/* Block 5: AI Interpretation tabs */}
+            {/* AI Interpretation */}
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
                 {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
               </p>
               <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
                 {SECTIONS.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleInterpret(s)}
+                  <button key={s} onClick={() => handleInterpret(s)}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-colors shrink-0"
                     style={{
                       background: activeSection === s ? "rgba(107,78,255,0.2)" : "transparent",
                       color: activeSection === s ? "#9B8AFF" : "#9B8FBB",
                       border: `1px solid ${activeSection === s ? "rgba(107,78,255,0.3)" : "rgba(107,78,255,0.08)"}`,
-                    }}
-                  >
-                    <span>{SECTION_ICONS[s]}</span>
-                    <span>{sectionLabels[s]}</span>
-                    {s !== "personality" && user?.tier !== "pro" && (
-                      <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>
-                    )}
+                    }}>
+                    <span>{SECTION_ICONS[s]}</span><span>{sectionLabels[s]}</span>
+                    {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
                   </button>
                 ))}
               </div>
               {interpretation ? (
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}
-                  {interpretLoading && <span className="animate-pulse">▍</span>}
+                  {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
                 </p>
               ) : (
                 <p className="text-text-faint text-xs text-center">
-                  {lang === "ru" ? "Выбери раздел для анализа" : "Select a section to analyze"}
+                  {lang === "ru" ? "Выбери раздел для анализа" : "Select a section"}
                 </p>
               )}
             </Card>
