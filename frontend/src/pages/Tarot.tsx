@@ -34,6 +34,7 @@ export function Tarot({ onNavigate }: TarotProps) {
   const [interpretation, setInterpretation] = useState("");
   const [isReading, setIsReading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
 
   function selectSpread(s: SpreadType) {
@@ -53,6 +54,7 @@ export function Tarot({ onNavigate }: TarotProps) {
 
   async function doSpread(s: SpreadType, pos: string[]) {
     setLoading(true);
+    setError("");
     try {
       const data = await apiRequest<{ cards: DrawnCard[] }>(
         "/tarot/spread",
@@ -67,6 +69,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     } catch (e: unknown) {
       const err = e as { code?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
+      else setError(t("tarot.error"));
     } finally {
       setLoading(false);
     }
@@ -109,6 +112,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     setSpread(null);
     setCards([]);
     setInterpretation("");
+    setError("");
   }
 
   const allRevealed = revealed.length > 0 && revealed.every(Boolean);
@@ -204,6 +208,8 @@ export function Tarot({ onNavigate }: TarotProps) {
               />
               <p className="text-text-faint text-[10px] mt-1">{t("tarot.question_hint")}</p>
             </div>
+
+            {error && <p className="text-red-400 text-xs text-center">{error}</p>}
 
             <Button variant="primary" className="w-full" onClick={handleProceed} disabled={loading}>
               {loading ? "..." : t("tarot.draw_cards")}
