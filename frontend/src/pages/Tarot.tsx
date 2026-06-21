@@ -14,6 +14,7 @@ interface TarotProps {
 interface DrawnCard {
   id: number;
   name: string;
+  name_ru: string;
   reversed: boolean;
 }
 
@@ -231,14 +232,14 @@ export function Tarot({ onNavigate }: TarotProps) {
                 <div key={i} onClick={() => revealCard(i)} className="flex flex-col items-center">
                   <TarotCard
                     cardId={card.id}
-                    name={card.name}
+                    name={lang === "ru" ? card.name_ru : card.name}
                     revealed={revealed[i]}
                     reversed={card.reversed}
                     delay={i * 100}
                   />
                   {revealed[i] && (
                     <div className="mt-1.5 text-center max-w-[88px]">
-                      <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{card.name}</p>
+                      <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{lang === "ru" ? card.name_ru : card.name}</p>
                       <p className="text-text-faint text-[8px]">{positions[i]}</p>
                       {card.reversed && (
                         <p className="text-[8px]" style={{ color: "#f87171" }}>{t("tarot.reversed")}</p>

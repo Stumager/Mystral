@@ -22,20 +22,35 @@ router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
-CARD_NAMES = {
-    i: n for i, n in enumerate([
-        "The Fool", "The Magician", "High Priestess", "The Empress", "The Emperor",
-        "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit",
-        "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance",
-        "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World",
-    ])
-}
-SUITS = ["Wands", "Cups", "Swords", "Pentacles"]
-RANKS = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
-         "Page", "Knight", "Queen", "King"]
-for si, suit in enumerate(SUITS):
-    for ri, rank in enumerate(RANKS):
-        CARD_NAMES[22 + si * 14 + ri] = f"{rank} of {suit}"
+MAJOR_EN = [
+    "The Fool", "The Magician", "High Priestess", "The Empress", "The Emperor",
+    "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit",
+    "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance",
+    "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World",
+]
+MAJOR_RU = [
+    "Шут", "Маг", "Жрица", "Императрица", "Император",
+    "Иерофант", "Влюблённые", "Колесница", "Сила", "Отшельник",
+    "Колесо Фортуны", "Справедливость", "Повешенный", "Смерть", "Умеренность",
+    "Дьявол", "Башня", "Звезда", "Луна", "Солнце", "Суд", "Мир",
+]
+SUITS_EN = ["Wands", "Cups", "Swords", "Pentacles"]
+SUITS_RU = ["Жезлов", "Кубков", "Мечей", "Пентаклей"]
+RANKS_EN = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Page", "Knight", "Queen", "King"]
+RANKS_RU = ["Туз", "Двойка", "Тройка", "Четвёрка", "Пятёрка", "Шестёрка", "Семёрка",
+            "Восьмёрка", "Девятка", "Десятка", "Паж", "Рыцарь", "Королева", "Король"]
+
+CARD_NAMES: dict[int, str] = {}
+CARD_NAMES_RU: dict[int, str] = {}
+for i, (en, ru) in enumerate(zip(MAJOR_EN, MAJOR_RU)):
+    CARD_NAMES[i] = en
+    CARD_NAMES_RU[i] = ru
+for si in range(4):
+    for ri in range(14):
+        idx = 22 + si * 14 + ri
+        CARD_NAMES[idx] = f"{RANKS_EN[ri]} of {SUITS_EN[si]}"
+        CARD_NAMES_RU[idx] = f"{RANKS_RU[ri]} {SUITS_RU[si]}"
 
 SPREADS = {
     "card_of_day":  {"count": 1,  "tier": "free"},
@@ -93,6 +108,7 @@ async def tarot_spread(
         cards.append({
             "id": card_id,
             "name": CARD_NAMES.get(card_id, f"Card {card_id}"),
+            "name_ru": CARD_NAMES_RU.get(card_id, f"Карта {card_id}"),
             "reversed": random.random() < 0.3,
         })
 
@@ -127,13 +143,20 @@ async def tarot_interpret(
     upright_count = 0
     for i, card in enumerate(req.cards):
         pos = req.positions[i] if i < len(req.positions) else f"Position {i+1}"
-        rev = " (reversed)" if card.get("reversed") else " (upright)"
+        card_id = card.get("id", -1)
+        if req.lang == "ru":
+            name = card.get("name_ru") or CARD_NAMES_RU.get(card_id, card.get("name", "?"))
+            rev = " (перевёрнутая)" if card.get("reversed") else " (прямая)"
+        else:
+            name = card.get("name") or CARD_NAMES.get(card_id, "?")
+            rev = " (reversed)" if card.get("reversed") else " (upright)"
         if not card.get("reversed"):
             upright_count += 1
-        cards_desc.append(f"{card.get('name', '?')}{rev} — {pos}")
+        cards_desc.append(f"{name}{rev} — {pos}")
 
     cards_text = "\n".join(cards_desc)
-    sys = system_prompt(req.lang)
+    lang_enforce = "Отвечай ТОЛЬКО на русском языке. Не используй английские слова или другие языки." if req.lang == "ru" else "Answer ONLY in English."
+    sys = system_prompt(req.lang) + f" {lang_enforce}"
     question_part = f'\nВопрос клиента: "{req.question}". Строй ответ вокруг этого вопроса.' if req.question else ""
     yes_no_part = ""
 
