@@ -3,222 +3,379 @@ import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
-import { streamRequest } from "../utils/api";
+import { apiRequest, streamRequest } from "../utils/api";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 
-interface CompatibilityProps {
-  onNavigate: (page: string) => void;
+interface CompatibilityProps { onNavigate: (page: string) => void; }
+
+interface Partner {
+  id: string; name: string; birth_date: string;
+  zodiac_sign: string; zodiac_sign_ru: string; zodiac_symbol: string;
+  has_time: boolean; has_city: boolean;
 }
 
 interface CompatResult {
-  person1_sign: string;
-  person1_symbol: string;
-  person2_sign: string;
-  person2_symbol: string;
-  sun_compatibility: { percent: number; description: string };
+  type: string; score: number; description: string; partner_name: string;
+  [key: string]: unknown;
 }
+
+type Step = "partners" | "types" | "result";
+
+interface SynAspect { user_planet: string; partner_planet: string; aspect: string; symbol: string; orb: number; harmony: boolean; }
+function SynastryAspects({ aspects, lang }: { aspects: SynAspect[]; lang: string }) {
+  return (
+    <div className="mt-3 flex flex-col gap-1">
+      <p className="text-text-faint text-[9px] uppercase tracking-widest mb-1">{lang === "ru" ? "Аспекты" : "Aspects"}</p>
+      {aspects.slice(0, 7).map((a, i) => (
+        <div key={i} className="flex items-center justify-between text-xs">
+          <span className="text-text-muted">{a.user_planet} {a.symbol} {a.partner_planet}</span>
+          <span style={{ color: a.harmony ? "#4ade80" : "#f87171" }}>{a.aspect} {a.orb}°</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OverallScores({ scores, lang, labels, colorFn }: { scores: Record<string, number>; lang: string; labels: Record<string, [string, string]>; colorFn: (s: number) => string }) {
+  return (
+    <div className="mt-3 flex flex-col gap-1.5">
+      {Object.entries(scores).map(([k, v]) => (
+        <div key={k} className="flex items-center justify-between text-xs">
+          <span className="text-text-muted">{labels[k]?.[lang === "ru" ? 0 : 1] ?? k}</span>
+          <span style={{ color: colorFn(v) }}>{v}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const COMPAT_TYPES = [
+  { id: "signs", icon: "☀️", tier: "free" },
+  { id: "elements", icon: "🔥", tier: "free" },
+  { id: "numerology", icon: "🔢", tier: "free" },
+  { id: "chinese", icon: "🐉", tier: "free" },
+  { id: "moon", icon: "🌙", tier: "free" },
+  { id: "synastry", icon: "⭐", tier: "pro" },
+  { id: "overall", icon: "📊", tier: "free" },
+];
 
 export function Compatibility({ onNavigate }: CompatibilityProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
-  const [step, setStep] = useState<"form" | "result">("form");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const lang = user?.lang ?? "ru";
+
+  const [step, setStep] = useState<Step>("partners");
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [result, setResult] = useState<CompatResult | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "" });
+  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
 
-  const [me, setMe] = useState({ day: "", month: "", year: "" });
-  const [partner, setPartner] = useState({ name: "", day: "", month: "", year: "" });
-
-  const profileLoaded = useRef(false);
+  const loaded = useRef(false);
   useEffect(() => {
-    if (profileLoaded.current || !token) return;
-    profileLoaded.current = true;
-    fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        if (data.birth_date) {
-          const [y, m, d] = data.birth_date.split("-");
-          setMe({ day: d || "", month: m || "", year: y || "" });
-        }
-      })
-      .catch(() => {});
+    if (loaded.current || !token) return;
+    loaded.current = true;
+    loadPartners();
   }, [token]);
 
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  function validateDates(): boolean {
-    const errs: Record<string, string> = {};
-    let d, m, y, de;
-    d = validateDay(me.day); if (d) errs.me_day = d;
-    m = validateMonth(me.month); if (m) errs.me_month = m;
-    y = validateYear(me.year); if (y) errs.me_year = y;
-    if (!d && !m && !y) { de = validateDateExists(me.day, me.month, me.year); if (de) errs.me_date = de; }
-    d = validateDay(partner.day); if (d) errs.p_day = d;
-    m = validateMonth(partner.month); if (m) errs.p_month = m;
-    y = validateYear(partner.year); if (y) errs.p_year = y;
-    if (!d && !m && !y) { de = validateDateExists(partner.day, partner.month, partner.year); if (de) errs.p_date = de; }
-    setFormErrors(errs);
-    return !Object.values(errs).some(Boolean);
-  }
-
-  async function handleCalculate() {
-    if (!validateDates()) return;
-    setLoading(true);
-    setError("");
+  async function loadPartners() {
     try {
-      const p1Date = `${me.year}-${me.month.padStart(2, "0")}-${me.day.padStart(2, "0")}`;
-      const p2Date = `${partner.year}-${partner.month.padStart(2, "0")}-${partner.day.padStart(2, "0")}`;
-      const res = await fetch("/api/v1/compatibility/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          person1: { birth_date: p1Date },
-          person2: { birth_date: p2Date },
-          lang: user?.lang ?? "ru",
-        }),
+      const res = await fetch("/api/v1/partners", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error();
-      setResult(await res.json());
-      setStep("result");
-    } catch {
-      setError(t("compat.error"));
-    } finally {
-      setLoading(false);
-    }
+      if (res.ok) {
+        const data = await res.json();
+        setPartners(Array.isArray(data) ? data : []);
+      }
+    } catch { setPartners([]); }
   }
 
-  async function handleInterpret() {
-    if (!result) return;
-    setInterpretLoading(true);
-    setInterpretation("");
-    const p1Date = `${me.year}-${me.month.padStart(2, "0")}-${me.day.padStart(2, "0")}`;
-    const p2Date = `${partner.year}-${partner.month.padStart(2, "0")}-${partner.day.padStart(2, "0")}`;
+  async function handleAddPartner() {
+    const errs: Record<string, string> = {};
+    if (!addForm.name.trim()) errs.name = lang === "ru" ? "Укажи имя" : "Enter name";
+    const de = validateDay(addForm.day); if (de) errs.day = de;
+    const me = validateMonth(addForm.month); if (me) errs.month = me;
+    const ye = validateYear(addForm.year); if (ye) errs.year = ye;
+    if (!de && !me && !ye) { const dx = validateDateExists(addForm.day, addForm.month, addForm.year); if (dx) errs.date = dx; }
+    if (Object.values(errs).some(Boolean)) { setAddErrors(errs); return; }
+
+    setLoading(true);
     try {
-      await streamRequest(
-        "/compatibility/interpret",
-        { person1: { birth_date: p1Date }, person2: { birth_date: p2Date }, lang: user?.lang ?? "ru" },
-        (chunk) => setInterpretation(prev => prev + chunk),
-        () => setInterpretLoading(false),
-        token ?? undefined,
-      );
+      const bd = `${addForm.year}-${addForm.month.padStart(2, "0")}-${addForm.day.padStart(2, "0")}`;
+      await apiRequest("/partners", { name: addForm.name, birth_date: bd }, token ?? undefined);
+      await loadPartners();
+      setShowAddForm(false);
+      setAddForm({ name: "", day: "", month: "", year: "" });
     } catch (e: unknown) {
       const err = e as { code?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(t("compat.error"));
+      else setError(lang === "ru" ? "Ошибка" : "Error");
+    } finally { setLoading(false); }
+  }
+
+  async function handleDeletePartner(id: string) {
+    try {
+      await fetch(`/api/v1/partners/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPartners(prev => prev.filter(p => p.id !== id));
+    } catch {}
+  }
+
+  function selectPartner(p: Partner) {
+    setSelectedPartner(p);
+    setStep("types");
+    setResult(null);
+    setInterpretation("");
+  }
+
+  async function runCompat(typeId: string) {
+    if (!selectedPartner) return;
+    if (typeId === "synastry" && user?.tier !== "pro") { setShowPaywall(true); return; }
+
+    setLoading(true); setError("");
+    try {
+      const data = await apiRequest<CompatResult>(
+        `/compatibility/${typeId}`,
+        { partner_id: selectedPartner.id, lang },
+        token ?? undefined,
+      );
+      setResult(data);
+      setStep("result");
+      setInterpretation("");
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
+      else setError(typeof err.message === "string" ? err.message : (lang === "ru" ? "Ошибка" : "Error"));
+    } finally { setLoading(false); }
+  }
+
+  async function handleInterpret() {
+    if (!result || !selectedPartner) return;
+    setInterpretLoading(true); setInterpretation("");
+    try {
+      await streamRequest("/compatibility/interpret",
+        { compat_type: result.type, partner_id: selectedPartner.id, score: result.score, lang },
+        (c) => setInterpretation(prev => prev + c),
+        () => setInterpretLoading(false), token ?? undefined);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
+      else setInterpretation(lang === "ru" ? "Ошибка" : "Error");
       setInterpretLoading(false);
     }
   }
 
-  const inputCls =
-    "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 " +
-    "text-text-primary text-sm placeholder:text-text-faint " +
-    "focus:outline-none focus:border-violet-600 transition-colors";
+  const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
+  const typeLabels: Record<string, [string, string]> = {
+    signs: ["По знакам", "By Signs"], elements: ["По стихиям", "By Elements"],
+    numerology: ["Нумерология", "Numerology"], chinese: ["Китайский", "Chinese"],
+    moon: ["Лунная", "Moon"], synastry: ["Синастрия", "Synastry"],
+    overall: ["Полный анализ", "Full Analysis"],
+  };
 
-  const canSubmit = me.day && me.month && me.year && partner.day && partner.month && partner.year;
+  function scoreColor(s: number) { return s >= 70 ? "#4ade80" : s >= 40 ? "#C9A84C" : "#f87171"; }
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-deep relative">
-      <header
-        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
-        style={{ height: 46, background: "rgba(6,4,20,0.75)" }}
-      >
-        <button className="text-text-muted text-lg w-8" onClick={() => step === "result" ? setStep("form") : onNavigate("home")}>‹</button>
+      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm" style={{ height: 46, background: "rgba(6,4,20,0.75)" }}>
+        <button className="text-text-muted text-lg w-8" onClick={() => {
+          if (step === "result") { setStep("types"); setResult(null); }
+          else if (step === "types") setStep("partners");
+          else onNavigate("home");
+        }}>‹</button>
         <span className="font-display text-text-primary text-base tracking-widest">{t("compat.title")}</span>
         <div className="w-8" />
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pt-6 pb-24">
-        {step === "form" ? (
-          <div className="flex flex-col gap-4">
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("compat.you")}</p>
-              <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={me.day} onChange={e => { setMe(p => ({ ...p, day: e.target.value })); setFormErrors(p => ({ ...p, me_day: "", me_date: "" })); }} />
-                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={me.month} onChange={e => { setMe(p => ({ ...p, month: e.target.value })); setFormErrors(p => ({ ...p, me_month: "", me_date: "" })); }} />
-                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={me.year} onChange={e => { setMe(p => ({ ...p, year: e.target.value })); setFormErrors(p => ({ ...p, me_year: "", me_date: "" })); }} />
-              </div>
-              {(formErrors.me_day || formErrors.me_month || formErrors.me_year || formErrors.me_date) && (
-                <p className="text-red-400 text-xs mt-1">{formErrors.me_day || formErrors.me_month || formErrors.me_year || formErrors.me_date}</p>
-              )}
-            </Card>
 
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("compat.partner")}</p>
-              <input className={inputCls + " mb-2"} placeholder={t("compat.partner_name")} value={partner.name} onChange={e => setPartner(p => ({ ...p, name: e.target.value }))} />
-              <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("compat.day")} type="number" min="1" max="31" value={partner.day} onChange={e => { setPartner(p => ({ ...p, day: e.target.value })); setFormErrors(p => ({ ...p, p_day: "", p_date: "" })); }} />
-                <input className={inputCls} placeholder={t("compat.month")} type="number" min="1" max="12" value={partner.month} onChange={e => { setPartner(p => ({ ...p, month: e.target.value })); setFormErrors(p => ({ ...p, p_month: "", p_date: "" })); }} />
-                <input className={inputCls} placeholder={t("compat.year")} type="number" min="1900" max="2025" value={partner.year} onChange={e => { setPartner(p => ({ ...p, year: e.target.value })); setFormErrors(p => ({ ...p, p_year: "", p_date: "" })); }} />
-              </div>
-              {(formErrors.p_day || formErrors.p_month || formErrors.p_year || formErrors.p_date) && (
-                <p className="text-red-400 text-xs mt-1">{formErrors.p_day || formErrors.p_month || formErrors.p_year || formErrors.p_date}</p>
-              )}
-            </Card>
+        {/* Step 1: Partners */}
+        {step === "partners" && (
+          <div className="flex flex-col gap-3">
+            <p className="text-text-faint text-[10px] uppercase tracking-widest mb-1">
+              {lang === "ru" ? "Твои партнёры" : "Your partners"}
+            </p>
 
-            {error && <p className="text-red-400 text-xs text-center">{error}</p>}
-
-            <Button variant="primary" className="w-full" onClick={handleCalculate} disabled={loading || !canSubmit}>
-              {loading ? t("compat.calculating") : t("compat.calculate")}
-            </Button>
-          </div>
-        ) : result ? (
-          <div className="flex flex-col gap-4">
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-4">{t("compat.sun_compat")}</p>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-3xl">{result.person1_symbol}</span>
-                  <span className="text-text-muted text-xs">{result.person1_sign}</span>
+            {partners.map(p => (
+              <Card key={p.id} className="cursor-pointer active:scale-[0.98] transition-all" onClick={() => selectPartner(p)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: "#6B4EFF" }}>
+                      {p.name[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-text-primary text-sm">{p.name}</p>
+                      <p className="text-text-faint text-[10px]">{p.zodiac_symbol} {lang === "ru" ? p.zodiac_sign_ru : p.zodiac_sign}</p>
+                    </div>
+                  </div>
+                  <button className="text-text-faint text-xs px-2" onClick={e => { e.stopPropagation(); handleDeletePartner(p.id); }}>✕</button>
                 </div>
-                <span className="text-text-faint text-xl">+</span>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-3xl">{result.person2_symbol}</span>
-                  <span className="text-text-muted text-xs">{result.person2_sign}</span>
-                </div>
-              </div>
-              <p className="font-display text-4xl text-center mb-3" style={{ color: result.sun_compatibility.percent >= 70 ? "#C9A84C" : "#9B8AFF" }}>
-                {result.sun_compatibility.percent}%
-              </p>
-              <div className="w-full rounded-full overflow-hidden mb-3" style={{ height: 4, background: "rgba(107,78,255,0.15)" }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${result.sun_compatibility.percent}%`, background: result.sun_compatibility.percent >= 70 ? "#C9A84C" : "#6B4EFF" }} />
-              </div>
-              <p className="text-text-muted text-xs leading-relaxed">{result.sun_compatibility.description}</p>
-            </Card>
+              </Card>
+            ))}
 
-            {user?.tier !== "pro" ? (
+            {showAddForm ? (
               <Card>
-                <p className="text-text-muted text-sm mb-2">{t("compat.pro_lock")}</p>
-                <p className="text-text-faint text-xs mb-3">{t("compat.pro_includes")}</p>
-                <Button variant="gold" size="sm" className="w-full" onClick={() => setShowPaywall(true)}>
-                  {t("profile.upgrade")}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <input className={inputCls} placeholder={lang === "ru" ? "Имя" : "Name"} value={addForm.name}
+                    onChange={e => { setAddForm(p => ({ ...p, name: e.target.value })); setAddErrors(p => ({ ...p, name: "" })); }} />
+                  {addErrors.name && <p className="text-red-400 text-[10px]">{addErrors.name}</p>}
+                  <div className="grid grid-cols-3 gap-2">
+                    <input className={inputCls} placeholder={lang === "ru" ? "День" : "Day"} type="number" value={addForm.day}
+                      onChange={e => { setAddForm(p => ({ ...p, day: e.target.value })); setAddErrors(p => ({ ...p, day: "", date: "" })); }} />
+                    <input className={inputCls} placeholder={lang === "ru" ? "Месяц" : "Month"} type="number" value={addForm.month}
+                      onChange={e => { setAddForm(p => ({ ...p, month: e.target.value })); setAddErrors(p => ({ ...p, month: "", date: "" })); }} />
+                    <input className={inputCls} placeholder={lang === "ru" ? "Год" : "Year"} type="number" value={addForm.year}
+                      onChange={e => { setAddForm(p => ({ ...p, year: e.target.value })); setAddErrors(p => ({ ...p, year: "", date: "" })); }} />
+                  </div>
+                  {(addErrors.day || addErrors.month || addErrors.year || addErrors.date) && (
+                    <p className="text-red-400 text-[10px]">{addErrors.day || addErrors.month || addErrors.year || addErrors.date}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button variant="primary" size="sm" className="flex-1" onClick={handleAddPartner} disabled={loading}>
+                      {loading ? "..." : (lang === "ru" ? "Добавить" : "Add")}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={() => setShowAddForm(false)}>
+                      {lang === "ru" ? "Отмена" : "Cancel"}
+                    </Button>
+                  </div>
+                </div>
               </Card>
             ) : (
-              <>
-                {interpretation ? (
-                  <Card>
-                    <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">{t("natal.interpretation")}</p>
-                    <p className="text-text-muted text-xs leading-relaxed">
-                      {interpretation}
-                      {interpretLoading && <span className="animate-pulse">▍</span>}
-                    </p>
-                  </Card>
-                ) : (
-                  <Button variant="primary" className="w-full" onClick={handleInterpret} disabled={interpretLoading}>
-                    {interpretLoading ? t("compat.reading") : t("compat.get_interpretation")}
-                  </Button>
-                )}
-              </>
+              <Button variant="primary" className="w-full" onClick={() => setShowAddForm(true)}>
+                {lang === "ru" ? "Добавить партнёра ✦" : "Add partner ✦"}
+              </Button>
             )}
 
-            <Button variant="ghost" className="w-full" onClick={() => { setStep("form"); setResult(null); setInterpretation(""); }}>
-              {t("compat.back")}
+            {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+          </div>
+        )}
+
+        {/* Step 2: Type selection */}
+        {step === "types" && selectedPartner && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: "#6B4EFF" }}>
+                {selectedPartner.name[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="text-text-primary text-sm">{selectedPartner.name}</p>
+                <p className="text-text-faint text-[10px]">{selectedPartner.zodiac_symbol} {lang === "ru" ? selectedPartner.zodiac_sign_ru : selectedPartner.zodiac_sign}</p>
+              </div>
+            </div>
+
+            <p className="text-text-faint text-[10px] uppercase tracking-widest">{lang === "ru" ? "Выбери тип анализа" : "Choose analysis type"}</p>
+
+            <div className="grid grid-cols-2 gap-2">
+              {COMPAT_TYPES.map(ct => (
+                <Card key={ct.id} className="cursor-pointer active:scale-[0.98] transition-all relative" onClick={() => runCompat(ct.id)}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{ct.icon}</span>
+                    <span className="text-text-primary text-xs">{typeLabels[ct.id]?.[lang === "ru" ? 0 : 1] ?? ct.id}</span>
+                  </div>
+                  {ct.tier === "pro" && user?.tier !== "pro" && (
+                    <span className="absolute top-2 right-2 text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
+                  )}
+                </Card>
+              ))}
+            </div>
+
+            {loading && <p className="text-text-muted text-xs text-center animate-pulse">{lang === "ru" ? "Расчёт..." : "Calculating..."}</p>}
+            {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+          </div>
+        )}
+
+        {/* Step 3: Result */}
+        {step === "result" && result && (
+          <div className="flex flex-col gap-4">
+            {/* Score circle */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative w-28 h-28">
+                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(107,78,255,0.1)" strokeWidth="6" />
+                  <circle cx="50" cy="50" r="42" fill="none" stroke={scoreColor(result.score)}
+                    strokeWidth="6" strokeLinecap="round"
+                    strokeDasharray={`${result.score * 2.64} 264`} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-display text-2xl" style={{ color: scoreColor(result.score) }}>{result.score}%</span>
+                </div>
+              </div>
+              <p className="text-text-primary text-sm font-display">{result.partner_name}</p>
+              <p className="text-text-faint text-xs">{typeLabels[result.type]?.[lang === "ru" ? 0 : 1]}</p>
+            </div>
+
+            {/* Details */}
+            <Card>
+              <p className="text-text-muted text-xs leading-relaxed">{result.description}</p>
+
+              {/* Type-specific details */}
+              {result.type === "signs" && (
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  <span className="text-2xl">{result.user_symbol as string}</span>
+                  <span className="text-text-faint">+</span>
+                  <span className="text-2xl">{result.partner_symbol as string}</span>
+                </div>
+              )}
+
+              {result.type === "chinese" && (
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  <div className="text-center">
+                    <span className="text-2xl">{result.user_emoji as string}</span>
+                    <p className="text-text-faint text-[10px]">{result.user_animal as string}</p>
+                  </div>
+                  <span className="text-text-faint">+</span>
+                  <div className="text-center">
+                    <span className="text-2xl">{result.partner_emoji as string}</span>
+                    <p className="text-text-faint text-[10px]">{result.partner_animal as string}</p>
+                  </div>
+                </div>
+              )}
+
+              {result.type === "numerology" && (
+                <div className="flex items-center justify-center gap-6 mt-3">
+                  <span className="font-display text-2xl" style={{ color: "#9B8AFF" }}>{result.user_number as number}</span>
+                  <span className="text-text-faint">+</span>
+                  <span className="font-display text-2xl" style={{ color: "#9B8AFF" }}>{result.partner_number as number}</span>
+                </div>
+              )}
+
+              {result.type === "synastry" && Array.isArray(result.aspects) ? (
+                <SynastryAspects aspects={result.aspects as SynAspect[]} lang={lang} />
+              ) : null}
+
+              {result.type === "overall" && result.scores ? (
+                <OverallScores scores={result.scores as Record<string, number>} lang={lang} labels={typeLabels} colorFn={scoreColor} />
+              ) : null}
+            </Card>
+
+            {/* Interpret */}
+            {interpretation ? (
+              <Card>
+                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">AI</p>
+                <p className="text-text-muted text-xs leading-relaxed">
+                  {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
+                </p>
+              </Card>
+            ) : (
+              <Button variant="primary" className="w-full" onClick={handleInterpret} disabled={interpretLoading}>
+                {interpretLoading ? "..." : (lang === "ru" ? "AI интерпретация ✦" : "AI interpretation ✦")}
+              </Button>
+            )}
+
+            <Button variant="ghost" className="w-full" onClick={() => { setStep("types"); setResult(null); setInterpretation(""); }}>
+              {lang === "ru" ? "Другой анализ" : "Another analysis"}
             </Button>
           </div>
-        ) : null}
+        )}
+
       </main>
 
       <BottomNav active="home" onNavigate={onNavigate} />

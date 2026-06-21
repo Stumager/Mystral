@@ -66,3 +66,9 @@ class UserPartner(SQLModel, table=True):
     birth_date: date
     birth_time: Optional[time] = None
     birth_city: Optional[str] = None
+    birth_lat: Optional[float] = None
+    birth_lng: Optional[float] = None
+    zodiac_sign: Optional[str] = None
+    chinese_sign: Optional[str] = None
+    life_path: Optional[int] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
