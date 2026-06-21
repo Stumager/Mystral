@@ -142,18 +142,22 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
 
     setLoading(true); setError("");
     try {
-      const data = await apiRequest<CompatResult>(
-        `/compatibility/${typeId}`,
-        { partner_id: selectedPartner.id, lang },
-        token ?? undefined,
-      );
-      setResult(data);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(`/api/v1/compatibility/${typeId}`, {
+        method: "POST", headers, body: JSON.stringify({ partner_id: selectedPartner.id, lang }),
+      });
+      if (res.status === 402) { setShowPaywall(true); return; }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        setError(errData.detail || `HTTP ${res.status}`);
+        return;
+      }
+      setResult(await res.json());
       setStep("result");
       setInterpretation("");
-    } catch (e: unknown) {
-      const err = e as { code?: string; message?: string };
-      if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setError(typeof err.message === "string" ? err.message : (lang === "ru" ? "Ошибка" : "Error"));
+    } catch {
+      setError(lang === "ru" ? "Ошибка соединения" : "Connection error");
     } finally { setLoading(false); }
   }
 
