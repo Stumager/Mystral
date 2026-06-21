@@ -65,7 +65,8 @@
     "interpretation": "Интерпретация",
     "reading": "Читаю карту...",
     "get_interpretation": "Получить интерпретацию ✦",
-    "connection_error": "Ошибка соединения. Попробуй ещё раз."
+    "connection_error": "Ошибка соединения. Попробуй ещё раз.",
+    "aspects_label": "Аспекты"
   },
   "profile": {
     "title": "✦ Профиль",

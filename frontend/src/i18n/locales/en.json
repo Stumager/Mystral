@@ -65,7 +65,8 @@
     "interpretation": "Interpretation",
     "reading": "Reading chart...",
     "get_interpretation": "Get interpretation ✦",
-    "connection_error": "Connection error. Try again."
+    "connection_error": "Connection error. Try again.",
+    "aspects_label": "Aspects"
   },
   "profile": {
     "title": "✦ Profile",
