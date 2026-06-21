@@ -91,9 +91,22 @@ def _build_subject(name: str, year: int, month: int, day: int,
     )
 
 
+HOUSE_NUM = {
+    "First_House": 1, "Second_House": 2, "Third_House": 3, "Fourth_House": 4,
+    "Fifth_House": 5, "Sixth_House": 6, "Seventh_House": 7, "Eighth_House": 8,
+    "Ninth_House": 9, "Tenth_House": 10, "Eleventh_House": 11, "Twelfth_House": 12,
+}
+
+
 def _extract_planet(subj: AstrologicalSubject, key: str) -> dict:
     p = getattr(subj, key)
     sign_full = _normalize_sign(p.sign)
+    house_raw = getattr(p, "house", None)
+    house = HOUSE_NUM.get(house_raw, house_raw) if isinstance(house_raw, str) else house_raw
+    abs_pos = getattr(p, "abs_pos", None)
+    if abs_pos is None:
+        sign_idx = list(ELEMENTS.keys()).index(sign_full) if sign_full in ELEMENTS else 0
+        abs_pos = sign_idx * 30 + p.position
     return {
         "name": key,
         "name_ru": PLANET_NAMES_RU.get(key, key),
@@ -101,9 +114,9 @@ def _extract_planet(subj: AstrologicalSubject, key: str) -> dict:
         "sign": sign_full,
         "sign_ru": _ru(p.sign),
         "degree": round(p.position, 1),
-        "abs_pos": round(getattr(p, "abs_pos", p.position), 1),
-        "house": getattr(p, "house", None),
-        "retrograde": getattr(p, "retrograde", False),
+        "abs_pos": round(abs_pos, 1),
+        "house": house,
+        "retrograde": bool(getattr(p, "retrograde", False)),
     }
 
 
@@ -211,8 +224,11 @@ class InterpretRequest(BaseModel):
 @router.post("/natal/calculate")
 async def natal_calculate(req: NatalRequest):
     lat, lon = await geocode_city(req.city)
-    subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
-    return build_full_chart(subj)
+    try:
+        subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
+        return build_full_chart(subj)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chart calculation failed: {e}")
 
 
 @router.post("/natal/transits")

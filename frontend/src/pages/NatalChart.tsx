@@ -94,7 +94,10 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildBody()),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: "Server error" }));
+        throw new Error(errData.detail || `HTTP ${res.status}`);
+      }
       setChart(await res.json());
       setStep("result");
       setInterpretation("");
@@ -109,7 +112,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         if (form.hour) { pb.birth_time = `${String(b.hour).padStart(2, "0")}:${String(b.minute).padStart(2, "0")}`; pb.birth_time_known = true; }
         fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(pb) }).catch(() => {});
       }
-    } catch { setError(t("natal.calc_error")); }
+    } catch (e) { setError(e instanceof Error && e.message !== "Server error" ? e.message : t("natal.calc_error")); }
     finally { setLoading(false); }
   }
 
