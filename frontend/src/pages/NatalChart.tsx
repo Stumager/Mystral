@@ -9,7 +9,7 @@ import { validateDay, validateMonth, validateYear, validateDateExists, validateN
 interface NatalChartProps { onNavigate: (page: string) => void; }
 
 interface PlanetData {
-  name: string; name_ru: string; symbol: string;
+  name: string; name_ru: string; name_en: string; symbol: string;
   sign: string; sign_ru: string; degree: number;
   house: number | null; retrograde: boolean; type?: string;
 }
@@ -18,7 +18,10 @@ interface AspectData {
   planet1_ru: string; planet2_ru: string;
   type: string; name_ru: string; symbol: string; orb: number; harmony: boolean;
 }
-interface Stellium { type: string; name: string; planets: string[]; }
+interface Stellium {
+  type: string; name_ru: string; name_en: string;
+  planets_ru: string[]; planets_en: string[];
+}
 interface ChartResult {
   planets: PlanetData[]; extra_points: PlanetData[]; houses: HouseData[];
   aspects: AspectData[];
@@ -213,9 +216,9 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {chart.stelliums.length > 0 && chart.stelliums.map((s, i) => (
               <div key={i} className="rounded-xl px-4 py-3" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)" }}>
                 <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
-                  ✦ {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {s.name}
+                  ✦ {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {lang === "ru" ? s.name_ru : s.name_en}
                 </span>
-                <p className="text-text-muted text-xs mt-1">{s.planets.join(", ")}</p>
+                <p className="text-text-muted text-xs mt-1">{(lang === "ru" ? s.planets_ru : s.planets_en).join(", ")}</p>
               </div>
             ))}
 
@@ -248,7 +251,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 {chart.planets.map(p => (
                   <div key={p.name} className="flex items-center justify-between text-xs">
                     <span className="text-text-muted">
-                      {p.symbol} {lang === "ru" ? p.name_ru : p.name}
+                      {p.symbol} {lang === "ru" ? p.name_ru : p.name_en}
                       {p.retrograde && <span className="text-red-400 ml-1">R</span>}
                     </span>
                     <span className="text-text-primary">
@@ -269,7 +272,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 <div className="flex flex-col gap-1.5">
                   {chart.extra_points.map(p => (
                     <div key={p.name} className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">{p.symbol} {lang === "ru" ? p.name_ru : p.name}</span>
+                      <span className="text-text-muted">{p.symbol} {lang === "ru" ? p.name_ru : p.name_en}</span>
                       <span className="text-text-primary">
                         {lang === "ru" ? p.sign_ru : p.sign} {p.degree}°
                         {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}

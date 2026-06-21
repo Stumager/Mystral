@@ -53,7 +53,13 @@ PLANET_NAMES_RU = {
     "sun": "Солнце", "moon": "Луна", "mercury": "Меркурий", "venus": "Венера",
     "mars": "Марс", "jupiter": "Юпитер", "saturn": "Сатурн",
     "uranus": "Уран", "neptune": "Нептун", "pluto": "Плутон",
-    "true_node": "Сев. узел", "chiron": "Хирон",
+    "true_node": "Сев. узел", "south_node": "Юж. узел", "chiron": "Хирон",
+}
+PLANET_NAMES_EN = {
+    "sun": "Sun", "moon": "Moon", "mercury": "Mercury", "venus": "Venus",
+    "mars": "Mars", "jupiter": "Jupiter", "saturn": "Saturn",
+    "uranus": "Uranus", "neptune": "Neptune", "pluto": "Pluto",
+    "true_node": "North Node", "south_node": "South Node", "chiron": "Chiron",
 }
 
 ASPECT_TYPES = [
@@ -127,6 +133,7 @@ def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet") 
         return {
             "name": key,
             "name_ru": PLANET_NAMES_RU.get(key, key),
+            "name_en": PLANET_NAMES_EN.get(key, key.capitalize()),
             "symbol": PLANET_SYMBOLS.get(key, "?"),
             "sign": sign_full,
             "sign_ru": _ru(p.sign),
@@ -183,7 +190,7 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
         south_abs = (node["abs_pos"] + 180) % 360
         south_sign = _sign_from_abs(south_abs)
         extra.append({
-            "name": "south_node", "name_ru": "Юж. узел", "symbol": "☋",
+            "name": "south_node", "name_ru": "Юж. узел", "name_en": "South Node", "symbol": "☋",
             "sign": south_sign, "sign_ru": _ru(south_sign),
             "degree": round(south_abs % 30, 1), "abs_pos": round(south_abs, 1),
             "house": None, "retrograde": False, "type": "node",
@@ -242,15 +249,20 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
     stelliums = []
     for s, ps in sign_count.items():
         if ps >= 3:
-            names = [p["name_ru"] for p in planets if p["sign"] == s]
-            stelliums.append({"type": "sign", "name": _ru(s), "planets": names})
-    house_groups: dict[int, list[str]] = {}
+            names_ru = [p["name_ru"] for p in planets if p["sign"] == s]
+            names_en = [p.get("name_en", p["name"]) for p in planets if p["sign"] == s]
+            stelliums.append({"type": "sign", "name_ru": _ru(s), "name_en": s,
+                              "planets_ru": names_ru, "planets_en": names_en})
+    house_groups_ru: dict[int, list[str]] = {}
+    house_groups_en: dict[int, list[str]] = {}
     for p in planets:
         if p["house"]:
-            house_groups.setdefault(p["house"], []).append(p["name_ru"])
-    for h, ps in house_groups.items():
-        if len(ps) >= 3:
-            stelliums.append({"type": "house", "name": f"Дом {h}", "planets": ps})
+            house_groups_ru.setdefault(p["house"], []).append(p["name_ru"])
+            house_groups_en.setdefault(p["house"], []).append(p.get("name_en", p["name"]))
+    for h in house_groups_ru:
+        if len(house_groups_ru[h]) >= 3:
+            stelliums.append({"type": "house", "name_ru": f"Дом {h}", "name_en": f"House {h}",
+                              "planets_ru": house_groups_ru[h], "planets_en": house_groups_en[h]})
 
     dominant_sign = max(sign_count, key=sign_count.get) if sign_count else ""
 
