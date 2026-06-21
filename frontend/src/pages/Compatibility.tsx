@@ -74,7 +74,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   const [error, setError] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "" });
+  const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
 
   const loaded = useRef(false);
@@ -108,10 +108,14 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
     setLoading(true);
     try {
       const bd = `${addForm.year}-${addForm.month.padStart(2, "0")}-${addForm.day.padStart(2, "0")}`;
-      await apiRequest("/partners", { name: addForm.name, birth_date: bd }, token ?? undefined);
+      const body: Record<string, unknown> = { name: addForm.name, birth_date: bd };
+      if (addForm.hour) body.birth_hour = parseInt(addForm.hour);
+      if (addForm.minute) body.birth_minute = parseInt(addForm.minute);
+      if (addForm.city.trim()) body.birth_city = addForm.city;
+      await apiRequest("/partners", body, token ?? undefined);
       await loadPartners();
       setShowAddForm(false);
-      setAddForm({ name: "", day: "", month: "", year: "" });
+      setAddForm({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
     } catch (e: unknown) {
       const err = e as { code?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
@@ -242,6 +246,15 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
                   {(addErrors.day || addErrors.month || addErrors.year || addErrors.date) && (
                     <p className="text-red-400 text-[10px]">{addErrors.day || addErrors.month || addErrors.year || addErrors.date}</p>
                   )}
+                  <p className="text-text-faint text-[9px] mt-1">{lang === "ru" ? "Время рождения (для лунной совместимости)" : "Birth time (for moon compatibility)"}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className={inputCls} placeholder={lang === "ru" ? "Час (0–23)" : "Hour (0–23)"} type="number" min="0" max="23" value={addForm.hour}
+                      onChange={e => setAddForm(p => ({ ...p, hour: e.target.value }))} />
+                    <input className={inputCls} placeholder={lang === "ru" ? "Минуты" : "Minutes"} type="number" min="0" max="59" value={addForm.minute}
+                      onChange={e => setAddForm(p => ({ ...p, minute: e.target.value }))} />
+                  </div>
+                  <input className={inputCls} placeholder={lang === "ru" ? "Город рождения (для синастрии)" : "Birth city (for synastry)"} value={addForm.city}
+                    onChange={e => setAddForm(p => ({ ...p, city: e.target.value }))} />
                   <div className="flex gap-2">
                     <Button variant="primary" size="sm" className="flex-1" onClick={handleAddPartner} disabled={loading}>
                       {loading ? "..." : (lang === "ru" ? "Добавить" : "Add")}
