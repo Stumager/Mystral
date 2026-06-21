@@ -30,7 +30,7 @@ export function TarotCard({ cardId, name, revealed, reversed, delay = 0 }: Tarot
         }}
       >
         <img
-          src={`/tarot/${cardId}.jpg`}
+          src={`/tarot/${cardId}.jpg?v=2`}
           alt={name}
           style={{
             width: "100%", height: "100%", objectFit: "cover",
@@ -104,7 +104,7 @@ export function TarotCard({ cardId, name, revealed, reversed, delay = 0 }: Tarot
           }}
         >
           <img
-            src={`/tarot/${cardId}.jpg`}
+            src={`/tarot/${cardId}.jpg?v=2`}
             alt={name}
             style={{
               width: "100%", height: "100%", objectFit: "cover",
