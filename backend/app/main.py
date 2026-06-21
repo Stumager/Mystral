@@ -11,7 +11,7 @@ import app.models  # noqa: F401 — register models with SQLModel.metadata
 from app.api.router import api_router
 from app.core.database import create_db_and_tables
 from app.core.redis import close_redis, init_redis
-from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders
+from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders, send_astro_event_notifications
 
 
 @asynccontextmanager
@@ -31,6 +31,14 @@ async def lifespan(_app: FastAPI):
         hour=12,
         minute=0,
         id="subscription_reminders",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        send_astro_event_notifications,
+        trigger="cron",
+        hour=8,
+        minute=0,
+        id="astro_events",
         replace_existing=True,
     )
     scheduler.start()

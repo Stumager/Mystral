@@ -7,6 +7,10 @@ import { streamRequest } from "../utils/api";
 
 interface LunarCalendarProps { onNavigate: (page: string) => void; }
 
+interface AstroEvent {
+  type: string; date: string; icon: string; title: string; description: string; days_until: number;
+}
+
 interface LunarToday {
   lunar_day: number; phase_name: string; phase_icon: string; moon_sign: string;
   illumination: number; energy: string;
@@ -16,6 +20,7 @@ interface LunarToday {
   work: string; spiritual: string; dreams: string; stones: string;
   sign_desc: string; sign_favorable: string[]; sign_unfavorable: string[];
   sign_beauty: string; sign_health: string;
+  upcoming_events: AstroEvent[];
 }
 
 interface MonthDay {
@@ -184,7 +189,41 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               </div>
             </Card>
 
-            {/* Block 6: Stones */}
+            {/* Block 6: Upcoming events */}
+            {today.upcoming_events && today.upcoming_events.length > 0 && (
+              <div>
+                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+                  📅 {lang === "ru" ? "Ближайшие события" : "Upcoming Events"}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {today.upcoming_events.map((ev, i) => {
+                    const isToday = ev.days_until === 0;
+                    const isSoon = ev.days_until <= 2;
+                    return (
+                      <div key={i} className="shrink-0 w-36 rounded-xl px-3 py-2.5 flex flex-col gap-1"
+                        style={{
+                          background: "rgba(107,78,255,0.06)",
+                          border: isToday ? "1px solid rgba(201,168,76,0.5)"
+                            : isSoon ? "1px solid rgba(107,78,255,0.3)"
+                            : "1px solid rgba(107,78,255,0.1)",
+                        }}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">{ev.icon}</span>
+                          <span className="text-text-primary text-[10px] font-display leading-tight">{ev.title}</span>
+                        </div>
+                        <p className="text-text-faint text-[9px]">{ev.date}</p>
+                        <p className="text-[9px]" style={{ color: isToday ? "#C9A84C" : isSoon ? "#9B8AFF" : "#9B8FBB" }}>
+                          {isToday ? (lang === "ru" ? "Сегодня!" : "Today!")
+                            : lang === "ru" ? `через ${ev.days_until} дн.` : `in ${ev.days_until} days`}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Block 7: Stones */}
             <Card>
               <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
                 💎 {lang === "ru" ? "Камни дня" : "Day Stones"}

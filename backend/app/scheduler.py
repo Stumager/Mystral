@@ -11,7 +11,7 @@ from sqlmodel import select
 from app.core.config import settings
 from app.core.database import get_session_context
 from app.models.user import AuthProvider, User, UserProfile
-from app.api.v1.lunar import get_lunar_today_data
+from app.api.v1.lunar import get_lunar_today_data, get_upcoming_events
 from app.services.horoscope import (
     SIGNS_EMOJI,
     SIGNS_RU,
@@ -174,5 +174,58 @@ async def send_subscription_reminders():
 
     except Exception as e:
         logger.error("Subscription reminders failed: %s", e)
+    finally:
+        await redis.close()
+
+
+async def send_astro_event_notifications():
+    if not settings.telegram_bot_token:
+        return
+
+    today_events = [e for e in get_upcoming_events(1, "ru") if e["days_until"] == 0]
+    if not today_events:
+        logger.info("Astro events: none today")
+        return
+
+    logger.info("Astro events today: %s", [e["type"] for e in today_events])
+    redis = aioredis.from_url(settings.redis_url)
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    try:
+        async with get_session_context() as session:
+            stmt = (
+                select(UserProfile, AuthProvider)
+                .join(AuthProvider, AuthProvider.user_id == UserProfile.user_id)
+                .where(
+                    UserProfile.notifications_enabled == True,  # noqa: E712
+                    AuthProvider.provider == "telegram",
+                )
+            )
+            results = (await session.exec(stmt)).all()
+
+        async with httpx.AsyncClient(timeout=15) as http:
+            for event in today_events:
+                ev_ru = get_upcoming_events(1, "ru")
+                ev_en = get_upcoming_events(1, "en")
+                title_ru = next((e["title"] for e in ev_ru if e["type"] == event["type"]), event["title"])
+                desc_ru = next((e["description"] for e in ev_ru if e["type"] == event["type"]), "")
+                title_en = next((e["title"] for e in ev_en if e["type"] == event["type"]), event["title"])
+                desc_en = next((e["description"] for e in ev_en if e["type"] == event["type"]), "")
+
+                for profile, provider in results:
+                    key = f"astro_notif:{event['type']}:{today_str}:{provider.user_id}"
+                    if await redis.exists(key):
+                        continue
+
+                    msg = (
+                        f"{event['icon']} <b>{title_ru}</b>\n\n"
+                        f"{desc_ru}"
+                    )
+                    if await _send_tg_message(http, int(provider.provider_id), msg):
+                        await redis.setex(key, 90000, "1")
+                        logger.info("Sent astro event %s to user %s", event["type"], provider.user_id)
+
+    except Exception as e:
+        logger.error("Astro event notifications failed: %s", e)
     finally:
         await redis.close()
