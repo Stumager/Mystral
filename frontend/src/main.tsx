@@ -11,4 +11,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>
 );
 
-(window as any).Telegram?.WebApp?.ready();
+const twa = (window as any).Telegram?.WebApp;
+if (twa) {
+  twa.ready();
+  twa.expand();
+}
