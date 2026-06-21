@@ -43,17 +43,21 @@ async def _send_tg_message(http: httpx.AsyncClient, chat_id: int, text: str) -> 
             "chat_id": chat_id,
             "text": text,
             "parse_mode": "HTML",
-            "reply_markup": json.dumps(keyboard),
+            "reply_markup": keyboard,
         },
     )
+    if resp.status_code != 200:
+        logger.error("TG sendMessage failed: %s %s", resp.status_code, resp.text[:200])
     return resp.status_code == 200
 
 
 async def send_daily_horoscopes():
     if not settings.telegram_bot_token:
+        logger.warning("Scheduler: no bot token, skipping")
         return
 
     now_utc = datetime.now(ZoneInfo("UTC"))
+    logger.info("Scheduler tick at %s UTC", now_utc.strftime("%H:%M"))
     redis = aioredis.from_url(settings.redis_url)
 
     try:
@@ -70,11 +74,15 @@ async def send_daily_horoscopes():
             )
             results = (await session.exec(stmt)).all()
 
+        logger.info("Scheduler: found %d eligible users", len(results))
+
         async with httpx.AsyncClient(timeout=15) as http:
             for profile, provider in results:
                 try:
                     tz = ZoneInfo(profile.timezone)
                     local_time = now_utc.astimezone(tz)
+                    logger.debug("User %s: tz=%s, local=%s:%s",
+                                 provider.user_id, profile.timezone, local_time.hour, local_time.minute)
 
                     if local_time.hour != 9 or local_time.minute >= 5:
                         continue

@@ -1,6 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
+logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.models  # noqa: F401 — register models with SQLModel.metadata
@@ -30,6 +33,7 @@ async def lifespan(_app: FastAPI):
         replace_existing=True,
     )
     scheduler.start()
+    logger.info("Scheduler started: daily_horoscope (*/5min), subscription_reminders (12:00 UTC)")
     yield
     scheduler.shutdown()
     await close_redis()
