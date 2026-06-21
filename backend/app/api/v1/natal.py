@@ -116,25 +116,28 @@ def _get_abs_pos(p) -> float:
     return idx * 30 + p.position
 
 
-def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet") -> dict:
-    p = getattr(subj, key, None)
-    if p is None:
+def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet") -> dict | None:
+    try:
+        p = getattr(subj, key, None)
+        if p is None or not hasattr(p, "sign"):
+            return None
+        sign_full = _normalize_sign(p.sign)
+        house_raw = getattr(p, "house", None)
+        house = HOUSE_NUM.get(house_raw, house_raw) if isinstance(house_raw, str) else house_raw
+        return {
+            "name": key,
+            "name_ru": PLANET_NAMES_RU.get(key, key),
+            "symbol": PLANET_SYMBOLS.get(key, "?"),
+            "sign": sign_full,
+            "sign_ru": _ru(p.sign),
+            "degree": round(float(getattr(p, "position", 0)), 1),
+            "abs_pos": round(_get_abs_pos(p), 1),
+            "house": house,
+            "retrograde": bool(getattr(p, "retrograde", False)),
+            "type": ptype,
+        }
+    except Exception:
         return None
-    sign_full = _normalize_sign(p.sign)
-    house_raw = getattr(p, "house", None)
-    house = HOUSE_NUM.get(house_raw, house_raw) if isinstance(house_raw, str) else house_raw
-    return {
-        "name": key,
-        "name_ru": PLANET_NAMES_RU.get(key, key),
-        "symbol": PLANET_SYMBOLS.get(key, "?"),
-        "sign": sign_full,
-        "sign_ru": _ru(p.sign),
-        "degree": round(p.position, 1),
-        "abs_pos": round(_get_abs_pos(p), 1),
-        "house": house,
-        "retrograde": bool(getattr(p, "retrograde", False)),
-        "type": ptype,
-    }
 
 
 def _calc_aspects(planets: list[dict]) -> list[dict]:
@@ -162,7 +165,7 @@ def _calc_aspects(planets: list[dict]) -> list[dict]:
 def build_full_chart(subj: AstrologicalSubject) -> dict:
     planet_keys = ["sun", "moon", "mercury", "venus", "mars",
                    "jupiter", "saturn", "uranus", "neptune", "pluto"]
-    planets = [_extract_planet(subj, k) for k in planet_keys]
+    planets = [p for p in (_extract_planet(subj, k) for k in planet_keys) if p is not None]
 
     # Extra points: True Node, Chiron
     extra = []
@@ -199,34 +202,30 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
                    "ninth_house", "tenth_house", "eleventh_house", "twelfth_house"]
     houses = []
     for i, attr in enumerate(house_attrs, 1):
-        h = getattr(subj, attr)
-        houses.append({
-            "number": i, "sign": _normalize_sign(h.sign),
-            "sign_ru": _ru(h.sign), "degree": round(h.position, 1),
-        })
+        try:
+            h = getattr(subj, attr)
+            houses.append({
+                "number": i, "sign": _normalize_sign(h.sign),
+                "sign_ru": _ru(h.sign), "degree": round(float(getattr(h, "position", 0)), 1),
+            })
+        except Exception:
+            houses.append({"number": i, "sign": "Aries", "sign_ru": "Овен", "degree": 0})
 
     # Part of Fortune: ASC + Moon - Sun (mod 360)
-    asc_abs = _get_abs_pos(subj.first_house)
-    moon_abs = planets[1]["abs_pos"]
-    sun_abs = planets[0]["abs_pos"]
-    pof_abs = (asc_abs + moon_abs - sun_abs) % 360
-    pof_sign = _sign_from_abs(pof_abs)
-    pof_house = None
-    for hi, h in enumerate(houses):
-        next_h = houses[(hi + 1) % 12]
-        h_abs = SIGN_ORDER.index(h["sign"]) * 30 + h["degree"]
-        n_abs = SIGN_ORDER.index(next_h["sign"]) * 30 + next_h["degree"]
-        if n_abs < h_abs:
-            n_abs += 360
-        check = pof_abs if pof_abs >= h_abs else pof_abs + 360
-        if h_abs <= check < n_abs:
-            pof_house = h["number"]
-            break
-
-    part_of_fortune = {
-        "sign": pof_sign, "sign_ru": _ru(pof_sign),
-        "degree": round(pof_abs % 30, 1), "house": pof_house,
-    }
+    part_of_fortune = None
+    try:
+        if len(planets) >= 2:
+            asc_abs = _get_abs_pos(subj.first_house)
+            moon_abs = planets[1]["abs_pos"]
+            sun_abs = planets[0]["abs_pos"]
+            pof_abs = (asc_abs + moon_abs - sun_abs) % 360
+            pof_sign = _sign_from_abs(pof_abs)
+            part_of_fortune = {
+                "sign": pof_sign, "sign_ru": _ru(pof_sign),
+                "degree": round(pof_abs % 30, 1), "house": None,
+            }
+    except Exception:
+        pass
 
     # Element/modality balance
     el = {"fire": 0, "earth": 0, "air": 0, "water": 0}
@@ -255,17 +254,27 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
 
     dominant_sign = max(sign_count, key=sign_count.get) if sign_count else ""
 
+    try:
+        asc = {"sign": _normalize_sign(subj.first_house.sign),
+               "sign_ru": _ru(subj.first_house.sign),
+               "degree": round(float(subj.first_house.position), 1)}
+    except Exception:
+        asc = houses[0] if houses else {"sign": "Aries", "sign_ru": "Овен", "degree": 0}
+
+    try:
+        mc = {"sign": _normalize_sign(subj.tenth_house.sign),
+              "sign_ru": _ru(subj.tenth_house.sign),
+              "degree": round(float(subj.tenth_house.position), 1)}
+    except Exception:
+        mc = houses[9] if len(houses) > 9 else {"sign": "Aries", "sign_ru": "Овен", "degree": 0}
+
     return {
         "planets": planets,
         "extra_points": extra,
         "houses": houses,
         "aspects": aspects,
-        "ascendant": {"sign": _normalize_sign(subj.first_house.sign),
-                      "sign_ru": _ru(subj.first_house.sign),
-                      "degree": round(subj.first_house.position, 1)},
-        "midheaven": {"sign": _normalize_sign(subj.tenth_house.sign),
-                      "sign_ru": _ru(subj.tenth_house.sign),
-                      "degree": round(subj.tenth_house.position, 1)},
+        "ascendant": asc,
+        "midheaven": mc,
         "part_of_fortune": part_of_fortune,
         "stelliums": stelliums,
         "element_balance": el,
@@ -385,9 +394,10 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
     template = templates.get(req.section, templates["personality"])
 
     sru = req.lang == "ru"
-    sun_s = chart["planets"][0]["sign_ru" if sru else "sign"]
-    moon_s = chart["planets"][1]["sign_ru" if sru else "sign"]
-    asc_s = chart["ascendant"]["sign_ru" if sru else "sign"]
+    p = chart.get("planets", [])
+    sun_s = p[0]["sign_ru" if sru else "sign"] if len(p) > 0 else "?"
+    moon_s = p[1]["sign_ru" if sru else "sign"] if len(p) > 1 else "?"
+    asc_s = chart.get("ascendant", {}).get("sign_ru" if sru else "sign", "?")
     planets_text = ", ".join(f"{p['name_ru' if sru else 'name']} в {p['sign_ru' if sru else 'sign']}{' R' if p['retrograde'] else ''} (дом {p['house']})" for p in chart["planets"])
     extra_text = ", ".join(f"{p['name_ru']} в {p['sign_ru']}" for p in chart.get("extra_points", []))
     houses_text = ", ".join(f"Дом {h['number']}: {h['sign_ru' if sru else 'sign']} {h['degree']}°" for h in chart["houses"])
