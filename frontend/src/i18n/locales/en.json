@@ -27,16 +27,20 @@
     "tool_runes": "Runes"
   },
   "tarot": {
-    "title": "Daily Spread",
-    "spread": "Past · Present · Future",
+    "header": "Tarot",
+    "choose_spread": "Choose a spread",
+    "cards_label": "cards",
+    "position_scheme": "Position scheme",
+    "your_question": "Your question",
+    "question_placeholder": "Ask the cards a question...",
+    "question_hint": "Optional for free spreads",
+    "draw_cards": "Draw cards ✦",
     "tap_hint": "Tap a card to reveal",
+    "reversed": "Reversed",
     "interpret": "Get interpretation ✦",
     "interpretation_label": "Interpretation · AI",
     "new_spread": "New spread",
-    "error": "Connection error. Try again.",
-    "past": "past",
-    "present": "present",
-    "future": "future"
+    "error": "Connection error. Try again."
   },
   "natal": {
     "title": "✦ Natal Chart",

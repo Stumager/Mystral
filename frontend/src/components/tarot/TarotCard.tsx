@@ -1,12 +1,12 @@
-import { TarotCardData } from "../../data/tarot";
-
 interface TarotCardProps {
-  card: TarotCardData;
+  cardId: number;
+  name: string;
   revealed: boolean;
+  reversed?: boolean;
   delay?: number;
 }
 
-export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
+export function TarotCard({ cardId, name, revealed, reversed, delay = 0 }: TarotCardProps) {
   return (
     <div style={{ perspective: "600px", width: 88, height: 144 }}>
       <div
@@ -23,7 +23,7 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
           borderRadius: 10,
         }}
       >
-        {/* Рубашка — SVG паттерн */}
+        {/* Back */}
         <div
           style={{
             backfaceVisibility: "hidden",
@@ -49,31 +49,13 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
             <rect width="100%" height="100%" fill="url(#rub)" />
             <rect x="5" y="5" width="78" height="134" rx="6" fill="none" stroke="rgba(200,160,80,0.3)" strokeWidth="1" />
           </svg>
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 28, opacity: 0.9, color: "#C9A84C" }}>✦</span>
-            <span
-              style={{
-                fontSize: 8,
-                letterSpacing: "0.2em",
-                color: "rgba(200,160,80,0.7)",
-                fontFamily: "serif",
-              }}
-            >
-              MYSTRAL
-            </span>
+            <span style={{ fontSize: 8, letterSpacing: "0.2em", color: "rgba(200,160,80,0.7)", fontFamily: "serif" }}>MYSTRAL</span>
           </div>
         </div>
 
-        {/* Лицевая сторона — Rider-Waite */}
+        {/* Face */}
         <div
           style={{
             backfaceVisibility: "hidden",
@@ -82,22 +64,34 @@ export function TarotCard({ card, revealed, delay = 0 }: TarotCardProps) {
             inset: 0,
             borderRadius: 10,
             overflow: "hidden",
-            border: "1px solid rgba(140,110,255,0.35)",
+            border: `1px solid ${reversed ? "rgba(239,68,68,0.4)" : "rgba(140,110,255,0.35)"}`,
             background: "linear-gradient(160deg, #1E0E50, #0D0520)",
           }}
         >
           <img
-            src={`/tarot/${card.id}.jpg`}
-            alt={card.name_ru}
+            src={`/tarot/${cardId}.jpg`}
+            alt={name}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              transform: reversed ? "rotate(180deg)" : "none",
             }}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
+          {reversed && (
+            <div style={{
+              position: "absolute", top: 4, left: 0, right: 0,
+              display: "flex", justifyContent: "center",
+            }}>
+              <span style={{
+                fontSize: 7, color: "#fff", background: "rgba(239,68,68,0.7)",
+                padding: "1px 5px", borderRadius: 4, letterSpacing: "0.03em",
+              }}>
+                REV
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,71 +1,177 @@
 import json
 import os
+import random
 from datetime import date
+from typing import Optional
+from uuid import UUID
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.prompts import system_prompt
-from app.models.user import User
+from app.models.user import TarotReading, User
 
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
+CARD_NAMES = {
+    i: n for i, n in enumerate([
+        "The Fool", "The Magician", "High Priestess", "The Empress", "The Emperor",
+        "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit",
+        "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance",
+        "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World",
+    ])
+}
+SUITS = ["Wands", "Cups", "Swords", "Pentacles"]
+RANKS = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+         "Page", "Knight", "Queen", "King"]
+for si, suit in enumerate(SUITS):
+    for ri, rank in enumerate(RANKS):
+        CARD_NAMES[22 + si * 14 + ri] = f"{rank} of {suit}"
 
-class TarotRequest(BaseModel):
-    cards: list[str]
-    positions: list[str] = ["прошлое", "настоящее", "будущее"]
+SPREADS = {
+    "card_of_day":  {"count": 1,  "tier": "free"},
+    "three_cards":  {"count": 3,  "tier": "free"},
+    "celtic_cross": {"count": 10, "tier": "pro"},
+    "horseshoe":    {"count": 7,  "tier": "pro"},
+    "relationship": {"count": 7,  "tier": "pro"},
+    "yes_no":       {"count": 5,  "tier": "pro"},
+    "two_choices":  {"count": 6,  "tier": "pro"},
+    "person":       {"count": 5,  "tier": "pro"},
+    "year":         {"count": 13, "tier": "pro"},
+}
+
+
+class SpreadRequest(BaseModel):
+    spread_id: str
+    positions: list[str] = []
+    question: Optional[str] = None
+
+
+class InterpretRequest(BaseModel):
+    spread_id: str
+    cards: list[dict]
+    positions: list[str] = []
+    question: Optional[str] = None
     lang: str = "ru"
 
 
-@router.post("/tarot/interpret")
-async def tarot_interpret(
-    req: TarotRequest,
+@router.post("/tarot/spread")
+async def tarot_spread(
+    req: SpreadRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
+    spread = SPREADS.get(req.spread_id)
+    if not spread:
+        raise HTTPException(422, "Unknown spread")
+
+    if spread["tier"] == "pro" and current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
     if current_user.subscription_tier == "free":
         today = date.today().isoformat()
-        key = f"tarot_daily:{current_user.id}:{today}"
+        key = f"tarot_{req.spread_id}:{current_user.id}:{today}"
         count = await redis_client.incr(key)
         if count == 1:
             await redis_client.expire(key, 86400)
         if count > 1:
-            raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
+            raise HTTPException(402, "FREE_LIMIT_REACHED")
 
-    cards_desc = ", ".join(
-        f"{card} ({pos})" for card, pos in zip(req.cards, req.positions)
+    count = spread["count"]
+    ids = random.sample(range(78), count)
+    cards = []
+    for card_id in ids:
+        cards.append({
+            "id": card_id,
+            "name": CARD_NAMES.get(card_id, f"Card {card_id}"),
+            "reversed": random.random() < 0.3,
+        })
+
+    reading = TarotReading(
+        user_id=current_user.id,
+        spread_id=req.spread_id,
+        question=req.question,
+        cards_json=json.dumps(cards),
     )
+    session.add(reading)
+    await session.commit()
+    await session.refresh(reading)
+
+    return {"cards": cards, "reading_id": str(reading.id)}
+
+
+@router.post("/tarot/interpret")
+async def tarot_interpret(
+    req: InterpretRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.subscription_tier == "free":
+        today = date.today().isoformat()
+        key = f"tarot_interp:{current_user.id}:{today}"
+        count = await redis_client.incr(key)
+        if count == 1:
+            await redis_client.expire(key, 86400)
+        if count > 1:
+            raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    cards_desc = []
+    upright_count = 0
+    for i, card in enumerate(req.cards):
+        pos = req.positions[i] if i < len(req.positions) else f"Position {i+1}"
+        rev = " (reversed)" if card.get("reversed") else " (upright)"
+        if not card.get("reversed"):
+            upright_count += 1
+        cards_desc.append(f"{card.get('name', '?')}{rev} — {pos}")
+
+    cards_text = "\n".join(cards_desc)
     sys = system_prompt(req.lang)
+    question_part = f'\nВопрос клиента: "{req.question}". Строй ответ вокруг этого вопроса.' if req.question else ""
+    yes_no_part = ""
+
+    if req.spread_id == "yes_no":
+        answer = "Да" if upright_count >= 3 else "Нет"
+        yes_no_part = f"\nЭто расклад Да/Нет. Прямых карт: {upright_count} из {len(req.cards)}. Ответ: {answer}. Начни с чёткого '{answer}'."
+
+    word_count = "90-120" if len(req.cards) <= 5 else "140-180"
 
     if req.lang == "ru":
         prompt = (
-            f"Расклад Таро (полная колода 78 карт): {cards_desc}.\n"
-            f"Для Младших Арканов учитывай масть: Жезлы=действие/карьера, "
-            f"Кубки=эмоции/отношения, Мечи=разум/конфликты, Пентакли=деньги/здоровье. "
-            f"Картинные карты (Паж/Рыцарь/Королева/Король) описывают конкретный типаж человека.\n"
+            f"Расклад Таро ({req.spread_id}):\n{cards_text}\n"
+            f"Для каждой карты учитывай: позицию в раскладе, прямая/перевёрнутая, масть. "
+            f"Перевёрнутая карта = ослабленное/заблокированное/теневое значение.{question_part}{yes_no_part}\n"
             f"Дай толкование. Обязательно:\n"
-            f"1. Что означает каждая карта в своей позиции конкретно\n"
-            f"2. Как карты связаны между собой\n"
-            f"3. Один практический вывод для человека\n"
-            f"Объём: 90-110 слов. Без общих фраз о 'пути' и 'энергии'."
+            f"1. Значение каждой карты в её позиции\n"
+            f"2. Связи между картами\n"
+            f"3. Практический вывод\n"
+            f"Объём: {word_count} слов."
         )
     else:
+        question_part_en = f'\nClient question: "{req.question}". Build your answer around this question.' if req.question else ""
+        yes_no_en = ""
+        if req.spread_id == "yes_no":
+            ans = "Yes" if upright_count >= 3 else "No"
+            yes_no_en = f"\nThis is a Yes/No spread. Upright: {upright_count}/{len(req.cards)}. Answer: {ans}. Start with clear '{ans}'."
         prompt = (
-            f"Tarot spread (full 78-card deck): {cards_desc}.\n"
-            f"For Minor Arcana consider the suit: Wands=action/career, "
-            f"Cups=emotions/relationships, Swords=mind/conflicts, Pentacles=money/health. "
-            f"Court cards (Page/Knight/Queen/King) represent specific personality types.\n"
-            f"Give an interpretation. Must include:\n"
-            f"1. What each card means in its position specifically\n"
-            f"2. How the cards connect to each other\n"
-            f"3. One practical takeaway for the person\n"
-            f"90-110 words. No vague phrases about 'paths' and 'energy'."
+            f"Tarot spread ({req.spread_id}):\n{cards_text}\n"
+            f"For each card consider: position, upright/reversed, suit. "
+            f"Reversed = weakened/blocked/shadow meaning.{question_part_en}{yes_no_en}\n"
+            f"Interpret. Must include:\n"
+            f"1. Each card's meaning in its position\n"
+            f"2. Connections between cards\n"
+            f"3. Practical takeaway\n"
+            f"{word_count} words."
         )
+
+    max_tokens = 400 if len(req.cards) <= 5 else 600
 
     async def generate():
         stream = client.chat.completions.create(
@@ -75,7 +181,7 @@ async def tarot_interpret(
                 {"role": "user", "content": prompt},
             ],
             stream=True,
-            max_tokens=250,
+            max_tokens=max_tokens,
         )
         for chunk in stream:
             delta = chunk.choices[0].delta.content
@@ -83,8 +189,29 @@ async def tarot_interpret(
                 yield f"data: {json.dumps({'text': delta})}\n\n"
         yield "data: [DONE]\n\n"
 
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.get("/tarot/history")
+async def tarot_history(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(TarotReading)
+        .where(TarotReading.user_id == current_user.id)
+        .order_by(TarotReading.created_at.desc())
+        .limit(5)
     )
+    readings = result.all()
+    return [
+        {
+            "id": str(r.id),
+            "spread_id": r.spread_id,
+            "question": r.question,
+            "cards": json.loads(r.cards_json)[:3],
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in readings
+    ]

@@ -45,6 +45,18 @@ class UserProfile(SQLModel, table=True):
     notifications_enabled: bool = Field(default=False)
 
 
+class TarotReading(SQLModel, table=True):
+    __tablename__ = "tarot_readings"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    spread_id: str
+    question: Optional[str] = None
+    cards_json: str = ""
+    interpretation: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserPartner(SQLModel, table=True):
     __tablename__ = "user_partners"
 
