@@ -13,11 +13,12 @@ from kerykeion import AstrologicalSubject
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.groq_client import safe_groq_stream
+from app.core.limiter import check_rate_limit
 from app.core.prompts import system_prompt
 from app.models.user import User
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 SIGNS_RU = {
@@ -437,20 +438,11 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
                              extra_text=extra_text or "нет", houses_text=houses_text,
                              aspects_text=aspects_text, transits_text=transits_text, stellium_text=stellium_text)
 
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_interpret", 2, 20)
     lang_enforce = "Отвечай ТОЛЬКО на русском. Обращайся на 'ты'." if sru else "Answer ONLY in English. Use 'you'."
     sys = system_prompt(req.lang) + f" {lang_enforce}"
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    async def generate():
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": prompt}],
-            stream=True, max_tokens=400,
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield f"data: {json.dumps({'text': delta})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=400, lang=req.lang),
+                             media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

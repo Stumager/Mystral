@@ -5,7 +5,6 @@ from datetime import date, datetime
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from groq import Groq
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -13,6 +12,8 @@ from typing import Optional
 
 from app.core.database import get_session
 from app.core.deps import get_current_user
+from app.core.groq_client import safe_groq_stream
+from app.core.limiter import check_rate_limit
 from app.core.prompts import system_prompt
 from app.data.numerology import (
     ANGEL_NUMBERS,
@@ -36,7 +37,6 @@ from app.data.numerology import (
 from app.models.user import User, UserProfile
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 
@@ -250,20 +250,11 @@ async def interpret(
     else:
         raise HTTPException(400, "Invalid section")
 
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "numerology_interpret", 2, 20)
     lang_enforce = " Отвечай ТОЛЬКО на русском." if ru else " Answer ONLY in English."
     sys = system_prompt(req.lang) + lang_enforce
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    async def generate():
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": prompt}],
-            stream=True, max_tokens=500,
-        )
-        for chunk in stream:
-            text = chunk.choices[0].delta.content
-            if text:
-                yield f"data: {json.dumps({'text': text})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=500, lang=req.lang),
+                             media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

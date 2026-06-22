@@ -8,18 +8,18 @@ from uuid import UUID
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from groq import Groq
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.core.deps import get_current_user
+from app.core.groq_client import safe_groq_stream
+from app.core.limiter import check_rate_limit
 from app.core.prompts import system_prompt
 from app.models.user import TarotReading, User
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 MAJOR_EN = [
@@ -194,25 +194,12 @@ async def tarot_interpret(
             f"{word_count} words."
         )
 
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "tarot_interpret", 3, 30)
     max_tokens = 400 if len(req.cards) <= 5 else 600
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    async def generate():
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": sys},
-                {"role": "user", "content": prompt},
-            ],
-            stream=True,
-            max_tokens=max_tokens,
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield f"data: {json.dumps({'text': delta})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=max_tokens, lang=req.lang),
+                             media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 

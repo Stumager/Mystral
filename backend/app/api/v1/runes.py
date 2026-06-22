@@ -5,7 +5,6 @@ from datetime import date
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from groq import Groq
 from pydantic import BaseModel
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -13,6 +12,8 @@ from typing import Optional
 
 from app.core.database import get_session
 from app.core.deps import get_current_user
+from app.core.groq_client import safe_groq_stream
+from app.core.limiter import check_rate_limit
 from app.core.prompts import system_prompt
 from app.data.numerology import life_path as calc_life_path
 from app.data.runes import RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
@@ -20,7 +21,6 @@ from app.data.staves import STAVES
 from app.models.user import RuneReading, User, UserProfile
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 
@@ -209,24 +209,14 @@ async def interpret(
                 f"100-130 words. Style: wise Norse mentor."
             )
 
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "runes_interpret", 3, 30)
     lang_enforce = " Отвечай ТОЛЬКО на русском." if ru else " Answer ONLY in English."
     sys = system_prompt(req.lang) + lang_enforce
-
     max_tok = 600 if req.spread_type == "year_spread" else 400
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    async def generate():
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": prompt}],
-            stream=True, max_tokens=max_tok,
-        )
-        for chunk in stream:
-            text = chunk.choices[0].delta.content
-            if text:
-                yield f"data: {json.dumps({'text': text})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=max_tok, lang=req.lang),
+                             media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 

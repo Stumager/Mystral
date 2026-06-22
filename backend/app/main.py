@@ -1,15 +1,22 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.models  # noqa: F401 — register models with SQLModel.metadata
 from app.api.router import api_router
 from app.core.database import create_db_and_tables
+from app.core.limiter import limiter
 from app.core.redis import close_redis, init_redis
 from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders, send_astro_event_notifications
 
@@ -49,6 +56,53 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Mystral API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "rate_limit",
+            "message": "Слишком много запросов. Подожди немного.",
+            "retry_after": 60,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    msgs = []
+    for err in errors:
+        field = " → ".join(str(loc) for loc in err.get("loc", []) if loc != "body")
+        msgs.append(f"{field}: {err.get('msg', 'invalid')}")
+    return JSONResponse(
+        status_code=422,
+        content={"error": "validation", "message": "; ".join(msgs) if msgs else "Ошибка валидации"},
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    detail = exc.detail
+    if isinstance(detail, dict):
+        return JSONResponse(status_code=exc.status_code, content=detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.status_code, "message": str(detail)},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "server_error", "message": "Внутренняя ошибка сервера"},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,

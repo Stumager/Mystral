@@ -6,17 +6,17 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from groq import Groq
 from pydantic import BaseModel
 
 from app.core.deps import get_current_user
+from app.core.groq_client import safe_groq_stream
+from app.core.limiter import check_rate_limit
 from app.core.prompts import system_prompt
 from app.data.lunar_days import LUNAR_DAYS
 from app.data.moon_signs import MOON_SIGNS
 from app.models.user import User
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 NEW_MOON_REF = datetime(2000, 1, 6, 18, 14)
 LUNAR_CYCLE = 29.53058867
@@ -233,20 +233,11 @@ async def lunar_ai_recommend(
             f"100-130 words."
         )
 
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "lunar_ai", 10, 10)
     lang_enforce = " Отвечай ТОЛЬКО на русском." if req.lang == "ru" else " Answer ONLY in English."
     sys = system_prompt(req.lang) + lang_enforce
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    async def generate():
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": sys}, {"role": "user", "content": prompt}],
-            stream=True, max_tokens=350,
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield f"data: {json.dumps({'text': delta})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=350, lang=req.lang),
+                             media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

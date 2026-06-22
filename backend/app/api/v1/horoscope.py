@@ -5,13 +5,12 @@ from datetime import date
 import redis.asyncio as aioredis
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from groq import Groq
 from pydantic import BaseModel
 
+from app.core.groq_client import safe_groq_stream
 from app.core.prompts import system_prompt
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
 SIGNS_RU = {
@@ -72,23 +71,19 @@ async def horoscope_stream(req: HoroscopeRequest):
             return
 
         full_text = ""
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": sys},
-                {"role": "user", "content": prompt},
-            ],
-            stream=True,
-            max_tokens=200,
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                full_text += delta
-                yield f"data: {json.dumps({'text': delta})}\n\n"
+        msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=200, lang=req.lang):
+            yield chunk_data
+            if chunk_data.startswith("data: {"):
+                try:
+                    parsed = json.loads(chunk_data[6:].strip())
+                    if "text" in parsed:
+                        full_text += parsed["text"]
+                except Exception:
+                    pass
 
-        await redis_client.set(cache_key, full_text, ex=86400)
-        yield "data: [DONE]\n\n"
+        if full_text:
+            await redis_client.set(cache_key, full_text, ex=86400)
 
     return StreamingResponse(
         generate(),
