@@ -58,6 +58,17 @@ class TarotReading(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class RuneReading(SQLModel, table=True):
+    __tablename__ = "rune_readings"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    spread_type: str
+    question: Optional[str] = None
+    runes_json: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserPartner(SQLModel, table=True):
     __tablename__ = "user_partners"
 

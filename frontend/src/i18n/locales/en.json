@@ -222,7 +222,7 @@
   },
   "runes": {
     "title": "✦ Runes",
-    "focus": "Focus on your question",
+    "focus": "Choose a spread and focus on your question",
     "one_rune": "1 rune",
     "three_runes": "3 runes",
     "pro_only": "Pro",
@@ -232,8 +232,20 @@
     "get_interpretation": "Get interpretation ✦",
     "reading": "Interpreting...",
     "interpretation_label": "Interpretation · AI",
-    "new_draw": "New cast",
-    "error": "Error. Try again."
+    "new_draw": "New spread",
+    "error": "Error. Try again.",
+    "personal_rune": "Personal Rune",
+    "year_rune": "Year Rune",
+    "staves": "Protective Staves",
+    "history": "Reading History",
+    "question_placeholder": "Ask the runes a question...",
+    "partner_name": "Partner's name",
+    "learn_more": "Learn more ✦",
+    "no_readings": "No readings yet",
+    "loading": "Loading...",
+    "set_birth_date": "Set your birth date in profile",
+    "bindrunes": "Bindrunes",
+    "how_to_use": "How to use"
   },
   "onboarding": {
     "title": "Tell us about you ✨",

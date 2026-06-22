@@ -1,6 +1,5 @@
 import json
 import os
-import random
 from datetime import date
 
 import redis.asyncio as aioredis
@@ -8,95 +7,49 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from typing import Optional
 
+from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.prompts import system_prompt
-from app.models.user import User
+from app.data.numerology import life_path as calc_life_path
+from app.data.runes import RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
+from app.data.staves import STAVES
+from app.models.user import RuneReading, User, UserProfile
 
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-RUNES = [
-    {"id": "fehu",     "name_ru": "Феху",     "name_en": "Fehu",     "symbol": "ᚠ",
-     "meaning_ru": "Богатство, успех, изобилие", "meaning_en": "Wealth, success, abundance",
-     "rev_ru": "Потери, жадность, застой", "rev_en": "Loss, greed, stagnation"},
-    {"id": "uruz",     "name_ru": "Уруз",     "name_en": "Uruz",     "symbol": "ᚢ",
-     "meaning_ru": "Сила, здоровье, выносливость", "meaning_en": "Strength, health, endurance",
-     "rev_ru": "Слабость, болезнь, упущенные возможности", "rev_en": "Weakness, illness, missed chances"},
-    {"id": "thurisaz", "name_ru": "Турисаз",  "name_en": "Thurisaz", "symbol": "ᚦ",
-     "meaning_ru": "Защита, разрушение преград, сила воли", "meaning_en": "Protection, breaking barriers, willpower",
-     "rev_ru": "Уязвимость, опасность, необдуманность", "rev_en": "Vulnerability, danger, recklessness"},
-    {"id": "ansuz",    "name_ru": "Ансуз",    "name_en": "Ansuz",    "symbol": "ᚨ",
-     "meaning_ru": "Мудрость, общение, вдохновение", "meaning_en": "Wisdom, communication, inspiration",
-     "rev_ru": "Обман, непонимание, манипуляции", "rev_en": "Deception, misunderstanding, manipulation"},
-    {"id": "raido",    "name_ru": "Райдо",    "name_en": "Raido",    "symbol": "ᚱ",
-     "meaning_ru": "Путешествие, движение, прогресс", "meaning_en": "Journey, movement, progress",
-     "rev_ru": "Застой, задержки, неверный путь", "rev_en": "Stagnation, delays, wrong path"},
-    {"id": "kenaz",    "name_ru": "Кеназ",    "name_en": "Kenaz",    "symbol": "ᚲ",
-     "meaning_ru": "Знание, творчество, просветление", "meaning_en": "Knowledge, creativity, enlightenment",
-     "rev_ru": "Тьма, невежество, творческий блок", "rev_en": "Darkness, ignorance, creative block"},
-    {"id": "gebo",     "name_ru": "Гебо",     "name_en": "Gebo",     "symbol": "ᚷ",
-     "meaning_ru": "Дар, партнёрство, равновесие", "meaning_en": "Gift, partnership, balance",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "wunjo",    "name_ru": "Вуньо",    "name_en": "Wunjo",    "symbol": "ᚹ",
-     "meaning_ru": "Радость, гармония, счастье", "meaning_en": "Joy, harmony, happiness",
-     "rev_ru": "Печаль, кризис, разочарование", "rev_en": "Sorrow, crisis, disappointment"},
-    {"id": "hagalaz",  "name_ru": "Хагалаз",  "name_en": "Hagalaz",  "symbol": "ᚺ",
-     "meaning_ru": "Разрушение, трансформация, стихия", "meaning_en": "Destruction, transformation, elemental force",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "nauthiz",  "name_ru": "Наутиз",   "name_en": "Nauthiz",  "symbol": "ᚾ",
-     "meaning_ru": "Необходимость, терпение, ограничения", "meaning_en": "Necessity, patience, constraints",
-     "rev_ru": "Нетерпение, лень, провал", "rev_en": "Impatience, laziness, failure"},
-    {"id": "isa",      "name_ru": "Иса",      "name_en": "Isa",      "symbol": "ᛁ",
-     "meaning_ru": "Лёд, пауза, самоанализ", "meaning_en": "Ice, pause, self-reflection",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "jera",     "name_ru": "Йера",     "name_en": "Jera",     "symbol": "ᛃ",
-     "meaning_ru": "Урожай, цикл, награда за труд", "meaning_en": "Harvest, cycle, reward for effort",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "eihwaz",   "name_ru": "Эйваз",   "name_en": "Eihwaz",   "symbol": "ᛇ",
-     "meaning_ru": "Стойкость, защита, связь миров", "meaning_en": "Resilience, protection, world connection",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "perthro",  "name_ru": "Перт",     "name_en": "Perthro",  "symbol": "ᛈ",
-     "meaning_ru": "Тайна, судьба, скрытое знание", "meaning_en": "Mystery, fate, hidden knowledge",
-     "rev_ru": "Застой, секреты, разочарование", "rev_en": "Stagnation, secrets, disappointment"},
-    {"id": "algiz",    "name_ru": "Альгиз",   "name_en": "Algiz",    "symbol": "ᛉ",
-     "meaning_ru": "Защита, духовная связь, инстинкт", "meaning_en": "Protection, spiritual connection, instinct",
-     "rev_ru": "Уязвимость, скрытая опасность", "rev_en": "Vulnerability, hidden danger"},
-    {"id": "sowilo",   "name_ru": "Совило",   "name_en": "Sowilo",   "symbol": "ᛊ",
-     "meaning_ru": "Солнце, победа, жизненная сила", "meaning_en": "Sun, victory, life force",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "tiwaz",    "name_ru": "Тиваз",    "name_en": "Tiwaz",    "symbol": "ᛏ",
-     "meaning_ru": "Справедливость, честь, победа", "meaning_en": "Justice, honor, victory",
-     "rev_ru": "Несправедливость, поражение, жертва", "rev_en": "Injustice, defeat, sacrifice"},
-    {"id": "berkano",  "name_ru": "Беркано",  "name_en": "Berkano",  "symbol": "ᛒ",
-     "meaning_ru": "Рождение, рост, женственность", "meaning_en": "Birth, growth, femininity",
-     "rev_ru": "Бесплодие, застой, конфликт в семье", "rev_en": "Infertility, stagnation, family conflict"},
-    {"id": "ehwaz",    "name_ru": "Эваз",     "name_en": "Ehwaz",    "symbol": "ᛖ",
-     "meaning_ru": "Движение, прогресс, доверие", "meaning_en": "Movement, progress, trust",
-     "rev_ru": "Застой, недоверие, разрыв", "rev_en": "Stagnation, mistrust, break"},
-    {"id": "mannaz",   "name_ru": "Манназ",   "name_en": "Mannaz",   "symbol": "ᛗ",
-     "meaning_ru": "Человек, самопознание, разум", "meaning_en": "Human, self-knowledge, mind",
-     "rev_ru": "Одиночество, эгоизм, заблуждение", "rev_en": "Loneliness, selfishness, delusion"},
-    {"id": "laguz",    "name_ru": "Лагуз",    "name_en": "Laguz",    "symbol": "ᛚ",
-     "meaning_ru": "Вода, интуиция, подсознание", "meaning_en": "Water, intuition, subconscious",
-     "rev_ru": "Страх, иллюзии, потеря пути", "rev_en": "Fear, illusions, losing the way"},
-    {"id": "ingwaz",   "name_ru": "Ингваз",   "name_en": "Ingwaz",   "symbol": "ᛜ",
-     "meaning_ru": "Плодородие, завершение цикла, покой", "meaning_en": "Fertility, cycle completion, peace",
-     "rev_ru": "—", "rev_en": "—"},
-    {"id": "othala",   "name_ru": "Отала",    "name_en": "Othala",   "symbol": "ᛟ",
-     "meaning_ru": "Наследие, дом, предки", "meaning_en": "Heritage, home, ancestors",
-     "rev_ru": "Потеря дома, отчуждение, бездомность", "rev_en": "Loss of home, alienation, homelessness"},
-    {"id": "dagaz",    "name_ru": "Дагаз",    "name_en": "Dagaz",    "symbol": "ᛞ",
-     "meaning_ru": "Рассвет, прорыв, трансформация", "meaning_en": "Dawn, breakthrough, transformation",
-     "rev_ru": "—", "rev_en": "—"},
-]
 
-NO_REVERSE = {"gebo", "hagalaz", "isa", "jera", "eihwaz", "sowilo", "ingwaz", "dagaz"}
+def _rune_out(rune: dict, lang: str, reversed: bool = False) -> dict:
+    ru = lang == "ru"
+    return {
+        "id": rune["id"],
+        "index": rune["index"],
+        "name": rune["name_ru"] if ru else rune["name_en"],
+        "symbol": rune["symbol"],
+        "keyword": rune["keyword_ru"] if ru else rune["keyword_en"],
+        "meaning": (rune["reversed_meaning_ru"] if ru else rune["reversed_meaning_en"]) if reversed and rune["can_reverse"]
+                   else (rune["meaning_ru"] if ru else rune["meaning_en"]),
+        "reversed": reversed,
+        "can_reverse": rune["can_reverse"],
+        "aett": rune["aett"],
+        "element": rune["element"],
+        "deity": rune["deity"],
+        "love": rune["love_ru"] if ru else rune["love_en"],
+        "career": rune["career_ru"] if ru else rune["career_en"],
+        "health": rune["health_ru"] if ru else rune["health_en"],
+        "magic": rune["magic_ru"] if ru else rune["magic_en"],
+        "as_amulet": rune["as_amulet_ru"] if ru else rune["as_amulet_en"],
+    }
 
 
 class DrawRequest(BaseModel):
-    count: int = 1
+    spread_type: str = "rune_of_day"
+    question: Optional[str] = None
     lang: str = "ru"
 
 
@@ -104,40 +57,62 @@ class DrawRequest(BaseModel):
 async def draw(
     req: DrawRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
-    count = max(1, min(req.count, 3))
+    spread = SPREADS_RUNES.get(req.spread_type)
+    if not spread:
+        raise HTTPException(400, "Invalid spread type")
+
     is_pro = current_user.subscription_tier != "free"
+    if spread["tier"] == "pro" and not is_pro:
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
 
-    if not is_pro:
-        count = 1
-        today = date.today().isoformat()
-        key = f"runes_daily:{current_user.id}:{today}"
-        n = await redis_client.incr(key)
-        if n == 1:
-            await redis_client.expire(key, 86400)
-        if n > 1:
-            raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
+    if not is_pro and req.spread_type in ("rune_of_day", "three_norns"):
+        r = aioredis.from_url(redis_url)
+        try:
+            today = date.today().isoformat()
+            key = f"runes_daily:{req.spread_type}:{current_user.id}:{today}"
+            n = await r.incr(key)
+            if n == 1:
+                await r.expire(key, 86400)
+            if n > 1:
+                raise HTTPException(402, "FREE_LIMIT_REACHED")
+        finally:
+            await r.close()
 
-    drawn = random.sample(RUNES, count)
-    result = []
-    for rune in drawn:
-        can_reverse = rune["id"] not in NO_REVERSE
-        is_reversed = can_reverse and random.random() < 0.3
-        lang = req.lang
-        entry = {
-            "id": rune["id"],
-            "name": rune[f"name_{lang}"] if f"name_{lang}" in rune else rune["name_en"],
-            "symbol": rune["symbol"],
-            "reversed": is_reversed,
-            "meaning": rune[f"rev_{lang}"] if is_reversed else rune[f"meaning_{lang}"],
-        }
-        result.append(entry)
+    ru = req.lang == "ru"
+    drawn = draw_runes(spread["count"])
+    positions = spread["positions_ru"] if ru else spread["positions_en"]
 
-    return {"runes": result}
+    result_runes = []
+    for i, d in enumerate(drawn):
+        pos_name = positions[i] if i < len(positions) else f"#{i+1}"
+        out = _rune_out(d["rune"], req.lang, d["reversed"])
+        out["position_name"] = pos_name
+        result_runes.append(out)
+
+    reading = RuneReading(
+        user_id=current_user.id,
+        spread_type=req.spread_type,
+        question=req.question,
+        runes_json=json.dumps([{"id": r["id"], "reversed": r["reversed"], "position": r["position_name"]} for r in result_runes], ensure_ascii=False),
+    )
+    session.add(reading)
+    await session.commit()
+
+    return {
+        "spread_type": req.spread_type,
+        "spread_name": spread["name_ru"] if ru else spread["name_en"],
+        "positions": positions,
+        "drawn_runes": result_runes,
+        "question": req.question,
+    }
 
 
 class InterpretRequest(BaseModel):
-    runes: list[dict]
+    spread_type: str
+    drawn_runes: list[dict]
+    question: Optional[str] = None
     lang: str = "ru"
 
 
@@ -146,41 +121,104 @@ async def interpret(
     req: InterpretRequest,
     current_user: User = Depends(get_current_user),
 ):
-    parts = []
-    for r in req.runes:
-        pos = "reversed" if r.get("reversed") else "upright"
-        parts.append(f"{r.get('name', '?')} ({pos})")
+    if req.spread_type != "rune_of_day" and current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
 
-    sys = system_prompt(req.lang)
+    spread = SPREADS_RUNES.get(req.spread_type, {})
+    ru = req.lang == "ru"
 
-    if req.lang == "ru":
-        prompt = (
-            f"Выпавшие руны: {', '.join(parts)}.\n"
-            f"Дай толкование. Обязательно:\n"
-            f"1. Значение каждой руны в её положении — конкретно\n"
-            f"2. Общий посыл расклада одним предложением\n"
-            f"3. Что конкретно рекомендуют руны сделать или избегать\n"
-            f"Объём: 80-100 слов. Стиль: мудрый северный наставник, не поэт."
-        )
+    runes_desc = []
+    for r in req.drawn_runes:
+        pos = r.get("position_name", "")
+        name = r.get("name", r.get("id", "?"))
+        state = ("перевёрнутая" if ru else "reversed") if r.get("reversed") else ("прямая" if ru else "upright")
+        runes_desc.append(f"{pos}: {name} ({state})")
+
+    question_part = ""
+    if req.question:
+        question_part = f'\nВопрос: "{req.question}".' if ru else f'\nQuestion: "{req.question}".'
+
+    if req.spread_type == "yes_no":
+        positive = sum(1 for r in req.drawn_runes if not r.get("reversed"))
+        answer = "ДА" if positive >= 2 else "НЕТ"
+        answer_en = "YES" if positive >= 2 else "NO"
+        if ru:
+            prompt = (
+                f"Расклад Да/Нет. Руны: {'; '.join(runes_desc)}.{question_part}\n"
+                f"Прямых рун: {positive} из 3. Ответ: {answer}.\n"
+                f"Начни ответ с крупного «{answer}». Объясни почему руны так ответили. "
+                f"80-100 слов. Стиль: мудрый северный наставник."
+            )
+        else:
+            prompt = (
+                f"Yes/No spread. Runes: {'; '.join(runes_desc)}.{question_part}\n"
+                f"Upright runes: {positive} of 3. Answer: {answer_en}.\n"
+                f"Start with a big «{answer_en}». Explain why the runes answered this way. "
+                f"80-100 words. Style: wise Norse mentor."
+            )
+    elif req.spread_type == "yggdrasil":
+        if ru:
+            prompt = (
+                f"Расклад Иггдрасиль (9 миров). Руны:\n" +
+                "\n".join(runes_desc) + f"{question_part}\n"
+                f"Разбери по мирам: Асгард (духовное), Мидгард (реальность), Хельхейм (скрытое), "
+                f"затем Разум, Сердце, Тело, и временная линия. "
+                f"150-180 слов. Стиль: мудрый северный наставник."
+            )
+        else:
+            prompt = (
+                f"Yggdrasil spread (9 worlds). Runes:\n" +
+                "\n".join(runes_desc) + f"{question_part}\n"
+                f"Break down by worlds: Asgard (spiritual), Midgard (reality), Helheim (hidden), "
+                f"then Mind, Heart, Body, and timeline. "
+                f"150-180 words. Style: wise Norse mentor."
+            )
+    elif req.spread_type == "year_spread":
+        if ru:
+            prompt = (
+                f"Расклад на год. Руны по месяцам:\n" +
+                "\n".join(runes_desc) + f"{question_part}\n"
+                f"Дай краткий прогноз по каждому месяцу (1-2 предложения) и общую тему года. "
+                f"200-250 слов. Стиль: мудрый северный наставник."
+            )
+        else:
+            prompt = (
+                f"Year spread. Runes by month:\n" +
+                "\n".join(runes_desc) + f"{question_part}\n"
+                f"Give a brief forecast for each month (1-2 sentences) and overall year theme. "
+                f"200-250 words. Style: wise Norse mentor."
+            )
     else:
-        prompt = (
-            f"Runes drawn: {', '.join(parts)}.\n"
-            f"Give an interpretation. Must include:\n"
-            f"1. Meaning of each rune in its position — be specific\n"
-            f"2. Overall message in one sentence\n"
-            f"3. What exactly the runes recommend to do or avoid\n"
-            f"80-100 words. Style: wise Norse mentor, not a poet."
-        )
+        spread_name = spread.get("name_ru" if ru else "name_en", req.spread_type)
+        if ru:
+            prompt = (
+                f"Расклад «{spread_name}». Руны: {'; '.join(runes_desc)}.{question_part}\n"
+                f"Дай толкование:\n"
+                f"1. Значение каждой руны в её позиции\n"
+                f"2. Общий посыл расклада\n"
+                f"3. Конкретная рекомендация\n"
+                f"100-130 слов. Стиль: мудрый северный наставник."
+            )
+        else:
+            prompt = (
+                f"Spread «{spread_name}». Runes: {'; '.join(runes_desc)}.{question_part}\n"
+                f"Give interpretation:\n"
+                f"1. Meaning of each rune in its position\n"
+                f"2. Overall spread message\n"
+                f"3. Specific recommendation\n"
+                f"100-130 words. Style: wise Norse mentor."
+            )
+
+    lang_enforce = " Отвечай ТОЛЬКО на русском." if ru else " Answer ONLY in English."
+    sys = system_prompt(req.lang) + lang_enforce
+
+    max_tok = 600 if req.spread_type == "year_spread" else 400
 
     async def generate():
         stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": sys},
-                {"role": "user", "content": prompt},
-            ],
-            stream=True,
-            max_tokens=300,
+            messages=[{"role": "system", "content": sys}, {"role": "user", "content": prompt}],
+            stream=True, max_tokens=max_tok,
         )
         for chunk in stream:
             text = chunk.choices[0].delta.content
@@ -188,4 +226,96 @@ async def interpret(
                 yield f"data: {json.dumps({'text': text})}\n\n"
         yield "data: [DONE]\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.get("/runes/personal")
+async def get_personal_rune(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result_q = await session.exec(
+        select(UserProfile).where(UserProfile.user_id == current_user.id)
+    )
+    profile = result_q.first()
+    if not profile or not profile.birth_date:
+        raise HTTPException(400, "birth_date required")
+
+    lp = calc_life_path(profile.birth_date)
+    lang = current_user.lang or "ru"
+
+    pr = personal_rune(lp)
+    yr = year_rune(date.today().year)
+
+    return {
+        "life_path": lp,
+        "personal_rune": _rune_out(pr, lang),
+        "year_rune": _rune_out(yr, lang),
+        "year": date.today().year,
+    }
+
+
+@router.get("/runes/staves")
+async def get_staves(lang: str = "ru"):
+    ru = lang == "ru"
+    return [
+        {
+            "id": s["id"],
+            "name": s["name_ru"] if ru else s["name_en"],
+            "symbols": s["symbols"],
+            "runes_used": s["runes_used"],
+            "purpose": s["purpose_ru"] if ru else s["purpose_en"],
+            "description": s["description_ru"] if ru else s["description_en"],
+            "how_to_use": s["how_to_use_ru"] if ru else s["how_to_use_en"],
+        }
+        for s in STAVES
+    ]
+
+
+@router.get("/runes/spreads")
+async def get_spreads(lang: str = "ru"):
+    ru = lang == "ru"
+    return [
+        {
+            "id": k,
+            "name": s["name_ru"] if ru else s["name_en"],
+            "description": s["desc_ru"] if ru else s["desc_en"],
+            "icon": s["icon"],
+            "count": s["count"],
+            "tier": s["tier"],
+            "positions": s["positions_ru"] if ru else s["positions_en"],
+        }
+        for k, s in SPREADS_RUNES.items()
+    ]
+
+
+@router.get("/runes/history")
+async def get_history(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result_q = await session.exec(
+        select(RuneReading)
+        .where(RuneReading.user_id == current_user.id)
+        .order_by(col(RuneReading.created_at).desc())
+        .limit(5)
+    )
+    readings = result_q.all()
+    lang = current_user.lang or "ru"
+    ru = lang == "ru"
+
+    out = []
+    for r in readings:
+        spread = SPREADS_RUNES.get(r.spread_type, {})
+        runes_data = json.loads(r.runes_json) if r.runes_json else []
+        preview = [rd.get("id", "") for rd in runes_data[:3]]
+        out.append({
+            "id": str(r.id),
+            "spread_type": r.spread_type,
+            "spread_name": spread.get("name_ru" if ru else "name_en", r.spread_type),
+            "question": r.question,
+            "rune_preview": preview,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+    return out
