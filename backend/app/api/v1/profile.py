@@ -1,7 +1,9 @@
+import os
 from datetime import date, datetime, time
 from typing import Optional
 from zoneinfo import available_timezones
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import select
@@ -22,6 +24,7 @@ class ProfileUpdate(BaseModel):
     birth_time_known: Optional[bool] = None
     birth_city: Optional[str] = None
     birth_name: Optional[str] = None
+    full_name: Optional[str] = None
     lang: Optional[str] = None
     notifications_enabled: Optional[bool] = None
     timezone: Optional[str] = None
@@ -43,6 +46,7 @@ def _serialize(profile: UserProfile, user: Optional["User"] = None) -> dict:
         "birth_time_known": profile.birth_time_known,
         "birth_city": profile.birth_city,
         "birth_name": profile.birth_name_enc,
+        "full_name": profile.full_name,
         "completion_percent": _completion(profile),
         "notifications_enabled": profile.notifications_enabled,
         "timezone": profile.timezone,
@@ -107,6 +111,11 @@ async def update_profile(
     if req.birth_name is not None:
         profile.birth_name_enc = req.birth_name
 
+    if req.full_name is not None:
+        profile.full_name = req.full_name
+
+    invalidate_num_cache = (req.birth_date is not None or req.full_name is not None)
+
     if req.lang is not None:
         current_user.lang = req.lang
         session.add(current_user)
@@ -121,6 +130,15 @@ async def update_profile(
 
     await session.commit()
     await session.refresh(profile)
+
+    if invalidate_num_cache:
+        try:
+            r = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+            await r.delete(f"numerology:{current_user.id}")
+            await r.close()
+        except Exception:
+            pass
+
     return _serialize(profile, current_user)
 
 

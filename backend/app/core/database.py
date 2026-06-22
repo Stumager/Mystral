@@ -39,6 +39,10 @@ async def create_db_and_tables() -> None:
             "ALTER TABLE users "
             "ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP"
         ))
+        await conn.execute(text(
+            "ALTER TABLE user_profiles "
+            "ADD COLUMN IF NOT EXISTS full_name VARCHAR"
+        ))
         for col, coltype in [
             ("zodiac_sign", "VARCHAR"), ("chinese_sign", "VARCHAR"),
             ("life_path", "INTEGER"), ("birth_lat", "FLOAT"),
