@@ -172,11 +172,12 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
       await streamRequest("/compatibility/interpret",
         { compat_type: result.type, partner_id: selectedPartner.id, score: result.score, lang },
         (c) => setInterpretation(prev => prev + c),
-        () => setInterpretLoading(false), token ?? undefined);
+        () => setInterpretLoading(false), token ?? undefined,
+        (msg) => { setInterpretation(msg); setInterpretLoading(false); });
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(lang === "ru" ? "Ошибка" : "Error");
+      else setInterpretation(err.message || (lang === "ru" ? "Ошибка" : "Error"));
       setInterpretLoading(false);
     }
   }

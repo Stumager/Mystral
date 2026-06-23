@@ -8,7 +8,6 @@ import httpx
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
-from groq import Groq
 from kerykeion import AstrologicalSubject
 from pydantic import BaseModel
 

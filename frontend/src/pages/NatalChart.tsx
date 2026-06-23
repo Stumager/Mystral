@@ -135,11 +135,16 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     setActiveSection(section);
     setInterpretLoading(true); setInterpretation("");
     try {
-      await streamRequest("/natal/interpret", { ...buildBody(), section }, (c) => setInterpretation(prev => prev + c), () => setInterpretLoading(false), token ?? undefined);
+      await streamRequest("/natal/interpret", { ...buildBody(), section },
+        (c) => setInterpretation(prev => prev + c),
+        () => setInterpretLoading(false),
+        token ?? undefined,
+        (msg) => { setInterpretation(msg); setInterpretLoading(false); },
+      );
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(t("natal.connection_error"));
+      else setInterpretation(err.message || t("natal.connection_error"));
       setInterpretLoading(false);
     }
   }

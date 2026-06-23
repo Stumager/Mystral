@@ -66,11 +66,12 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
     setAiLoading(true); setAiText("");
     try {
       await streamRequest("/lunar/ai-recommend", { question: question || null, lang },
-        (c) => setAiText(prev => prev + c), () => setAiLoading(false), token ?? undefined);
+        (c) => setAiText(prev => prev + c), () => setAiLoading(false), token ?? undefined,
+        (msg) => { setAiText(msg); setAiLoading(false); });
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setAiText(lang === "ru" ? "Ошибка" : "Error");
+      else setAiText(err.message || (lang === "ru" ? "Ошибка" : "Error"));
       setAiLoading(false);
     }
   }

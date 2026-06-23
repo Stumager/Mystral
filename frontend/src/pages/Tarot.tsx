@@ -99,11 +99,12 @@ export function Tarot({ onNavigate }: TarotProps) {
         (chunk) => setInterpretation(prev => prev + chunk),
         () => setIsReading(false),
         token ?? undefined,
+        (msg) => { setInterpretation(msg); setIsReading(false); },
       );
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(t("tarot.error"));
+      else setInterpretation(err.message || t("tarot.error"));
       setIsReading(false);
     }
   }

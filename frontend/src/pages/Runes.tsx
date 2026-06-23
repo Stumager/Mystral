@@ -114,11 +114,12 @@ export function Runes({ onNavigate }: RunesProps) {
         spread_type: drawResult.spread_type,
         drawn_runes: drawResult.drawn_runes.map(r => ({ id: r.id, name: r.name, reversed: r.reversed, position_name: r.position_name })),
         question: drawResult.question, lang,
-      }, (c) => setInterpretation(prev => prev + c), () => setInterpretLoading(false), token ?? undefined);
+      }, (c) => setInterpretation(prev => prev + c), () => setInterpretLoading(false), token ?? undefined,
+        (msg) => { setInterpretation(msg); setInterpretLoading(false); });
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(ru ? "Ошибка" : "Error");
+      else setInterpretation(err.message || (ru ? "Ошибка" : "Error"));
       setInterpretLoading(false);
     }
   }
@@ -154,8 +155,12 @@ export function Runes({ onNavigate }: RunesProps) {
         drawn_runes: [{ id: personalData.personal_rune.id, name: personalData.personal_rune.name, reversed: false, position_name: ru ? "Личная руна" : "Personal rune" }],
         question: ru ? "Расскажи подробно о моей личной руне и руне года" : "Tell me about my personal rune and year rune in detail",
         lang,
-      }, (c) => setPersonalAI(prev => prev + c), () => setPersonalAILoading(false), token ?? undefined);
-    } catch { setPersonalAI(ru ? "Ошибка" : "Error"); setPersonalAILoading(false); }
+      }, (c) => setPersonalAI(prev => prev + c), () => setPersonalAILoading(false), token ?? undefined,
+        (msg) => { setPersonalAI(msg); setPersonalAILoading(false); });
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      setPersonalAI(err.message || (ru ? "Ошибка" : "Error")); setPersonalAILoading(false);
+    }
   }
 
   function reset() {
