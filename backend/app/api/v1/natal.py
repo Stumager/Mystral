@@ -423,7 +423,7 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
     extra_text = ", ".join(f"{ep['name_ru']} в {ep['sign_ru']}" for ep in chart.get("extra_points", []))
     houses_text = ", ".join(f"Дом {h['number']}: {h['sign_ru' if sru else 'sign']} {h['degree']}°" for h in chart["houses"])
     aspects_text = ", ".join(f"{a['planet1_ru']} {a['symbol']} {a['planet2_ru']} ({a['orb']}°)" for a in chart["aspects"][:5])
-    stellium_text = "; ".join(f"{s['name']}: {', '.join(s['planets'])}" for s in chart.get("stelliums", [])) or "нет"
+    stellium_text = "; ".join(f"{s.get('name_ru' if sru else 'name_en', '?')}: {', '.join(s.get('planets', []))}" for s in chart.get("stelliums", [])) or "нет"
 
     transits_text = ""
     if req.section == "transits":
