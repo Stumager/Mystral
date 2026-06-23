@@ -174,7 +174,7 @@ export function Runes({ onNavigate }: RunesProps) {
         {screen === "spreads" ? (
           <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>‹</button>
         ) : backBtn("spreads")}
-        <span className="font-cinzel text-sm tracking-[.25em]">{t("runes.title")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("runes.title")}</span>
         <div className="w-8" />
       </header>
 

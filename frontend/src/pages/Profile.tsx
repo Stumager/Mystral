@@ -261,7 +261,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   return (
     <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
       <header
-        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
+        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md"
         style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <div className="w-8" />

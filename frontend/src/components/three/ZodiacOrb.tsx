@@ -105,9 +105,9 @@ export function ZodiacOrb({ sign, symbol }: ZodiacOrbProps) {
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
         style={{
           zIndex: 10,
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontFamily: "'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols', sans-serif",
           fontSize: 56,
-          color: "#F0EAFF",
+          color: "#E8CD7E",
         }}
         aria-label={sign}
       >

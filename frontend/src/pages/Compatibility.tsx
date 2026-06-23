@@ -199,7 +199,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
           else if (step === "types") setStep("partners");
           else onNavigate("home");
         }}>‹</button>
-        <span className="font-cinzel text-sm tracking-[.25em]">{t("compat.title")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("compat.title")}</span>
         <div className="w-8" />
       </header>
 

@@ -88,11 +88,11 @@ export function Home({ onNavigate }: HomeProps) {
     <div className="flex flex-col min-h-screen relative overflow-hidden" style={{ background: "var(--gradient-page)" }}>
 
       <header
-        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
+        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md"
         style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <button className="text-text-muted text-lg w-8">‹</button>
-        <span className="font-cinzel text-sm tracking-[.25em]">✦ Mystral</span>
+        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>✦ Mystral</span>
         <div className="w-8 flex justify-end">
           <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse" />
         </div>

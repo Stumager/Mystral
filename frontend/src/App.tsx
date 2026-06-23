@@ -25,12 +25,12 @@ function AppInner() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg-deep flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-dark)" }}>
         <span
-          className="font-display text-4xl font-light tracking-widest animate-pulse"
-          style={{ color: "#F0EAFF" }}
+          className="font-cinzel text-2xl tracking-[.3em] animate-pulse"
+          style={{ color: "#E8CD7E" }}
         >
-          ✦ Mystral
+          MYSTRAL
         </span>
       </div>
     );
