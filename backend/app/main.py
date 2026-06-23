@@ -9,14 +9,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 logger = logging.getLogger(__name__)
 
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.models  # noqa: F401 — register models with SQLModel.metadata
 from app.api.router import api_router
 from app.core.database import create_db_and_tables
-from app.core.limiter import limiter
 from app.core.redis import close_redis, init_redis
 from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders, send_astro_event_notifications
 
@@ -56,19 +53,6 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Mystral API", version="0.1.0", lifespan=lifespan)
-app.state.limiter = limiter
-
-
-@app.exception_handler(RateLimitExceeded)
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
-        status_code=429,
-        content={
-            "error": "rate_limit",
-            "message": "Слишком много запросов. Подожди немного.",
-            "retry_after": 60,
-        },
-    )
 
 
 @app.exception_handler(RequestValidationError)
