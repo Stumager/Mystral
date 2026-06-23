@@ -19,7 +19,10 @@ export function parseApiError(status: number, body?: Record<string, unknown>): A
     return { code: (body?.detail as string) || "FREE_LIMIT_REACHED", message: "Нужна подписка Pro" };
   }
   if (status >= 500) {
-    return { code: "server_error", message: "Сервер недоступен, попробуй позже." };
+    return {
+      code: "server_error",
+      message: (body?.message as string) || (body?.detail as string) || "Сервер недоступен, попробуй позже.",
+    };
   }
   return {
     code: "error",
