@@ -3,11 +3,17 @@ import logging
 import os
 from typing import AsyncIterator
 
-from groq import Groq
-
 logger = logging.getLogger(__name__)
 
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"), timeout=30)
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        from groq import Groq
+        _client = Groq(api_key=os.getenv("GROQ_API_KEY"), timeout=30)
+    return _client
 
 
 async def safe_groq_stream(
@@ -17,7 +23,8 @@ async def safe_groq_stream(
 ) -> AsyncIterator[str]:
     ru = lang == "ru"
     try:
-        stream = groq_client.chat.completions.create(
+        client = _get_client()
+        stream = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
             stream=True,
