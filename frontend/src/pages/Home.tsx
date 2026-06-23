@@ -71,6 +71,7 @@ export function Home({ onNavigate }: HomeProps) {
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
   const [zodiac, setZodiac] = useState<ZodiacInfo | null>(null);
   const [lunar, setLunar] = useState<LunarToday | null>(null);
+  const [scores, setScores] = useState<{ love: number; career: number; health: number } | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -99,7 +100,10 @@ export function Home({ onNavigate }: HomeProps) {
         } catch {}
       }
 
-      streamRequest("/horoscope/stream", { sign, lang, date: new Date().toISOString().slice(0, 10) },
+      const today = new Date().toISOString().slice(0, 10);
+      fetch(`/api/v1/horoscope/scores?sign=${sign}&date=${today}`).then(r => r.json()).then(setScores).catch(() => {});
+
+      streamRequest("/horoscope/stream", { sign, lang, date: today },
         (chunk) => setHoroscope(prev => prev + chunk), () => setHoroscopeLoading(false),
       ).catch(() => { setHoroscope(t("home.stars_unavailable")); setHoroscopeLoading(false); });
     }
@@ -114,26 +118,25 @@ export function Home({ onNavigate }: HomeProps) {
   const dayName = now.toLocaleDateString(ru ? "ru-RU" : "en-US", { weekday: "long", day: "numeric", month: "long" });
   const firstLetter = (user?.name ?? "?")[0]?.toUpperCase() ?? "?";
 
-  const barsMobile = [
-    { label: ru ? "Любовь" : "Love", value: 78, color: "#C9A84C" },
-    { label: ru ? "Карьера" : "Career", value: 64, color: "#C9A84C" },
-    { label: ru ? "Здоровье" : "Health", value: 82, color: "#C9A84C" },
-  ];
-  const barsDesktop = [
-    { label: ru ? "Любовь" : "Love", value: 88, color: "#C9A84C" },
-    { label: ru ? "Карьера" : "Career", value: 72, color: "#8A7FC0" },
-    { label: ru ? "Здоровье" : "Health", value: 64, color: "#6E9A8A" },
+  const bars = [
+    { label: ru ? "Любовь" : "Love", value: scores?.love ?? 0, color: "#C9A84C" },
+    { label: ru ? "Карьера" : "Career", value: scores?.career ?? 0, color: "#8A7FC0" },
+    { label: ru ? "Здоровье" : "Health", value: scores?.health ?? 0, color: "#6E9A8A" },
   ];
 
   function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
+    const loading = value === 0;
     return (
       <div>
         <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
           <span style={{ color: "#B6AC98" }}>{label}</span>
-          <span style={{ color }}>{value}%</span>
+          <span style={{ color: loading ? "#6E6757" : color }}>{loading ? "—" : `${value}%`}</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
-          <div style={{ width: `${value}%`, height: "100%", borderRadius: 99, background: `linear-gradient(90deg,${color}99,${color})`, boxShadow: `0 0 12px ${color}80` }} />
+          {loading
+            ? <div style={{ width: "60%", height: "100%", borderRadius: 99, background: "rgba(255,255,255,.06)", animation: "mystral-breathe 1.5s ease-in-out infinite" }} />
+            : <div style={{ width: `${value}%`, height: "100%", borderRadius: 99, background: `linear-gradient(90deg,${color}99,${color})`, boxShadow: `0 0 12px ${color}80`, transition: "width .6s ease" }} />
+          }
         </div>
       </div>
     );
@@ -190,7 +193,7 @@ export function Home({ onNavigate }: HomeProps) {
                 {getGreetingWord(lang)}, {user?.name ?? t("profile.guest")}
               </p>
             </div>
-            <button style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.16)", color: "#C9A84C", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <button onClick={() => onNavigate("profile")} title={ru ? "Уведомления в Профиле" : "Notifications in Profile"} style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.16)", color: "#C9A84C", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
               🔔
             </button>
           </div>
@@ -216,7 +219,7 @@ export function Home({ onNavigate }: HomeProps) {
                   : <>{horoscope}{horoscopeLoading && <span className="animate-pulse">▍</span>}</>}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18, marginTop: 20 }}>
-                {barsDesktop.map(b => <ProgressBar key={b.label} {...b} />)}
+                {bars.map(b => <ProgressBar key={b.label} {...b} />)}
               </div>
             </div>
           </div>
@@ -227,7 +230,7 @@ export function Home({ onNavigate }: HomeProps) {
             {SECTIONS.map(s => (
               <button key={s.id} onClick={() => onNavigate(s.id)} className="text-left" style={{ position: "relative", overflow: "hidden", padding: 20, borderRadius: 20, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", cursor: "pointer", transition: ".2s" }}>
                 <div style={{ position: "absolute", top: -22, right: -20, width: 96, height: 96, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,168,76,.12),transparent 70%)" }} />
-                <span style={{ fontSize: 25, color: "#C9A84C", filter: "drop-shadow(0 0 6px rgba(201,168,76,.32))", position: "relative" }}>{s.icon}</span>
+                <span style={{ fontSize: 28, color: "#C9A84C", filter: "drop-shadow(0 0 8px rgba(201,168,76,.4))", position: "relative" }}>{s.icon}</span>
                 <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA", marginTop: 16, position: "relative" }}>{ru ? s.label_ru : s.label_en}</p>
                 <p style={{ fontSize: 12, color: "#8A8170", marginTop: 2, position: "relative" }}>{ru ? s.desc_ru : s.desc_en}</p>
               </button>
@@ -287,7 +290,7 @@ export function Home({ onNavigate }: HomeProps) {
           <span className="font-cinzel" style={{ fontSize: 14, letterSpacing: ".3em", color: "#E8CD7E" }}>MYSTRAL</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <button style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.16)", color: "#C9A84C", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>🔔</button>
+          <button onClick={() => onNavigate("profile")} title={ru ? "Уведомления в Профиле" : "Notifications in Profile"} style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.16)", color: "#C9A84C", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>🔔</button>
           {!isPro && (
             <button onClick={() => setShowPaywall(true)} className="font-sans" style={{ height: 38, padding: "0 14px", borderRadius: 11, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontSize: 12, fontWeight: 600, letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 4, border: "none" }}>✦ PRO</button>
           )}
@@ -325,15 +328,7 @@ export function Home({ onNavigate }: HomeProps) {
               : <>{horoscope}{horoscopeLoading && <span className="animate-pulse">▍</span>}</>}
           </div>
           <div className="flex flex-col" style={{ marginTop: 18, gap: 11 }}>
-            {barsMobile.map(b => (
-              <div key={b.label} className="flex items-center gap-2">
-                <span style={{ width: 72, fontSize: 12.5, color: "#B6AC98" }}>{b.label}</span>
-                <div className="flex-1" style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,.07)" }}>
-                  <div style={{ width: `${b.value}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8A6E2E,#E8CD7E)", boxShadow: "0 0 12px rgba(201,168,76,.5)" }} />
-                </div>
-                <span style={{ width: 34, textAlign: "right", fontSize: 11, color: "#C9A84C" }}>{b.value}%</span>
-              </div>
-            ))}
+            {bars.map(b => <ProgressBar key={b.label} {...b} />)}
           </div>
           {!expanded && horoscope && (
             <button onClick={() => setExpanded(true)} style={{ marginTop: 18, width: "100%", height: 46, borderRadius: 13, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontWeight: 500, fontSize: 13.5 }}>
@@ -367,7 +362,7 @@ export function Home({ onNavigate }: HomeProps) {
             {SECTIONS.map(s => (
               <button key={s.id} onClick={() => onNavigate(s.id)} className="text-left" style={{ position: "relative", overflow: "hidden", padding: 16, borderRadius: 18, minHeight: 104, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
                 <div style={{ position: "absolute", top: -22, right: -20, width: 84, height: 84, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,168,76,.13),transparent 70%)" }} />
-                <span style={{ fontSize: 22, color: "#C9A84C", filter: "drop-shadow(0 0 6px rgba(201,168,76,.32))" }}>{s.icon}</span>
+                <span style={{ fontSize: 28, color: "#C9A84C", filter: "drop-shadow(0 0 8px rgba(201,168,76,.4))" }}>{s.icon}</span>
                 <p className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA", marginTop: 14, lineHeight: 1.1 }}>{ru ? s.label_ru : s.label_en}</p>
                 <p style={{ fontSize: 11, color: "#8A8170", marginTop: 2 }}>{ru ? s.desc_ru : s.desc_en}</p>
               </button>

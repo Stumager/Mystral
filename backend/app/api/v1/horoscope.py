@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from datetime import date
@@ -90,3 +91,22 @@ async def horoscope_stream(req: HoroscopeRequest):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/horoscope/scores")
+async def horoscope_scores(sign: str = "aries", date: str = ""):
+    today = date or __import__("datetime").date.today().isoformat()
+    cache_key = f"scores:{sign}:{today}"
+
+    cached = await redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
+    h = hashlib.md5(f"{sign}{today}".encode()).hexdigest()
+    love = 55 + int(h[0:2], 16) % 41
+    career = 55 + int(h[2:4], 16) % 41
+    health = 55 + int(h[4:6], 16) % 41
+
+    result = {"love": love, "career": career, "health": health}
+    await redis_client.set(cache_key, json.dumps(result), ex=86400)
+    return result
