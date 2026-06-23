@@ -398,9 +398,18 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
         if count > 3:
             raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
 
-    lat, lon = await geocode_city(req.city)
-    subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
-    chart = build_full_chart(subj)
+    try:
+        lat, lon = await geocode_city(req.city)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Geocoding failed: {e}")
+
+    try:
+        subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
+        chart = build_full_chart(subj)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chart calculation failed: {e}")
 
     templates = SECTION_PROMPTS_RU if req.lang == "ru" else SECTION_PROMPTS_EN
     template = templates.get(req.section, templates["personality"])
@@ -410,8 +419,8 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
     sun_s = p[0]["sign_ru" if sru else "sign"] if len(p) > 0 else "?"
     moon_s = p[1]["sign_ru" if sru else "sign"] if len(p) > 1 else "?"
     asc_s = chart.get("ascendant", {}).get("sign_ru" if sru else "sign", "?")
-    planets_text = ", ".join(f"{p['name_ru' if sru else 'name']} в {p['sign_ru' if sru else 'sign']}{' R' if p['retrograde'] else ''} (дом {p['house']})" for p in chart["planets"])
-    extra_text = ", ".join(f"{p['name_ru']} в {p['sign_ru']}" for p in chart.get("extra_points", []))
+    planets_text = ", ".join(f"{pl['name_ru' if sru else 'name']} в {pl['sign_ru' if sru else 'sign']}{' R' if pl['retrograde'] else ''} (дом {pl['house']})" for pl in chart["planets"])
+    extra_text = ", ".join(f"{ep['name_ru']} в {ep['sign_ru']}" for ep in chart.get("extra_points", []))
     houses_text = ", ".join(f"Дом {h['number']}: {h['sign_ru' if sru else 'sign']} {h['degree']}°" for h in chart["houses"])
     aspects_text = ", ".join(f"{a['planet1_ru']} {a['symbol']} {a['planet2_ru']} ({a['orb']}°)" for a in chart["aspects"][:5])
     stellium_text = "; ".join(f"{s['name']}: {', '.join(s['planets'])}" for s in chart.get("stelliums", [])) or "нет"
@@ -424,12 +433,12 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
         actives = []
         for k in pkeys:
             tp = _extract_planet(t_subj, k)
-            for np in chart["planets"]:
-                diff = abs(tp["abs_pos"] - np["abs_pos"])
+            for np_item in chart["planets"]:
+                diff = abs(tp["abs_pos"] - np_item["abs_pos"])
                 if diff > 180: diff = 360 - diff
                 for angle, _, _, name_ru, sym in ASPECT_TYPES:
                     if abs(diff - angle) <= 3:
-                        actives.append(f"Транзит {tp['name_ru']} {sym} натал. {np['name_ru']} ({round(abs(diff-angle),1)}°)")
+                        actives.append(f"Транзит {tp['name_ru']} {sym} натал. {np_item['name_ru']} ({round(abs(diff-angle),1)}°)")
                         break
         transits_text = "; ".join(actives[:5]) or "Нет точных транзитов"
 
