@@ -109,3 +109,5 @@ html, body {
   0%,100% { opacity:.5 }
   50% { opacity:.9 }
 }
+@keyframes mystral-spin { to { transform: rotate(360deg) } }
+@keyframes mystral-spin-rev { to { transform: rotate(-360deg) } }
