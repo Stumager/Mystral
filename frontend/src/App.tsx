@@ -40,6 +40,22 @@ function AppInner() {
 
   const showOnboarding = !onboardingDismissed && !user.has_birth_date;
 
+  const modals = (
+    <>
+      {pendingMerge && <MergeAccountPrompt onClose={dismissMerge} />}
+      {showOnboarding && !pendingMerge && (
+        <OnboardingModal onClose={() => {
+          setOnboardingDismissed(true);
+          updateUser({ has_birth_date: true });
+        }} />
+      )}
+    </>
+  );
+
+  if (page === "home") {
+    return <><Home onNavigate={navigate} />{modals}</>;
+  }
+
   let content;
   if (page === "tarot")           content = <Tarot         onNavigate={navigate} />;
   else if (page === "natal")      content = <NatalChart    onNavigate={navigate} />;
@@ -50,18 +66,12 @@ function AppInner() {
   else if (page === "numerology" || page === "numero")
                                   content = <Numerology    onNavigate={navigate} />;
   else if (page === "runes")      content = <Runes         onNavigate={navigate} />;
-  else                            content = <Home          onNavigate={navigate} />;
+  else                            content = null;
 
   return (
     <AppLayout page={page} onNavigate={navigate} user={user}>
       {content}
-      {pendingMerge && <MergeAccountPrompt onClose={dismissMerge} />}
-      {showOnboarding && !pendingMerge && (
-        <OnboardingModal onClose={() => {
-          setOnboardingDismissed(true);
-          updateUser({ has_birth_date: true });
-        }} />
-      )}
+      {modals}
     </AppLayout>
   );
 }
