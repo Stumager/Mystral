@@ -1,3 +1,111 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* Фон */
+  --bg-base: #07060F;
+  --bg-dark: #050409;
+  --bg-card: rgba(255,255,255,.025);
+  --bg-card-md: rgba(255,255,255,.04);
+  --bg-card-lg: rgba(255,255,255,.055);
+  --bg-header: rgba(7,6,15,.82);
+  --bg-purple: rgba(75,60,134,.14);
+  --bg-purple-md: rgba(75,60,134,.22);
+
+  /* Градиенты */
+  --gradient-page: radial-gradient(130% 60% at 50% -5%, #0F0A26 0%, #07060F 55%);
+  --gradient-card: linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.015));
+  --gradient-gold: linear-gradient(100deg, #8A6E2E, #C9A84C 50%, #E8CD7E);
+  --gradient-gold-btn: linear-gradient(100deg, #A9882F, #C9A84C 50%, #E8CD7E);
+
+  /* Текст */
+  --text-primary: #F0E9DA;
+  --text-secondary: #B6AC98;
+  --text-muted: #A89E8B;
+  --text-dim: #6E6757;
+  --text-dimmer: #8A8170;
+
+  /* Золото */
+  --gold: #C9A84C;
+  --gold-light: #E8CD7E;
+  --gold-dark: #A9882F;
+  --gold-darker: #8A6E2E;
+
+  /* Индиго */
+  --indigo: #4B3C86;
+  --indigo-light: #8A7FC0;
+  --indigo-lighter: #A99BE0;
+
+  /* Бордеры */
+  --border-gold: rgba(201,168,76,.14);
+  --border-gold-md: rgba(201,168,76,.22);
+  --border-gold-strong: rgba(201,168,76,.4);
+  --border-default: rgba(255,255,255,.07);
+  --border-subtle: rgba(255,255,255,.06);
+
+  /* Опасность */
+  --danger: #D98A8A;
+  --danger-bg: rgba(196,84,84,.08);
+  --danger-border: rgba(196,84,84,.4);
+
+  /* Радиусы */
+  --radius-xl: 22px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 12px;
+  --radius-xs: 9px;
+  --radius-full: 99px;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,.18); border-radius: 8px; }
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Card classes */
+.card-base { border-radius: var(--radius-lg); background: var(--bg-card); border: 1px solid var(--border-default); }
+.card-gold { background: var(--gradient-card); border: 1px solid var(--border-gold-md); backdrop-filter: blur(12px); border-radius: var(--radius-lg); }
+.card-purple { background: var(--bg-purple); border: 1px solid rgba(138,127,192,.28); border-radius: var(--radius-lg); }
+
+/* Progress bars */
+.progress-bar {
+  height: 7px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #8A6E2E, #E8CD7E);
+  box-shadow: 0 0 12px rgba(201,168,76,.5);
+}
+
+/* Animations */
+@keyframes mystral-shimmer {
+  0% { background-position: -200% 0 }
+  100% { background-position: 200% 0 }
+}
+@keyframes mystral-pulse-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,.35), 0 0 24px 2px rgba(201,168,76,.25) }
+  50% { box-shadow: 0 0 0 7px rgba(201,168,76,0), 0 0 38px 6px rgba(201,168,76,.4) }
+}
+@keyframes mystral-twinkle {
+  0%,100% { opacity:.15; transform:scale(.7) }
+  50% { opacity:1; transform:scale(1) }
+}
+@keyframes mystral-float {
+  0%,100% { transform:translateY(0) }
+  50% { transform:translateY(-7px) }
+}
+@keyframes mystral-fadeup {
+  from { opacity:0; transform:translateY(16px) }
+  to { opacity:1; transform:translateY(0) }
+}
+@keyframes mystral-breathe {
+  0%,100% { opacity:.5 }
+  50% { opacity:.9 }
+}

@@ -86,10 +86,10 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep relative">
-      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm" style={{ height: 46, background: "rgba(6,4,20,0.75)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>‹</button>
-        <span className="font-display text-text-primary text-base tracking-widest">{t("lunar.title")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("lunar.title")}</span>
         <div className="w-8" />
       </header>
 

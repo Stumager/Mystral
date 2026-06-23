@@ -124,10 +124,10 @@ export function Tarot({ onNavigate }: TarotProps) {
     "focus:outline-none focus:border-violet-600 transition-colors";
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep">
+    <div className="flex flex-col min-h-screen" style={{ background: "var(--gradient-page)" }}>
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
-        style={{ height: 46, background: "rgba(6,4,20,0.75)" }}
+        style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <button
           className="text-text-muted text-lg w-8"
@@ -135,7 +135,7 @@ export function Tarot({ onNavigate }: TarotProps) {
         >
           ‹
         </button>
-        <span className="font-display text-text-primary text-base tracking-widest">✦ {t("tarot.header")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]">✦ {t("tarot.header")}</span>
         <div className="w-8" />
       </header>
 

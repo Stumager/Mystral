@@ -31,8 +31,9 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
       className="fixed bottom-0 left-0 right-0 flex justify-around items-center md:hidden"
       style={{
         height: 56,
-        background: "rgba(6,4,20,0.94)",
-        borderTop: "0.5px solid rgba(140,110,255,0.10)",
+        background: "rgba(7,6,15,0.94)",
+        borderTop: "1px solid var(--border-gold)",
+        backdropFilter: "blur(18px)",
       }}
     >
       {items.map(({ id, label, emoji }) => {
@@ -42,14 +43,14 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
             key={id}
             onClick={() => handleClick(id)}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors duration-200"
-            style={{ color: isActive ? "#9B8AFF" : "#9B8FBB" }}
+            style={{ color: isActive ? "#E8CD7E" : "var(--text-muted)" }}
           >
             <span className="text-lg leading-none">{emoji}</span>
             <span className="text-[10px] font-sans">{label}</span>
             {isActive && (
               <span
                 className="rounded-full"
-                style={{ width: 4, height: 4, background: "#9B8AFF" }}
+                style={{ width: 4, height: 4, background: "#C9A84C" }}
               />
             )}
           </button>

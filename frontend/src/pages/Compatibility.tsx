@@ -192,14 +192,14 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   function scoreColor(s: number) { return s >= 70 ? "#4ade80" : s >= 40 ? "#C9A84C" : "#f87171"; }
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep relative">
-      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm" style={{ height: 46, background: "rgba(6,4,20,0.75)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         <button className="text-text-muted text-lg w-8" onClick={() => {
           if (step === "result") { setStep("types"); setResult(null); }
           else if (step === "types") setStep("partners");
           else onNavigate("home");
         }}>‹</button>
-        <span className="font-display text-text-primary text-base tracking-widest">{t("compat.title")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]">{t("compat.title")}</span>
         <div className="w-8" />
       </header>
 

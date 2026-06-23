@@ -101,7 +101,7 @@ export function LoginScreen() {
   const errCls = "text-red-400 text-xs mt-1";
 
   return (
-    <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--gradient-page)" }}>
       <h1
         className="font-display text-5xl font-light tracking-widest mb-2"
         style={{ color: "#F0EAFF" }}

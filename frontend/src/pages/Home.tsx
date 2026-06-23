@@ -85,14 +85,14 @@ export function Home({ onNavigate }: HomeProps) {
   const dateFmt = user?.lang === "en" ? "en-US" : "ru-RU";
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep relative overflow-hidden">
+    <div className="flex flex-col min-h-screen relative overflow-hidden" style={{ background: "var(--gradient-page)" }}>
 
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
-        style={{ height: 46, background: "rgba(6,4,20,0.75)" }}
+        style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <button className="text-text-muted text-lg w-8">‹</button>
-        <span className="font-display text-text-primary text-base tracking-widest">✦ Mystral</span>
+        <span className="font-cinzel text-sm tracking-[.25em]">✦ Mystral</span>
         <div className="w-8 flex justify-end">
           <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse" />
         </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Logo } from "../Logo";
 import { RightPanel } from "./RightPanel";
 
 interface UserData {
@@ -30,16 +31,17 @@ export function AppLayout({ page, onNavigate, user, children }: AppLayoutProps) 
   const activePage = page === "lunar" ? "moon" : page === "numero" ? "numerology" : page;
 
   return (
-    <div className="min-h-screen bg-bg-deep flex justify-center">
+    <div className="min-h-screen flex justify-center" style={{ background: "var(--bg-dark)" }}>
       {/* Left panel — desktop only */}
       <aside
         className="hidden md:flex w-[220px] shrink-0 sticky top-0 h-screen flex-col py-6 px-4"
-        style={{ borderRight: "1px solid rgba(140,110,255,0.08)" }}
+        style={{ borderRight: "1px solid var(--border-gold)" }}
       >
         {/* Logo */}
-        <div className="mb-8 px-2">
-          <span className="font-display text-xl tracking-widest" style={{ color: "#C9A84C" }}>
-            ✦ Mystral
+        <div className="mb-8 px-2 flex items-center gap-2.5">
+          <Logo size={26} />
+          <span className="font-cinzel text-sm tracking-[.3em]" style={{ color: "#E8CD7E" }}>
+            MYSTRAL
           </span>
         </div>
 
@@ -51,10 +53,11 @@ export function AppLayout({ page, onNavigate, user, children }: AppLayoutProps) 
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-left"
+                className="flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left"
                 style={{
-                  background: isActive ? "rgba(107,78,255,0.15)" : "transparent",
-                  color: isActive ? "#9B8AFF" : "#9B8FBB",
+                  borderRadius: "var(--radius-xs)",
+                  background: isActive ? "rgba(75,60,134,.22)" : "transparent",
+                  color: isActive ? "var(--gold-light)" : "var(--text-muted)",
                 }}
               >
                 <span className="text-base w-5 text-center">{emoji}</span>
@@ -67,12 +70,20 @@ export function AppLayout({ page, onNavigate, user, children }: AppLayoutProps) 
         {/* Tier badge */}
         <div className="px-2 mt-4">
           {user?.tier === "pro" ? (
-            <div className="flex items-center gap-2">
-              <span style={{ color: "#C9A84C" }}>✦</span>
-              <span className="text-xs font-display" style={{ color: "#C9A84C" }}>Pro</span>
+            <div
+              className="flex items-center gap-2 px-3 py-1.5"
+              style={{
+                borderRadius: "var(--radius-xs)",
+                background: "rgba(201,168,76,.08)",
+                border: "1px solid var(--border-gold)",
+              }}
+            >
+              <span className="font-cinzel text-xs tracking-widest" style={{ color: "#E8CD7E" }}>
+                Mystral Pro
+              </span>
             </div>
           ) : (
-            <span className="text-text-faint text-[10px]">{t("profile.free_plan")}</span>
+            <span className="text-xs" style={{ color: "var(--text-dim)" }}>{t("profile.free_plan")}</span>
           )}
         </div>
       </aside>
@@ -80,7 +91,10 @@ export function AppLayout({ page, onNavigate, user, children }: AppLayoutProps) 
       {/* Center — mobile screen */}
       <div
         className="w-full md:w-[390px] md:shrink-0 relative"
-        style={{ borderLeft: "1px solid rgba(140,110,255,0.08)", borderRight: "1px solid rgba(140,110,255,0.08)" }}
+        style={{
+          borderLeft: "1px solid var(--border-gold)",
+          borderRight: "1px solid var(--border-gold)",
+        }}
       >
         {children}
       </div>

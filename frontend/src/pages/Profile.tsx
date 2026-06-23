@@ -259,13 +259,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const hint = completion < 100 ? progressHints[hintIndex] ?? progressHints[3] : t("profile.hint_done");
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep relative">
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm"
-        style={{ height: 46, background: "rgba(6,4,20,0.75)" }}
+        style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <div className="w-8" />
-        <span className="font-display text-text-primary text-base tracking-widest">
+        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>
           {t("profile.title")}
         </span>
         <div className="w-8" />

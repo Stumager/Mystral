@@ -169,12 +169,12 @@ export function Runes({ onNavigate }: RunesProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-deep relative">
-      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-sm" style={{ height: 46, background: "rgba(6,4,20,0.75)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+      <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         {screen === "spreads" ? (
           <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>‹</button>
         ) : backBtn("spreads")}
-        <span className="font-display text-text-primary text-base tracking-widest">{t("runes.title")}</span>
+        <span className="font-cinzel text-sm tracking-[.25em]">{t("runes.title")}</span>
         <div className="w-8" />
       </header>
 
