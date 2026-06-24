@@ -37,7 +37,7 @@ function AppInner() {
     );
   }
 
-  if (page === "admin" || window.location.hash === "#admin") return <Admin />;
+  if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin") return <Admin />;
 
   if (!user) return <LoginScreen />;
 
