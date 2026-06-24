@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query
@@ -10,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
-from app.models.user import AuthProvider, User, UserProfile
+from app.models.user import AuthProvider, User
 
 router = APIRouter()
 
@@ -23,7 +22,6 @@ async def is_admin(x_admin_token: str = Header("")):
 @router.get("/admin/stats", dependencies=[Depends(is_admin)])
 async def admin_stats(session: AsyncSession = Depends(get_session)):
     now = datetime.utcnow()
-
     total = (await session.exec(select(func.count()).select_from(User))).one()
     pro = (await session.exec(
         select(func.count()).select_from(User).where(User.subscription_tier == "pro")
@@ -34,7 +32,6 @@ async def admin_stats(session: AsyncSession = Depends(get_session)):
     new_30 = (await session.exec(
         select(func.count()).select_from(User).where(User.created_at >= now - timedelta(days=30))
     )).one()
-
     return {"total_users": total, "pro_users": pro, "new_7days": new_7, "new_30days": new_30}
 
 
@@ -45,77 +42,41 @@ async def admin_users(
     search: str = Query(""),
     session: AsyncSession = Depends(get_session),
 ):
-    base = (
-        select(User, AuthProvider)
-        .outerjoin(AuthProvider, AuthProvider.user_id == User.id)
-    )
-    count_q = select(func.count(func.distinct(User.id))).select_from(User)
+    q = select(User)
+    count_q = select(func.count()).select_from(User)
 
     if search:
         like = f"%{search}%"
-        base = base.outerjoin(AuthProvider, AuthProvider.user_id == User.id)
-        base = (
-            select(User, AuthProvider)
-            .outerjoin(AuthProvider, AuthProvider.user_id == User.id)
-            .where(
-                (User.email.ilike(like)) |
-                (AuthProvider.provider_id.ilike(like))
-            )
-        )
-        count_q = (
-            select(func.count(func.distinct(User.id)))
-            .select_from(User)
-            .outerjoin(AuthProvider, AuthProvider.user_id == User.id)
-            .where(
-                (User.email.ilike(like)) |
-                (AuthProvider.provider_id.ilike(like))
-            )
-        )
+        sub = select(AuthProvider.user_id).where(AuthProvider.provider_id.ilike(like))
+        filt = (User.email.ilike(like)) | (User.id.in_(sub))
+        q = q.where(filt)
+        count_q = count_q.where(filt)
 
     total = (await session.exec(count_q)).one()
-    pages = max(1, (total + limit - 1) // limit)
+    pages_count = max(1, (total + limit - 1) // limit)
     offset = (page - 1) * limit
 
-    rows = (await session.exec(
-        base.order_by(User.created_at.desc()).offset(offset).limit(limit)
+    user_rows = (await session.exec(
+        q.order_by(User.created_at.desc()).offset(offset).limit(limit)
     )).all()
 
-    seen: set[str] = set()
-    users = []
-    for row in rows:
-        if isinstance(row, tuple):
-            u, ap = row
-        else:
-            u = row
-            ap = None
-        uid = str(u.id)
-        if uid in seen:
-            continue
-        seen.add(uid)
+    result = []
+    for u in user_rows:
+        tg_ap = (await session.exec(
+            select(AuthProvider).where(AuthProvider.user_id == u.id, AuthProvider.provider == "telegram")
+        )).first()
 
-        tg_id = None
-        tg_user = None
-        if ap and ap.provider == "telegram":
-            tg_id = ap.provider_id
-        else:
-            tg_res = await session.exec(
-                select(AuthProvider).where(AuthProvider.user_id == u.id, AuthProvider.provider == "telegram")
-            )
-            tg_ap = tg_res.first()
-            if tg_ap:
-                tg_id = tg_ap.provider_id
-
-        users.append({
-            "id": uid,
+        result.append({
+            "id": str(u.id),
             "email": u.email,
             "display_name": u.display_name,
-            "telegram_id": tg_id,
+            "telegram_id": tg_ap.provider_id if tg_ap else None,
             "tier": u.subscription_tier,
             "subscription_expires_at": u.subscription_expires_at.isoformat() if u.subscription_expires_at else None,
             "created_at": u.created_at.isoformat() if u.created_at else None,
         })
 
-    return {"users": users, "total": total, "page": page, "pages": pages}
+    return {"users": result, "total": total, "page": page, "pages": pages_count}
 
 
 class GrantProRequest(BaseModel):
@@ -151,11 +112,8 @@ async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
-    await session.execute(text("DELETE FROM auth_providers WHERE user_id = :uid"), {"uid": user_id})
-    await session.execute(text("DELETE FROM user_profiles WHERE user_id = :uid"), {"uid": user_id})
-    await session.execute(text("DELETE FROM tarot_readings WHERE user_id = :uid"), {"uid": user_id})
-    await session.execute(text("DELETE FROM rune_readings WHERE user_id = :uid"), {"uid": user_id})
-    await session.execute(text("DELETE FROM user_partners WHERE user_id = :uid"), {"uid": user_id})
+    for table in ["auth_providers", "user_profiles", "tarot_readings", "rune_readings", "user_partners"]:
+        await session.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
     await session.delete(user)
     await session.commit()
     return {"ok": True}
