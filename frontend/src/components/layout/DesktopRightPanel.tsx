@@ -30,6 +30,7 @@ export function DesktopRightPanel() {
 
   const zodiacLabel = zodiac ? (ru ? zodiac.sign : zodiac.en) : null;
   const userSign = zodiac?.en ?? "Leo";
+  const zodiacSub = zodiac ? (ru ? zodiac.en : zodiac.sign) : "";
 
   return (
     <aside style={{ flex: "none", width: 312, overflowY: "auto", padding: "26px 22px", borderLeft: "1px solid rgba(201,168,76,.12)", background: "rgba(7,6,15,.45)", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -54,7 +55,7 @@ export function DesktopRightPanel() {
           <ZodiacGlyph sign={userSign} size={80} />
           <div>
             <p className="font-cormorant" style={{ fontSize: 24, color: "#F0E9DA", lineHeight: 1 }}>{zodiacLabel ?? "—"}</p>
-            <p style={{ fontSize: 12, color: "#8A8170", marginTop: 4 }}>{zodiac?.en ?? ""}</p>
+            <p style={{ fontSize: 12, color: "#8A8170", marginTop: 4 }}>{zodiacSub}</p>
           </div>
         </div>
       </div>

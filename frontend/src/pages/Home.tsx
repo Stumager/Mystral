@@ -145,18 +145,22 @@ export function Home({ onNavigate }: HomeProps) {
         </p>
       </div>
 
-      {/* Zodiac */}
-      <div style={{ position: "relative", padding: "6px 0 2px", textAlign: "center" }}>
-        <ZodiacGlyph sign={userSign} size={236} />
-        <div style={{ marginTop: -8 }}>
-          <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".34em", color: "#C9A84C" }}>{ru ? "ВАШ ЗНАК" : "YOUR SIGN"}</p>
-          <p className="font-cormorant" style={{ fontSize: 42, color: "#F0E9DA", lineHeight: 1.02 }}>{zodiacLabel ?? t("home.zodiac_fallback")}</p>
-          {meta && <p style={{ fontSize: 12, color: "#8A8170", letterSpacing: ".04em", marginTop: 2 }}>{ru ? meta.element_ru : meta.element_en} · {ru ? meta.modality_ru : meta.modality_en} · {meta.dates}</p>}
-        </div>
-      </div>
+      {/* Zodiac + Horoscope — grid on desktop */}
+      <div className="lg:grid lg:gap-5" style={{ marginTop: 16, padding: "0 22px" }} >
+        <style>{`.lg\\:grid { grid-template-columns: 300px 1fr; } @media(max-width:1023px) { .lg\\:grid { display:block !important; } }`}</style>
 
-      {/* Horoscope */}
-      <div style={{ margin: "16px 22px 0", padding: 22, borderRadius: 22, background: "linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015))", border: "1px solid rgba(201,168,76,.16)", backdropFilter: "blur(12px)" }}>
+        {/* Zodiac */}
+        <div className="lg:rounded-3xl lg:p-5 lg:text-center" style={{ position: "relative", padding: "6px 0 2px", textAlign: "center" }}>
+          <ZodiacGlyph sign={userSign} size={236} />
+          <div style={{ marginTop: -8 }}>
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".34em", color: "#C9A84C" }}>{ru ? "ВАШ ЗНАК" : "YOUR SIGN"}</p>
+            <p className="font-cormorant" style={{ fontSize: 42, color: "#F0E9DA", lineHeight: 1.02 }}>{zodiacLabel ?? t("home.zodiac_fallback")}</p>
+            {meta && <p style={{ fontSize: 12, color: "#8A8170", letterSpacing: ".04em", marginTop: 2 }}>{ru ? meta.element_ru : meta.element_en} · {ru ? meta.modality_ru : meta.modality_en} · {meta.dates}</p>}
+          </div>
+        </div>
+
+        {/* Horoscope */}
+        <div style={{ padding: 22, borderRadius: 22, background: "linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015))", border: "1px solid rgba(201,168,76,.16)", backdropFilter: "blur(12px)" }}>
         <div className="flex items-center justify-between">
           <span className="font-cinzel uppercase" style={{ fontSize: 10.5, letterSpacing: ".28em", color: "#C9A84C" }}>{t("home.daily_horoscope")}</span>
           <span style={{ fontSize: 11, color: "#6E6757" }}>{now.toLocaleDateString(ru ? "ru-RU" : "en-US", { day: "numeric", month: "short" })}</span>
@@ -175,6 +179,7 @@ export function Home({ onNavigate }: HomeProps) {
           </button>
         )}
       </div>
+      </div>{/* end grid wrapper */}
 
       {/* Lunar — mobile only */}
       <button onClick={() => onNavigate("moon")} className="w-full text-left lg:hidden" style={{ margin: "14px 22px 0", width: "calc(100% - 44px)", padding: "18px 20px", borderRadius: 22, display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,rgba(58,76,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)" }}>

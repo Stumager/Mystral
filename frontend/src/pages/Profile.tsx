@@ -262,7 +262,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   return (
     <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
-      <header style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "rgba(7,6,15,.82)", backdropFilter: "blur(18px)", borderBottom: "1px solid rgba(201,168,76,.14)" }}>
+      <header className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "rgba(7,6,15,.82)", backdropFilter: "blur(18px)", borderBottom: "1px solid rgba(201,168,76,.14)" }}>
         <button onClick={() => onNavigate("home")} style={{ color: "#A89E8B", fontSize: 20, background: "none", border: "none", cursor: "pointer" }}>‹</button>
         <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E", textTransform: "uppercase" }}>{t("profile.title")}</span>
         <div style={{ width: 20 }} />
@@ -272,7 +272,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
         {/* Avatar + name */}
         <div className="flex flex-col items-center gap-2">
-          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", border: "2px solid rgba(201,168,76,.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", border: "2px solid rgba(201,168,76,.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span className="font-cormorant" style={{ fontSize: 28, color: "#0C0A18", fontWeight: 600 }}>{firstLetter}</span>
           </div>
           <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>

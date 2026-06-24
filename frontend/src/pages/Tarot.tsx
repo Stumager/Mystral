@@ -127,7 +127,7 @@ export function Tarot({ onNavigate }: TarotProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header
-        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md"
+        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md lg:hidden"
         style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
       >
         <button
