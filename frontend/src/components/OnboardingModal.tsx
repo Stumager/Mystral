@@ -26,6 +26,10 @@ const ELEMENTS: Record<string, [string, string]> = {
   Capricorn: ["Земной", "Earth"], Aquarius: ["Воздушный", "Air"], Pisces: ["Водный", "Water"],
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: CURRENT_YEAR - 1923 }, (_, i) => CURRENT_YEAR - i);
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
 export function OnboardingModal({ onClose }: Props) {
   useTranslation();
   const { token, user, updateUser } = useAuth();
@@ -44,73 +48,71 @@ export function OnboardingModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [cityInput, setCityInput] = useState(false);
 
-  const dateRef = useRef<HTMLInputElement>(null);
+  const dayRef = useRef<HTMLSelectElement>(null);
+  const monthRef = useRef<HTMLSelectElement>(null);
+  const yearRef = useRef<HTMLSelectElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
 
   const birthDate = day && month && year ? `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}` : null;
   const zodiac = birthDate ? getZodiacSign(birthDate) : null;
 
-  async function saveBirthDate() {
-    const errs: Record<string, string> = {};
-    const de = validateDay(day); if (de) errs.day = de;
-    const me = validateMonth(month); if (me) errs.month = me;
-    const ye = validateYear(year); if (ye) errs.year = ye;
-    if (!de && !me && !ye) { const dx = validateDateExists(day, month, year); if (dx) errs.date = dx; }
-    if (Object.values(errs).some(Boolean)) { setErrors(errs); return false; }
-
+  async function saveAllData() {
     setLoading(true);
     try {
-      const body: Record<string, unknown> = { birth_date: birthDate };
-      if (hour) { body.birth_time = `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}`; body.birth_time_known = true; }
-      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-      updateUser({ has_birth_date: true });
-      return true;
-    } catch { return false; }
-    finally { setLoading(false); }
-  }
-
-  async function saveLocation() {
-    setLoading(true);
-    try {
-      const body: Record<string, unknown> = { timezone: tz };
+      const body: Record<string, unknown> = {
+        notifications_enabled: true,
+        timezone: tz,
+      };
+      if (birthDate) body.birth_date = birthDate;
+      if (hour) {
+        body.birth_time = `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}`;
+        body.birth_time_known = true;
+      }
       if (city) body.birth_city = city;
-      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-      return true;
-    } catch { return false; }
-    finally { setLoading(false); }
+
+      const res = await fetch("/api/v1/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) console.error("Onboarding save failed:", res.status, await res.text().catch(() => ""));
+      updateUser({ has_birth_date: true });
+    } catch (e) {
+      console.error("Onboarding save error:", e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleNext() {
     if (step === 0) { setStep(1); return; }
     if (step === 1) {
       if (!day || !month || !year) return;
-      const ok = await saveBirthDate();
-      if (ok) setStep(2);
+      const errs: Record<string, string> = {};
+      const de = validateDay(day); if (de) errs.day = de;
+      const me = validateMonth(month); if (me) errs.month = me;
+      const ye = validateYear(year); if (ye) errs.year = ye;
+      if (!de && !me && !ye) { const dx = validateDateExists(day, month, year); if (dx) errs.date = dx; }
+      if (Object.values(errs).some(Boolean)) { setErrors(errs); return; }
+      setStep(2);
       return;
     }
-    if (step === 2) { await saveLocation(); setStep(3); return; }
+    if (step === 2) { setStep(3); return; }
     if (step === 3) {
-      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ notifications_enabled: true, timezone: tz }) }).catch(() => {});
+      await saveAllData();
       onClose();
     }
   }
 
-  function handleDatePick(val: string) {
-    if (!val) return;
-    const [y, m, d] = val.split("-");
-    setYear(y); setMonth(String(Number(m))); setDay(String(Number(d)));
-    setErrors({});
-  }
-
-  function handleTimePick(val: string) {
-    if (!val) return;
-    const [h, m] = val.split(":");
-    setHour(h); setMinute(m);
-  }
-
   const btnTexts = [ru ? "Начать" : "Begin", ru ? "Далее" : "Next", ru ? "Далее" : "Next", ru ? "Войти в Mystral" : "Enter Mystral"];
-  const canNext = step === 0 || step === 2 || step === 3 || (step === 1 && day && month && year);
+  const canNext = step === 0 || step === 2 || step === 3 || (step === 1 && !!day && !!month && !!year);
+
+  const fieldStyle = (gold?: boolean): React.CSSProperties => ({
+    padding: "14px 0", borderRadius: 14, textAlign: "center",
+    background: "rgba(255,255,255,.04)",
+    border: `1px solid ${gold ? "rgba(201,168,76,.22)" : "rgba(255,255,255,.08)"}`,
+    cursor: "pointer", position: "relative", overflow: "hidden",
+  });
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "radial-gradient(130% 60% at 50% -5%, #0F0A26 0%, #07060F 55%)" }}>
@@ -133,6 +135,7 @@ export function OnboardingModal({ onClose }: Props) {
       <div key={step} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 30px", animation: "mystral-fadeup .25s ease-out" }}>
         <div style={{ width: "100%", maxWidth: 460 }}>
 
+          {/* STEP 0 — Welcome */}
           {step === 0 && (
             <>
               <div style={{ width: 130, height: 130, margin: "0 auto", filter: "drop-shadow(0 0 38px rgba(201,168,76,.5))", animation: "mystral-float 7s ease-in-out infinite" }}>
@@ -148,6 +151,7 @@ export function OnboardingModal({ onClose }: Props) {
             </>
           )}
 
+          {/* STEP 1 — Birth date */}
           {step === 1 && (
             <>
               <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
@@ -157,29 +161,53 @@ export function OnboardingModal({ onClose }: Props) {
                 {ru ? "Дата рождения определяет вашу натальную карту и положение планет." : "Birth date determines your natal chart and planet positions."}
               </p>
 
-              <input ref={dateRef} type="date" style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                onChange={e => handleDatePick(e.target.value)} />
+              {/* Hidden time input */}
               <input ref={timeRef} type="time" style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                onChange={e => handleTimePick(e.target.value)} />
+                onChange={e => { if (e.target.value) { const [h, m] = e.target.value.split(":"); setHour(h); setMinute(m); } }} />
 
               <div style={{ display: "flex", gap: 10 }}>
-                {[
-                  { label: ru ? "ДЕНЬ" : "DAY", value: day || "—", flex: 1 },
-                  { label: ru ? "МЕСЯЦ" : "MONTH", value: month ? (ru ? MONTHS_RU[Number(month)] : MONTHS_EN[Number(month)]) : "—", flex: 1.4 },
-                  { label: ru ? "ГОД" : "YEAR", value: year || "—", flex: 1.2 },
-                ].map(f => (
-                  <button key={f.label} onClick={() => dateRef.current?.showPicker?.()} style={{ flex: f.flex, padding: "14px 0", borderRadius: 14, textAlign: "center", background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", cursor: "pointer" }}>
-                    <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em", textTransform: "uppercase" }}>{f.label}</div>
-                    <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{f.value}</div>
-                  </button>
-                ))}
+                {/* DAY */}
+                <div style={{ ...fieldStyle(true), flex: 1 }} onClick={() => dayRef.current?.focus()}>
+                  <select ref={dayRef} value={day} onChange={e => { setDay(e.target.value); setErrors({}); }}
+                    style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
+                    <option value="">—</option>
+                    {DAYS.map(d => <option key={d} value={String(d)}>{d}</option>)}
+                  </select>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "ДЕНЬ" : "DAY"}</div>
+                  <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{day || "—"}</div>
+                </div>
+
+                {/* MONTH */}
+                <div style={{ ...fieldStyle(true), flex: 1.4 }} onClick={() => monthRef.current?.focus()}>
+                  <select ref={monthRef} value={month} onChange={e => { setMonth(e.target.value); setErrors({}); }}
+                    style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
+                    <option value="">—</option>
+                    {(ru ? MONTHS_RU : MONTHS_EN).slice(1).map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
+                  </select>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "МЕСЯЦ" : "MONTH"}</div>
+                  <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>
+                    {month ? (ru ? MONTHS_RU[Number(month)] : MONTHS_EN[Number(month)]) : "—"}
+                  </div>
+                </div>
+
+                {/* YEAR */}
+                <div style={{ ...fieldStyle(true), flex: 1.2 }} onClick={() => yearRef.current?.focus()}>
+                  <select ref={yearRef} value={year} onChange={e => { setYear(e.target.value); setErrors({}); }}
+                    style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}>
+                    <option value="">—</option>
+                    {YEARS.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                  </select>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "ГОД" : "YEAR"}</div>
+                  <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{year || "—"}</div>
+                </div>
               </div>
 
               {(errors.day || errors.month || errors.year || errors.date) && (
                 <p style={{ color: "#D98A8A", fontSize: 12, marginTop: 8 }}>{errors.day || errors.month || errors.year || errors.date}</p>
               )}
 
-              <button onClick={() => timeRef.current?.showPicker?.()} style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
+              <button onClick={() => timeRef.current?.showPicker?.()}
+                style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
                 <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{ru ? "Время рождения" : "Birth time"}</span>
                 <span className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA" }}>
                   {hour ? `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}` : "—"}
@@ -188,6 +216,7 @@ export function OnboardingModal({ onClose }: Props) {
             </>
           )}
 
+          {/* STEP 2 — Location */}
           {step === 2 && (
             <>
               <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
@@ -219,6 +248,7 @@ export function OnboardingModal({ onClose }: Props) {
             </>
           )}
 
+          {/* STEP 3 — Result */}
           {step === 3 && zodiac && (
             <>
               <div style={{ display: "flex", justifyContent: "center", margin: "0 auto" }}>
