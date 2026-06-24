@@ -1,11 +1,19 @@
 import json
 import logging
 import os
+import re
 from typing import AsyncIterator
 
 logger = logging.getLogger(__name__)
 
 _client = None
+_CLEAN_RE = re.compile(
+    r'[^ -~ -ÿЀ-ӿ\n\r\t«»„“”‘’–—…°%№♈-♓☽✦★]'
+)
+
+
+def _clean_chunk(text: str) -> str:
+    return _CLEAN_RE.sub('', text)
 
 
 def _get_client():
@@ -33,7 +41,9 @@ async def safe_groq_stream(
         for chunk in stream:
             text = chunk.choices[0].delta.content
             if text:
-                yield f"data: {json.dumps({'text': text})}\n\n"
+                text = _clean_chunk(text)
+                if text:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
         yield "data: [DONE]\n\n"
     except Exception as e:
         ename = type(e).__name__.lower()
