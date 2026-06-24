@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { TarotCard } from "../components/tarot/TarotCard";
-import { BottomNav, Button, Card } from "../components/ui";
+import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { SPREADS, SpreadType } from "../data/spreads";
 import { apiRequest, streamRequest } from "../utils/api";
@@ -125,7 +125,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     "focus:outline-none focus:border-violet-600 transition-colors";
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "var(--gradient-page)" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header
         className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md"
         style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
@@ -136,7 +136,9 @@ export function Tarot({ onNavigate }: TarotProps) {
         >
           ‹
         </button>
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>✦ {t("tarot.header")}</span>
+        <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E" }}>
+          {t("tarot.header")}
+        </span>
         <div className="w-8" />
       </header>
 
@@ -145,29 +147,44 @@ export function Tarot({ onNavigate }: TarotProps) {
         {/* Step 1: Spread selection */}
         {step === "select" && (
           <div className="flex flex-col gap-3">
-            <p className="text-text-faint text-[10px] uppercase tracking-widest mb-2">{t("tarot.choose_spread")}</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
+              {t("tarot.choose_spread")}
+            </p>
+            <div className="flex flex-col gap-2.5">
               {SPREADS.map(s => (
-                <Card
+                <div
                   key={s.id}
-                  className="cursor-pointer hover:border-border-medium transition-all active:scale-[0.98] relative"
+                  className="cursor-pointer transition-all active:scale-[0.98]"
+                  style={{
+                    padding: "18px 20px",
+                    borderRadius: 18,
+                    background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                    border: "1px solid rgba(201,168,76,.13)",
+                  }}
                   onClick={() => selectSpread(s)}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{s.icon}</span>
-                    <span className="text-text-primary text-xs font-display">{lang === "ru" ? s.name_ru : s.name_en}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-lg shrink-0">{s.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-cormorant text-text-primary" style={{ fontSize: 16 }}>
+                            {lang === "ru" ? s.name_ru : s.name_en}
+                          </span>
+                          {s.tier === "pro" && (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
+                          )}
+                          {s.tier === "free" && (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "rgba(201,168,76,.1)", color: "#C9A84C" }}>Free</span>
+                          )}
+                        </div>
+                        <p className="text-text-faint text-[11px] leading-tight mt-0.5">{lang === "ru" ? s.desc_ru : s.desc_en}</p>
+                        <span className="text-text-faint text-[9px] mt-1 inline-block">{s.count} {t("tarot.cards_label")}</span>
+                      </div>
+                    </div>
+                    <span className="text-text-faint text-sm ml-2 shrink-0" style={{ color: "rgba(201,168,76,.4)" }}>{"›"}</span>
                   </div>
-                  <p className="text-text-faint text-[10px] leading-tight">{lang === "ru" ? s.desc_ru : s.desc_en}</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-text-faint text-[9px]">{s.count} {t("tarot.cards_label")}</span>
-                    {s.tier === "pro" && (
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
-                    )}
-                    {s.tier === "free" && (
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(107,78,255,0.2)", color: "#9B8AFF" }}>Free</span>
-                    )}
-                  </div>
-                </Card>
+                </div>
               ))}
             </div>
           </div>
@@ -176,22 +193,25 @@ export function Tarot({ onNavigate }: TarotProps) {
         {/* Step 2: Question */}
         {step === "question" && spread && (
           <div className="flex flex-col gap-4">
-            <p className="font-display text-xl text-text-primary font-light text-center">
+            <p className="font-cormorant text-text-primary font-light text-center" style={{ fontSize: 22, color: "#F0E9DA" }}>
               {lang === "ru" ? spread.name_ru : spread.name_en}
             </p>
 
             {spread.schemes && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-text-faint text-[10px] uppercase tracking-widest">{t("tarot.position_scheme")}</p>
+                <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
+                  {t("tarot.position_scheme")}
+                </p>
                 {spread.schemes.map((scheme, i) => (
                   <button
                     key={i}
                     onClick={() => setSchemeIdx(i)}
-                    className="text-left px-3 py-2 rounded-lg text-xs transition-colors"
+                    className="text-left px-3 py-2 text-xs transition-colors"
                     style={{
-                      background: schemeIdx === i ? "rgba(107,78,255,0.15)" : "transparent",
-                      color: schemeIdx === i ? "#9B8AFF" : "#9B8FBB",
-                      border: `1px solid ${schemeIdx === i ? "rgba(107,78,255,0.3)" : "rgba(107,78,255,0.08)"}`,
+                      borderRadius: 14,
+                      background: schemeIdx === i ? "rgba(201,168,76,.15)" : "transparent",
+                      color: schemeIdx === i ? "#E8CD7E" : "#9B8FBB",
+                      border: `1px solid ${schemeIdx === i ? "rgba(201,168,76,.3)" : "rgba(201,168,76,.08)"}`,
                     }}
                   >
                     {(lang === "ru" ? scheme.ru : scheme.en).join(" · ")}
@@ -201,7 +221,9 @@ export function Tarot({ onNavigate }: TarotProps) {
             )}
 
             <div>
-              <p className="text-text-faint text-[10px] uppercase tracking-widest mb-1.5">{t("tarot.your_question")}</p>
+              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 6 }}>
+                {t("tarot.your_question")}
+              </p>
               <textarea
                 className={inputCls + " min-h-[60px] resize-none"}
                 placeholder={t("tarot.question_placeholder")}
@@ -213,7 +235,7 @@ export function Tarot({ onNavigate }: TarotProps) {
 
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}
 
-            <Button variant="primary" className="w-full" onClick={handleProceed} disabled={loading}>
+            <Button variant="primary" className="w-full" style={{ height: 50, borderRadius: 14 }} onClick={handleProceed} disabled={loading}>
               {loading ? "..." : t("tarot.draw_cards")}
             </Button>
           </div>
@@ -223,7 +245,7 @@ export function Tarot({ onNavigate }: TarotProps) {
         {step === "spread" && (
           <div className="flex flex-col gap-4">
             {spread && (
-              <p className="font-display text-lg text-text-primary font-light text-center mb-2">
+              <p className="font-cormorant text-text-primary font-light text-center mb-2" style={{ fontSize: 22, color: "#F0E9DA" }}>
                 {lang === "ru" ? spread.name_ru : spread.name_en}
               </p>
             )}
@@ -256,14 +278,21 @@ export function Tarot({ onNavigate }: TarotProps) {
             )}
 
             {allRevealed && !isReading && !interpretation && (
-              <Button variant="primary" className="w-full" onClick={handleInterpret}>
+              <Button variant="primary" className="w-full" style={{ height: 50, borderRadius: 14 }} onClick={handleInterpret}>
                 {t("tarot.interpret")}
               </Button>
             )}
 
             {interpretation && (
-              <Card>
-                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+              <div
+                className="p-4"
+                style={{
+                  borderRadius: 18,
+                  background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                  border: "1px solid rgba(201,168,76,.13)",
+                }}
+              >
+                <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
                   {t("tarot.interpretation_label")}
                 </p>
                 {question && (
@@ -271,13 +300,13 @@ export function Tarot({ onNavigate }: TarotProps) {
                 )}
                 <p className="text-text-muted text-xs leading-relaxed">
                   {interpretation}
-                  {isReading && <span className="animate-pulse">▍</span>}
+                  {isReading && <span className="animate-pulse">{"▍"}</span>}
                 </p>
-              </Card>
+              </div>
             )}
 
             {allRevealed && !isReading && (
-              <Button variant="ghost" className="w-full" onClick={reset}>
+              <Button variant="gold" className="w-full" style={{ height: 50, borderRadius: 14 }} onClick={reset}>
                 {t("tarot.new_spread")}
               </Button>
             )}

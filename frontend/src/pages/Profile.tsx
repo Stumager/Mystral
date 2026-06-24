@@ -242,10 +242,12 @@ export function Profile({ onNavigate }: ProfilePageProps) {
     }).catch(() => {});
   }
 
-  const inputCls =
-    "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 " +
-    "text-text-primary text-sm placeholder:text-text-faint " +
-    "focus:outline-none focus:border-violet-600 transition-colors";
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "14px 16px", borderRadius: 14,
+    background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)",
+    color: "#F0E9DA", fontSize: 15, outline: "none", boxSizing: "border-box",
+  };
+  void 0; // inputCls removed — using inputStyle instead
 
   const firstLetter = (user?.name ?? "?")[0]?.toUpperCase() ?? "?";
   const zodiac = form.year && form.month && form.day
@@ -259,33 +261,25 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const hint = completion < 100 ? progressHints[hintIndex] ?? progressHints[3] : t("profile.hint_done");
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
-      <header
-        className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md"
-        style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}
-      >
-        <div className="w-8" />
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>
-          {t("profile.title")}
-        </span>
-        <div className="w-8" />
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "rgba(7,6,15,.82)", backdropFilter: "blur(18px)", borderBottom: "1px solid rgba(201,168,76,.14)" }}>
+        <button onClick={() => onNavigate("home")} style={{ color: "#A89E8B", fontSize: 20, background: "none", border: "none", cursor: "pointer" }}>‹</button>
+        <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E", textTransform: "uppercase" }}>{t("profile.title")}</span>
+        <div style={{ width: 20 }} />
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pt-6 pb-24 flex flex-col gap-5">
 
         {/* Avatar + name */}
         <div className="flex flex-col items-center gap-2">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center font-display text-2xl text-white"
-            style={{ background: "#6B4EFF" }}
-          >
-            {firstLetter}
+          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", border: "2px solid rgba(201,168,76,.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span className="font-cormorant" style={{ fontSize: 28, color: "#0C0A18", fontWeight: 600 }}>{firstLetter}</span>
           </div>
-          <p className="font-display text-text-primary text-xl">
+          <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>
             {user?.name ?? t("profile.guest")}
           </p>
           {zodiacLabel && (
-            <p className="text-text-faint text-xs">{zodiacLabel}</p>
+            <p style={{ fontSize: 13, color: "#C9A84C" }}>{zodiacLabel}</p>
           )}
         </div>
 
@@ -297,40 +291,34 @@ export function Profile({ onNavigate }: ProfilePageProps) {
               {completion}%
             </p>
           </div>
-          <div
-            className="w-full rounded-full overflow-hidden"
-            style={{ height: 4, background: "rgba(107,78,255,0.15)" }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${completion}%`, background: "#6B4EFF" }}
-            />
+          <div style={{ width: "100%", height: 7, borderRadius: 99, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
+            <div style={{ width: `${completion}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8A6E2E,#E8CD7E)", boxShadow: "0 0 12px rgba(201,168,76,.5)", transition: "width .5s ease" }} />
           </div>
           <p className="text-text-faint text-[10px] mt-2">{hint}</p>
         </Card>
 
         {/* Birth data form */}
         <Card>
-          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
             {t("profile.birth_data")}
           </p>
           <div className="flex flex-col gap-3">
             <div>
               <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("profile.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
-                <input className={inputCls} placeholder={t("profile.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
-                <input className={inputCls} placeholder={t("profile.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
+                <input style={inputStyle} placeholder={t("profile.day")}   type="number" min="1"    max="31"   value={form.day}   onChange={setField("day")} />
+                <input style={inputStyle} placeholder={t("profile.month")} type="number" min="1"    max="12"   value={form.month} onChange={setField("month")} />
+                <input style={inputStyle} placeholder={t("profile.year")}  type="number" min="1900" max="2025" value={form.year}  onChange={setField("year")} />
               </div>
               {(formErrors.day || formErrors.month || formErrors.year || formErrors.date) && (
                 <p className="text-red-400 text-xs mt-1">{formErrors.day || formErrors.month || formErrors.year || formErrors.date}</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input className={inputCls} placeholder={t("profile.hour")}    type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
-              <input className={inputCls} placeholder={t("profile.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
+              <input style={inputStyle} placeholder={t("profile.hour")}    type="number" min="0" max="23" value={form.hour}   onChange={setField("hour")} />
+              <input style={inputStyle} placeholder={t("profile.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
-            <input className={inputCls} placeholder={t("profile.birth_city")} value={form.city} onChange={setField("city")} />
-            <input className={inputCls} placeholder={t("profile.birth_name")} value={form.name} onChange={setField("name")} />
+            <input style={inputStyle} placeholder={t("profile.birth_city")} value={form.city} onChange={setField("city")} />
+            <input style={inputStyle} placeholder={t("profile.birth_name")} value={form.name} onChange={setField("name")} />
           </div>
 
           <Button
@@ -353,8 +341,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {user?.tier === "pro" ? (
           <Card>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-display text-sm" style={{ color: "#C9A84C" }}>✦</span>
-              <p className="font-display text-sm text-text-primary">{t("profile.pro_active")}</p>
+              <span className="font-cinzel" style={{ fontSize: 10, color: "#C9A84C", letterSpacing: ".2em" }}>PRO</span>
+              <p className="font-cormorant" style={{ fontSize: 16, color: "#F0E9DA" }}>{t("profile.pro_active")}</p>
             </div>
             {expiresAt && daysLeft !== null && (
               <p
@@ -386,7 +374,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
         {/* Linked accounts */}
         <Card>
-          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-4">
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
             {t("profile.linked_accounts")}
           </p>
 
@@ -409,9 +397,9 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
             {showLinkEmail && (
               <div className="flex flex-col gap-2">
-                <input type="email" placeholder={t("login.email")} value={linkEmailForm.email} onChange={e => setLinkEmailForm(p => ({ ...p, email: e.target.value }))} className={inputCls} />
-                <input type="password" placeholder={t("profile.password")} value={linkEmailForm.password} onChange={e => setLinkEmailForm(p => ({ ...p, password: e.target.value }))} className={inputCls} />
-                <input type="password" placeholder={t("profile.confirm_password")} value={linkEmailForm.confirm} onChange={e => setLinkEmailForm(p => ({ ...p, confirm: e.target.value }))} className={inputCls} />
+                <input type="email" placeholder={t("login.email")} value={linkEmailForm.email} onChange={e => setLinkEmailForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+                <input type="password" placeholder={t("profile.password")} value={linkEmailForm.password} onChange={e => setLinkEmailForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
+                <input type="password" placeholder={t("profile.confirm_password")} value={linkEmailForm.confirm} onChange={e => setLinkEmailForm(p => ({ ...p, confirm: e.target.value }))} style={inputStyle} />
                 {linkEmailError && <p className="text-red-400 text-xs">{linkEmailError}</p>}
                 <div className="flex gap-2">
                   <Button variant="primary" size="sm" className="flex-1" onClick={handleLinkEmail} disabled={linkingEmail}>
@@ -444,7 +432,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
         {/* Notifications */}
         <Card>
-          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
             {t("profile.notifications")}
           </p>
           <div className="flex items-center justify-between mb-3">
@@ -452,7 +440,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             <button
               onClick={() => handleToggleNotif(!notifEnabled)}
               className="w-10 h-5 rounded-full transition-colors relative"
-              style={{ background: notifEnabled ? "#6B4EFF" : "rgba(107,78,255,0.2)" }}
+              style={{ background: notifEnabled ? "linear-gradient(90deg,#8A6E2E,#C9A84C)" : "rgba(255,255,255,.1)" }}
             >
               <span
                 className="block w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all"
@@ -478,7 +466,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
         {/* Settings */}
         <Card>
-          <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
             {t("profile.settings")}
           </p>
 
@@ -491,8 +479,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                   onClick={() => handleLang(l)}
                   className="px-4 py-1.5 text-xs font-sans transition-colors"
                   style={{
-                    background: lang === l ? "#6B4EFF" : "transparent",
-                    color: lang === l ? "#fff" : "#9B8FBB",
+                    background: lang === l ? "rgba(201,168,76,.15)" : "transparent",
+                    color: lang === l ? "#E8CD7E" : "#A89E8B",
                   }}
                 >
                   {l.toUpperCase()}
@@ -513,7 +501,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           {isTMA() ? (
             <div className="flex items-center justify-between py-3">
               <span className="text-text-muted text-sm">{t("profile.tg_account")}</span>
-              <span className="text-xs text-violet-400">✓ Telegram</span>
+              <span style={{ fontSize: 12, color: "#C9A84C" }}>Telegram</span>
             </div>
           ) : (
             <Button variant="ghost" size="sm" className="w-full" onClick={logout}>
@@ -527,7 +515,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       {/* Toast overlay */}
       {toast && (
         <div className="fixed top-14 left-0 right-0 flex justify-center pointer-events-none" style={{ zIndex: 50 }}>
-          <span className="text-xs px-4 py-2 rounded-full" style={{ background: "rgba(107,78,255,0.2)", border: "0.5px solid rgba(107,78,255,0.4)", color: "#C9A84C" }}>
+          <span className="text-xs px-4 py-2 rounded-full" style={{ background: "rgba(201,168,76,.1)", border: "1px solid rgba(201,168,76,.3)", color: "#E8CD7E" }}>
             {toast}
           </span>
         </div>

@@ -36,9 +36,6 @@ interface ChartResult {
 
 const SECTIONS = ["personality", "planets", "houses", "aspects", "transits"] as const;
 type Section = typeof SECTIONS[number];
-const SECTION_ICONS: Record<Section, string> = {
-  personality: "☀️", planets: "🪐", houses: "🏠", aspects: "🔗", transits: "⏰",
-};
 
 export function NatalChart({ onNavigate }: NatalChartProps) {
   const { t } = useTranslation();
@@ -152,7 +149,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
   const canSubmit = form.name && form.day && form.month && form.year && form.city;
   const elColors: Record<string, string> = { fire: "#ef4444", earth: "#a3e635", air: "#38bdf8", water: "#818cf8" };
-  const elIcons: Record<string, string> = { fire: "🔥", earth: "🌍", air: "💨", water: "💧" };
+  const elIcons: Record<string, string> = { fire: "^", earth: "v", air: "~", water: "o" };
   const elLabels: Record<string, string> = lang === "ru"
     ? { fire: "Огонь", earth: "Земля", air: "Воздух", water: "Вода" }
     : { fire: "Fire", earth: "Earth", air: "Air", water: "Water" };
@@ -161,10 +158,10 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     : { personality: "Personality", planets: "Planets", houses: "Houses", aspects: "Aspects", transits: "Transits" };
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         <button className="text-text-muted text-lg w-8" onClick={() => step === "result" ? setStep("form") : onNavigate("home")}>‹</button>
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("natal.title")}</span>
+        <span className="font-cinzel tracking-[.26em]" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E" }}>{t("natal.title")}</span>
         <div className="w-8" />
       </header>
 
@@ -229,18 +226,18 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
             {/* Big Three */}
             <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.big_three")}</p>
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("natal.big_three")}</p>
               <div className="flex flex-col gap-2.5">
                 {[
-                  { icon: "☀️", label: lang === "ru" ? "Солнце" : "Sun", data: chart.planets[0] },
-                  { icon: "🌙", label: lang === "ru" ? "Луна" : "Moon", data: chart.planets[1] },
-                  { icon: "⬆️", label: lang === "ru" ? "Асцендент" : "Ascendant",
+                  { label: lang === "ru" ? "Солнце" : "Sun", data: chart.planets[0] },
+                  { label: lang === "ru" ? "Луна" : "Moon", data: chart.planets[1] },
+                  { label: lang === "ru" ? "Асцендент" : "Ascendant",
                     data: { sign_ru: chart.ascendant.sign_ru, sign: chart.ascendant.sign, degree: chart.ascendant.degree } },
-                  { icon: "🔝", label: lang === "ru" ? "MC (Середина Неба)" : "MC (Midheaven)",
+                  { label: lang === "ru" ? "MC (Середина Неба)" : "MC (Midheaven)",
                     data: { sign_ru: chart.midheaven.sign_ru, sign: chart.midheaven.sign, degree: chart.midheaven.degree } },
-                ].map(({ icon, label, data }) => (
+                ].map(({ label, data }) => (
                   <div key={label} className="flex items-center justify-between">
-                    <span className="text-text-muted text-sm">{icon} {label}</span>
+                    <span className="text-text-muted text-sm">{label}</span>
                     <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
                       {lang === "ru" ? data.sign_ru : data.sign} <span className="text-text-faint text-xs">{data.degree}°</span>
                     </span>
@@ -251,10 +248,10 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
             {/* All Planets */}
             <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.planets")}</p>
-              <div className="flex flex-col gap-1.5">
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("natal.planets")}</p>
+              <div className="flex flex-col">
                 {chart.planets.map(p => (
-                  <div key={p.name} className="flex items-center justify-between text-xs">
+                  <div key={p.name} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                     <span className="text-text-muted">
                       {p.symbol} {lang === "ru" ? p.name_ru : p.name_en}
                       {p.retrograde && <span className="text-red-400 ml-1">R</span>}
@@ -271,7 +268,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {/* Extra Points */}
             {(chart.extra_points.length > 0 || chart.part_of_fortune) && (
               <Card>
-                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+                <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                   {lang === "ru" ? "Дополнительные точки" : "Additional Points"}
                 </p>
                 <div className="flex flex-col gap-1.5">
@@ -299,7 +296,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
             {/* Houses Table */}
             <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {lang === "ru" ? "Куспиды домов" : "House Cusps"}
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -314,7 +311,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
             {/* Element Balance */}
             <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {lang === "ru" ? "Баланс стихий" : "Element Balance"}
               </p>
               <div className="flex flex-col gap-2">
@@ -336,35 +333,43 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {/* Aspects */}
             {chart.aspects.length > 0 && (
               <Card>
-                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("natal.aspects_label")}</p>
-                <div className="flex flex-col gap-1.5">
-                  {chart.aspects.slice(0, 7).map((a, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">{a.planet1_ru} {a.symbol} {a.planet2_ru}</span>
-                      <span style={{ color: a.harmony ? "#4ade80" : "#f87171" }}>
-                        {a.name_ru} <span className="text-text-faint">{a.orb}°</span>
-                      </span>
-                    </div>
-                  ))}
+                <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("natal.aspects_label")}</p>
+                <div className="flex flex-col">
+                  {chart.aspects.slice(0, 7).map((a, i) => {
+                    const aspectColor = (a.type === "Sextile" || a.type === "Trine") ? "#6E9A8A"
+                      : (a.type === "Square" || a.type === "Opposition") ? "#D98A8A"
+                      : a.type === "Conjunction" ? "#C9A84C"
+                      : a.harmony ? "#6E9A8A" : "#D98A8A";
+                    return (
+                      <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+                        <span className="text-text-muted">{a.planet1_ru} {a.symbol} {a.planet2_ru}</span>
+                        <span style={{ color: aspectColor }}>
+                          {a.name_ru} <span className="text-text-faint">{a.orb}°</span>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </Card>
             )}
 
             {/* AI Interpretation */}
             <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
               </p>
               <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
                 {SECTIONS.map(s => (
                   <button key={s} onClick={() => handleInterpret(s)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-colors shrink-0"
+                    className="flex items-center gap-1 text-[11px] whitespace-nowrap transition-colors shrink-0"
                     style={{
-                      background: activeSection === s ? "rgba(107,78,255,0.2)" : "transparent",
-                      color: activeSection === s ? "#9B8AFF" : "#9B8FBB",
-                      border: `1px solid ${activeSection === s ? "rgba(107,78,255,0.3)" : "rgba(107,78,255,0.08)"}`,
+                      padding: "8px 16px",
+                      borderRadius: 99,
+                      background: activeSection === s ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.04)",
+                      color: activeSection === s ? "#E8CD7E" : "#A89E8B",
+                      border: activeSection === s ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
                     }}>
-                    <span>{SECTION_ICONS[s]}</span><span>{sectionLabels[s]}</span>
+                    <span>{sectionLabels[s]}</span>
                     {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
                   </button>
                 ))}

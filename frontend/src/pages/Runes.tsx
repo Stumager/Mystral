@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
-import { BottomNav, Button, Card } from "../components/ui";
+import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest, streamRequest } from "../utils/api";
 
@@ -170,16 +170,16 @@ export function Runes({ onNavigate }: RunesProps) {
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
 
   function backBtn(target: Screen = "spreads") {
-    return <button className="text-text-muted text-lg w-8" onClick={() => setScreen(target)}>‹</button>;
+    return <button className="text-text-muted text-lg w-8" onClick={() => setScreen(target)}>&#8249;</button>;
   }
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         {screen === "spreads" ? (
-          <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>‹</button>
+          <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>&#8249;</button>
         ) : backBtn("spreads")}
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("runes.title")}</span>
+        <span className="font-cinzel tracking-[.26em]" style={{ fontSize: 13, color: "#E8CD7E" }}>{t("runes.title")}</span>
         <div className="w-8" />
       </header>
 
@@ -189,21 +189,21 @@ export function Runes({ onNavigate }: RunesProps) {
         {screen === "spreads" && (
           <>
             <p className="text-text-muted text-xs text-center">{t("runes.focus")}</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-4">
               {spreads.map(s => (
                 <button key={s.id} onClick={() => selectSpread(s)}
-                  className="rounded-xl p-3 text-left transition-all"
-                  style={{ background: "rgba(107,78,255,0.06)", border: "1px solid rgba(107,78,255,0.12)" }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-lg">{s.icon}</span>
-                    <span className="text-text-primary text-xs font-display">{s.name}</span>
-                  </div>
-                  <p className="text-text-faint text-[10px]">{s.description}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-text-faint text-[9px]">{s.count} {ru ? "рун" : "runes"}</span>
-                    {s.tier === "pro" && (
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
-                    )}
+                  className="text-left transition-all"
+                  style={{ display: "flex", gap: 16, padding: "18px 20px", borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+                  <span className="text-lg shrink-0">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{s.name}</span>
+                    <p className="text-text-faint text-[10px] mt-0.5">{s.description}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-text-faint text-[9px]">{s.count} {ru ? "рун" : "runes"}</span>
+                      {s.tier === "pro" && (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
+                      )}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -211,13 +211,13 @@ export function Runes({ onNavigate }: RunesProps) {
 
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" className="flex-1" onClick={loadPersonal}>
-                {ru ? "🪶 Моя руна" : "🪶 My Rune"}
+                {ru ? "Моя руна" : "My Rune"}
               </Button>
               <Button variant="ghost" size="sm" className="flex-1" onClick={loadStaves}>
-                {ru ? "⚡ Ставы" : "⚡ Staves"}
+                {ru ? "Ставы" : "Staves"}
               </Button>
               <Button variant="ghost" size="sm" className="flex-1" onClick={loadHistory}>
-                {ru ? "📜 История" : "📜 History"}
+                {ru ? "История" : "History"}
               </Button>
             </div>
           </>
@@ -228,7 +228,7 @@ export function Runes({ onNavigate }: RunesProps) {
           <div className="flex flex-col gap-4 pt-4">
             <div className="text-center">
               <span className="text-3xl">{selectedSpread.icon}</span>
-              <p className="font-display text-text-primary mt-2">{selectedSpread.name}</p>
+              <p className="font-cormorant mt-2" style={{ fontSize: 22, color: "#F0E9DA" }}>{selectedSpread.name}</p>
               <p className="text-text-faint text-xs">{selectedSpread.description}</p>
             </div>
             {selectedSpread.id !== "rune_of_day" && (
@@ -249,21 +249,22 @@ export function Runes({ onNavigate }: RunesProps) {
           <div className="flex justify-center items-center pt-8">
             <div className="flex gap-3 flex-wrap justify-center">
               {drawResult.drawn_runes.map((r, i) => (
-                <div key={i} className="w-20 h-28 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-500"
+                <div key={i} className="w-20 h-28 flex flex-col items-center justify-center gap-1 transition-all duration-500"
                   style={{
-                    background: i < revealedCount ? "rgba(107,78,255,0.15)" : "rgba(107,78,255,0.05)",
-                    border: `1px solid ${i < revealedCount ? "rgba(107,78,255,0.4)" : "rgba(107,78,255,0.1)"}`,
+                    borderRadius: 14,
+                    background: i < revealedCount ? "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))" : "rgba(255,255,255,.03)",
+                    border: `1px solid ${i < revealedCount ? "rgba(138,127,192,.24)" : "rgba(138,127,192,.1)"}`,
                     opacity: i < revealedCount ? 1 : 0.3,
                     transform: i < revealedCount ? "scale(1)" : "scale(0.9)",
                   }}>
                   {i < revealedCount ? (
                     <>
-                      <span className="text-2xl" style={{ color: "#9B8AFF", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
+                      <span style={{ fontSize: 48, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
                         {r.symbol}
                       </span>
-                      <span className="text-[9px] text-text-muted">{r.name}</span>
+                      <span className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C" }}>{r.name}</span>
                     </>
-                  ) : <span className="text-2xl text-violet-400 animate-pulse">ᛝ</span>}
+                  ) : <span className="text-2xl animate-pulse" style={{ color: "#A99BE0" }}>&#5765;</span>}
                 </div>
               ))}
             </div>
@@ -273,19 +274,19 @@ export function Runes({ onNavigate }: RunesProps) {
         {/* RESULT SCREEN */}
         {screen === "result" && drawResult && (
           <>
-            <p className="text-text-faint text-[9px] uppercase tracking-widest text-center">{drawResult.spread_name}</p>
+            <p className="font-cinzel uppercase text-center" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{drawResult.spread_name}</p>
 
             <div className="flex gap-3 flex-wrap justify-center mb-2">
               {drawResult.drawn_runes.map((r, i) => (
-                <div key={i} className="w-20 rounded-xl flex flex-col items-center py-3 gap-1"
-                  style={{ background: "rgba(107,78,255,0.1)", border: "1px solid rgba(107,78,255,0.25)", boxShadow: "0 0 20px rgba(107,78,255,0.1)" }}>
+                <div key={i} className="w-20 flex flex-col items-center py-3 gap-1"
+                  style={{ borderRadius: 14, background: "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)", boxShadow: "0 0 20px rgba(75,60,134,0.15)" }}>
                   <span className="text-[8px] text-text-faint">{r.position_name}</span>
-                  <span className="font-display text-3xl" style={{ color: "#9B8AFF", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
+                  <span style={{ fontSize: 48, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
                     {r.symbol}
                   </span>
-                  <span className="text-text-primary text-[10px] font-display">{r.name}</span>
+                  <span className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C" }}>{r.name}</span>
                   <span className="text-[8px] px-1.5 py-0.5 rounded-full"
-                    style={{ background: r.reversed ? "rgba(239,68,68,0.12)" : "rgba(107,78,255,0.12)", color: r.reversed ? "#f87171" : "#9B8AFF" }}>
+                    style={{ background: r.reversed ? "rgba(217,138,138,0.12)" : "rgba(138,127,192,.12)", color: r.reversed ? "#D98A8A" : "#A99BE0" }}>
                     {r.reversed ? t("runes.reversed") : t("runes.upright")}
                   </span>
                 </div>
@@ -293,28 +294,28 @@ export function Runes({ onNavigate }: RunesProps) {
             </div>
 
             {drawResult.drawn_runes.map((r, i) => (
-              <Card key={i}>
+              <div key={i} style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg" style={{ color: "#9B8AFF", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>{r.symbol}</span>
-                  <span className="font-display text-sm text-text-primary">{r.name}</span>
-                  <span className="text-text-faint text-[9px]">· {r.keyword}</span>
+                  <span style={{ fontSize: 28, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>{r.symbol}</span>
+                  <span className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{r.name}</span>
+                  <span className="text-text-faint text-[9px]">{r.keyword}</span>
                 </div>
-                <p className="text-text-faint text-[9px] mb-1">{r.position_name}</p>
+                <p className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", marginBottom: 4 }}>{r.position_name}</p>
                 <p className="text-text-muted text-xs leading-relaxed">{r.meaning}</p>
-              </Card>
+              </div>
             ))}
 
             {interpretation ? (
-              <Card>
-                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">{t("runes.interpretation_label")}</p>
+              <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
+                <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("runes.interpretation_label")}</p>
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
+                  {interpretation}{interpretLoading && <span className="animate-pulse">|</span>}
                 </p>
-              </Card>
+              </div>
             ) : (
               <Button variant="primary" className="w-full" onClick={handleInterpret} disabled={interpretLoading}>
                 {interpretLoading ? t("runes.reading") : t("runes.get_interpretation")}
-                {drawResult.spread_type !== "rune_of_day" && !isPro && <span className="ml-1" style={{ color: "#C9A84C" }}>★</span>}
+                {drawResult.spread_type !== "rune_of_day" && !isPro && <span className="ml-1" style={{ color: "#C9A84C" }}>*</span>}
               </Button>
             )}
 
@@ -326,57 +327,57 @@ export function Runes({ onNavigate }: RunesProps) {
         {screen === "personal" && (
           <>
             {error && !personalData ? (
-              <Card>
+              <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <p className="text-text-muted text-sm text-center">{error}</p>
                 <Button variant="primary" size="sm" className="w-full mt-3" onClick={() => onNavigate("profile")}>
                   {ru ? "Открыть профиль" : "Open profile"}
                 </Button>
-              </Card>
+              </div>
             ) : personalData ? (
               <>
                 <div className="text-center">
-                  <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+                  <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                     {ru ? "Твоя личная руна" : "Your Personal Rune"}
                   </p>
-                  <div className="w-28 h-28 rounded-2xl mx-auto flex items-center justify-center mb-2"
-                    style={{ background: "rgba(107,78,255,0.15)", border: "1px solid rgba(107,78,255,0.3)", boxShadow: "0 0 40px rgba(107,78,255,0.2)" }}>
-                    <span className="font-display text-5xl" style={{ color: "#C9A84C" }}>{personalData.personal_rune.symbol}</span>
+                  <div className="w-28 h-28 mx-auto flex items-center justify-center mb-2"
+                    style={{ borderRadius: 18, background: "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)", boxShadow: "0 0 40px rgba(75,60,134,0.2)" }}>
+                    <span style={{ fontSize: 56, color: "#C9A84C" }}>{personalData.personal_rune.symbol}</span>
                   </div>
-                  <p className="font-display text-lg text-text-primary">{personalData.personal_rune.name}</p>
+                  <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{personalData.personal_rune.name}</p>
                   <p className="text-text-muted text-xs">{personalData.personal_rune.keyword}</p>
                   <p className="text-text-faint text-[10px] mt-1">{ru ? "Число жизненного пути" : "Life path"}: {personalData.life_path}</p>
                 </div>
 
-                <Card>
+                <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                   <p className="text-text-muted text-xs leading-relaxed">{personalData.personal_rune.meaning}</p>
-                </Card>
+                </div>
 
                 <div className="text-center mt-2">
-                  <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+                  <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                     {ru ? `Руна ${personalData.year} года` : `Rune of ${personalData.year}`}
                   </p>
-                  <div className="w-20 h-20 rounded-xl mx-auto flex items-center justify-center mb-2"
-                    style={{ background: "rgba(107,78,255,0.1)", border: "1px solid rgba(107,78,255,0.2)" }}>
-                    <span className="font-display text-3xl" style={{ color: "#9B8AFF" }}>{personalData.year_rune.symbol}</span>
+                  <div className="w-20 h-20 mx-auto flex items-center justify-center mb-2"
+                    style={{ borderRadius: 14, background: "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)" }}>
+                    <span style={{ fontSize: 48, color: "#A99BE0" }}>{personalData.year_rune.symbol}</span>
                   </div>
-                  <p className="font-display text-sm text-text-primary">{personalData.year_rune.name}</p>
+                  <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C" }}>{personalData.year_rune.name}</p>
                   <p className="text-text-muted text-[10px]">{personalData.year_rune.keyword}</p>
                 </div>
 
-                <Card>
+                <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                   <p className="text-text-muted text-xs leading-relaxed">{personalData.year_rune.meaning}</p>
-                </Card>
+                </div>
 
                 {personalAI ? (
-                  <Card>
-                    <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">{t("runes.interpretation_label")}</p>
+                  <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
+                    <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("runes.interpretation_label")}</p>
                     <p className="text-text-muted text-xs leading-relaxed">
-                      {personalAI}{personalAILoading && <span className="animate-pulse">▍</span>}
+                      {personalAI}{personalAILoading && <span className="animate-pulse">|</span>}
                     </p>
-                  </Card>
+                  </div>
                 ) : (
                   <Button variant="primary" className="w-full" onClick={handlePersonalAI} disabled={personalAILoading}>
-                    {personalAILoading ? t("runes.reading") : (ru ? "Узнать подробнее ✦" : "Learn more ✦")}
+                    {personalAILoading ? t("runes.reading") : (ru ? "Узнать подробнее" : "Learn more")}
                   </Button>
                 )}
               </>
@@ -389,29 +390,29 @@ export function Runes({ onNavigate }: RunesProps) {
         {/* STAVES SCREEN */}
         {screen === "staves" && (
           <>
-            <p className="text-text-faint text-[9px] uppercase tracking-widest">
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
               {ru ? "Ставы-обереги" : "Protective Staves"}
             </p>
             <p className="text-text-muted text-[10px] mb-2">
               {ru ? "Комбинации рун для достижения целей. Нарисуйте или носите как амулет." : "Rune combinations for achieving goals. Draw or wear as an amulet."}
             </p>
             {staves.map(s => (
-              <Card key={s.id}>
+              <div key={s.id} style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-display text-lg tracking-widest" style={{ color: "#C9A84C" }}>{s.symbols}</span>
-                  <span className="font-display text-sm text-text-primary">{s.name}</span>
+                  <span className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{s.name}</span>
                 </div>
-                <p className="text-text-faint text-[10px] mb-1">{s.purpose}</p>
+                <p className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", marginBottom: 4 }}>{s.purpose}</p>
                 <p className="text-text-muted text-xs leading-relaxed mb-2">{s.description}</p>
-                <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(107,78,255,0.06)" }}>
-                  <p className="text-text-faint text-[9px] uppercase tracking-widest mb-0.5">{ru ? "Как использовать" : "How to use"}</p>
+                <div className="px-2 py-1.5" style={{ borderRadius: 12, background: "rgba(255,255,255,.03)", border: "1px solid rgba(201,168,76,.1)" }}>
+                  <p className="font-cinzel uppercase mb-0.5" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C" }}>{ru ? "Как использовать" : "How to use"}</p>
                   <p className="text-text-muted text-[10px]">{s.how_to_use}</p>
                 </div>
-              </Card>
+              </div>
             ))}
 
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+            <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
+              <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {ru ? "Биндруны" : "Bindrunes"}
               </p>
               <p className="text-text-muted text-xs leading-relaxed">
@@ -419,32 +420,32 @@ export function Runes({ onNavigate }: RunesProps) {
                   ? "Биндруна — это комбинация двух или более рун, наложенных друг на друга. Создаёт уникальный символ с объединённой энергией всех составляющих рун. Каждый став выше — по сути биндруна."
                   : "A bindrune is a combination of two or more runes overlaid on each other. Creates a unique symbol with combined energy of all component runes. Each stave above is essentially a bindrune."}
               </p>
-            </Card>
+            </div>
           </>
         )}
 
         {/* HISTORY SCREEN */}
         {screen === "history" && (
           <>
-            <p className="text-text-faint text-[9px] uppercase tracking-widest">
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
               {ru ? "Последние расклады" : "Recent Readings"}
             </p>
             {history.length === 0 ? (
               <p className="text-text-muted text-xs text-center mt-4">{ru ? "Пока нет раскладов" : "No readings yet"}</p>
             ) : history.map(h => (
-              <Card key={h.id}>
+              <div key={h.id} style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-display text-sm text-text-primary">{h.spread_name}</span>
+                  <span className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{h.spread_name}</span>
                   <span className="text-text-faint text-[9px]">{h.created_at ? new Date(h.created_at).toLocaleDateString() : ""}</span>
                 </div>
-                {h.question && <p className="text-text-faint text-[10px] mb-1">«{h.question}»</p>}
+                {h.question && <p className="text-text-faint text-[10px] mb-1">{h.question}</p>}
                 <div className="flex gap-1">
                   {h.rune_preview.map((id, i) => {
                     const sym = id;
-                    return <span key={i} className="text-lg" style={{ color: "#9B8AFF" }}>{sym}</span>;
+                    return <span key={i} style={{ fontSize: 28, color: "#A99BE0" }}>{sym}</span>;
                   })}
                 </div>
-              </Card>
+              </div>
             ))}
           </>
         )}

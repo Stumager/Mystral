@@ -50,13 +50,13 @@ function OverallScores({ scores, lang, labels, colorFn }: { scores: Record<strin
 }
 
 const COMPAT_TYPES = [
-  { id: "signs", icon: "☀️", tier: "free" },
-  { id: "elements", icon: "🔥", tier: "free" },
-  { id: "numerology", icon: "🔢", tier: "free" },
-  { id: "chinese", icon: "🐉", tier: "free" },
-  { id: "moon", icon: "🌙", tier: "free" },
-  { id: "synastry", icon: "⭐", tier: "pro" },
-  { id: "overall", icon: "📊", tier: "free" },
+  { id: "signs", icon: "*", tier: "free" },
+  { id: "elements", icon: "~", tier: "free" },
+  { id: "numerology", icon: "#", tier: "free" },
+  { id: "chinese", icon: "+", tier: "free" },
+  { id: "moon", icon: ")", tier: "free" },
+  { id: "synastry", icon: "*", tier: "pro" },
+  { id: "overall", icon: "=", tier: "free" },
 ];
 
 export function Compatibility({ onNavigate }: CompatibilityProps) {
@@ -193,14 +193,14 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   function scoreColor(s: number) { return s >= 70 ? "#4ade80" : s >= 40 ? "#C9A84C" : "#f87171"; }
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         <button className="text-text-muted text-lg w-8" onClick={() => {
           if (step === "result") { setStep("types"); setResult(null); }
           else if (step === "types") setStep("partners");
           else onNavigate("home");
         }}>‹</button>
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("compat.title")}</span>
+        <span className="font-cinzel tracking-[.26em]" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E" }}>{t("compat.title")}</span>
         <div className="w-8" />
       </header>
 
@@ -209,29 +209,29 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
         {/* Step 1: Partners */}
         {step === "partners" && (
           <div className="flex flex-col gap-3">
-            <p className="text-text-faint text-[10px] uppercase tracking-widest mb-1">
+            <p className="font-cinzel uppercase mb-1" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
               {lang === "ru" ? "Твои партнёры" : "Your partners"}
             </p>
 
             {partners.map(p => (
-              <Card key={p.id} className="cursor-pointer active:scale-[0.98] transition-all" onClick={() => selectPartner(p)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: "#6B4EFF" }}>
-                      {p.name[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-text-primary text-sm">{p.name}</p>
-                      <p className="text-text-faint text-[10px]">{p.zodiac_symbol} {lang === "ru" ? p.zodiac_sign_ru : p.zodiac_sign}</p>
-                    </div>
+              <div key={p.id} className="cursor-pointer active:scale-[0.98] transition-all"
+                style={{ display: "flex", gap: 14, padding: "14px 16px", borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", alignItems: "center", justifyContent: "space-between" }}
+                onClick={() => selectPartner(p)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div className="font-cormorant" style={{ width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#F0E9DA", background: "linear-gradient(135deg,#4B3C86,#C9A84C)" }}>
+                    {p.name[0]?.toUpperCase()}
                   </div>
-                  <button className="text-text-faint text-xs px-2" onClick={e => { e.stopPropagation(); handleDeletePartner(p.id); }}>✕</button>
+                  <div>
+                    <p className="text-text-primary text-sm">{p.name}</p>
+                    <p className="text-text-faint text-[10px]">{p.zodiac_symbol} {lang === "ru" ? p.zodiac_sign_ru : p.zodiac_sign}</p>
+                  </div>
                 </div>
-              </Card>
+                <button className="text-text-faint text-xs px-2" onClick={e => { e.stopPropagation(); handleDeletePartner(p.id); }}>x</button>
+              </div>
             ))}
 
             {showAddForm ? (
-              <Card>
+              <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px" }}>
                 <div className="flex flex-col gap-2">
                   <input className={inputCls} placeholder={lang === "ru" ? "Имя" : "Name"} value={addForm.name}
                     onChange={e => { setAddForm(p => ({ ...p, name: e.target.value })); setAddErrors(p => ({ ...p, name: "" })); }} />
@@ -265,11 +265,12 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </div>
             ) : (
-              <Button variant="primary" className="w-full" onClick={() => setShowAddForm(true)}>
-                {lang === "ru" ? "Добавить партнёра ✦" : "Add partner ✦"}
-              </Button>
+              <button className="w-full py-3 text-sm transition-colors" onClick={() => setShowAddForm(true)}
+                style={{ borderRadius: 14, border: "1px solid rgba(201,168,76,.4)", color: "#E8CD7E", background: "transparent" }}>
+                {lang === "ru" ? "Добавить партнёра" : "Add partner"} +
+              </button>
             )}
 
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}
@@ -279,8 +280,8 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
         {/* Step 2: Type selection */}
         {step === "types" && selectedPartner && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: "#6B4EFF" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+              <div className="font-cormorant" style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#F0E9DA", background: "linear-gradient(135deg,#4B3C86,#C9A84C)" }}>
                 {selectedPartner.name[0]?.toUpperCase()}
               </div>
               <div>
@@ -289,19 +290,22 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               </div>
             </div>
 
-            <p className="text-text-faint text-[10px] uppercase tracking-widest">{lang === "ru" ? "Выбери тип анализа" : "Choose analysis type"}</p>
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{lang === "ru" ? "Выбери тип анализа" : "Choose analysis type"}</p>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {COMPAT_TYPES.map(ct => (
-                <Card key={ct.id} className="cursor-pointer active:scale-[0.98] transition-all relative" onClick={() => runCompat(ct.id)}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{ct.icon}</span>
+                <div key={ct.id} className="cursor-pointer active:scale-[0.98] transition-all relative"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}
+                  onClick={() => runCompat(ct.id)}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 14, color: "#C9A84C", fontWeight: 600, width: 20, textAlign: "center" }}>{ct.icon}</span>
                     <span className="text-text-primary text-xs">{typeLabels[ct.id]?.[lang === "ru" ? 0 : 1] ?? ct.id}</span>
+                    {ct.tier === "pro" && user?.tier !== "pro" && (
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
+                    )}
                   </div>
-                  {ct.tier === "pro" && user?.tier !== "pro" && (
-                    <span className="absolute top-2 right-2 text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
-                  )}
-                </Card>
+                  <span style={{ color: "#C9A84C", fontSize: 14, opacity: 0.5 }}>›</span>
+                </div>
               ))}
             </div>
 
@@ -313,25 +317,20 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
         {/* Step 3: Result */}
         {step === "result" && result && (
           <div className="flex flex-col gap-4">
-            {/* Score circle */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative w-28 h-28">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(107,78,255,0.1)" strokeWidth="6" />
-                  <circle cx="50" cy="50" r="42" fill="none" stroke={scoreColor(result.score)}
-                    strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray={`${result.score * 2.64} 264`} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-display text-2xl" style={{ color: scoreColor(result.score) }}>{result.score}%</span>
-                </div>
-              </div>
-              <p className="text-text-primary text-sm font-display">{result.partner_name}</p>
+            {/* Score */}
+            <div className="flex flex-col items-center gap-3">
+              <p className="font-cormorant text-text-primary" style={{ fontSize: 22, color: "#F0E9DA" }}>{result.partner_name}</p>
               <p className="text-text-faint text-xs">{typeLabels[result.type]?.[lang === "ru" ? 0 : 1]}</p>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ flex: 1, height: 8, borderRadius: 99, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
+                  <div style={{ width: `${result.score}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8A6E2E,#E8CD7E)", boxShadow: "0 0 12px rgba(201,168,76,.3)" }} />
+                </div>
+                <span className="font-display text-lg" style={{ color: scoreColor(result.score), minWidth: 44, textAlign: "right" }}>{result.score}%</span>
+              </div>
             </div>
 
             {/* Details */}
-            <Card>
+            <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px" }}>
               <p className="text-text-muted text-xs leading-relaxed">{result.description}</p>
 
               {/* Type-specific details */}
@@ -372,7 +371,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               {result.type === "overall" && result.scores ? (
                 <OverallScores scores={result.scores as Record<string, number>} lang={lang} labels={typeLabels} colorFn={scoreColor} />
               ) : null}
-            </Card>
+            </div>
 
             {/* Interpret */}
             {interpretation ? (

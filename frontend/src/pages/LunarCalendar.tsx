@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
-import { BottomNav, Button, Card } from "../components/ui";
+import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
 
@@ -37,7 +37,7 @@ const ENERGY_BG: Record<string, string> = {
 
 const TABS = ["work", "love", "money", "beauty", "spiritual", "dreams"] as const;
 type Tab = typeof TABS[number];
-const TAB_ICONS: Record<Tab, string> = { work: "💼", love: "❤️", money: "💰", beauty: "💇", spiritual: "🧘", dreams: "😴" };
+const TAB_ICONS: Record<Tab, string> = { work: "⚒", love: "♡", money: "✦", beauty: "✧", spiritual: "☉", dreams: "☽" };
 
 export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const { t } = useTranslation();
@@ -87,10 +87,12 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)" }}>
+    <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
-        <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>‹</button>
-        <span className="font-cinzel text-sm tracking-[.25em]" style={{ color: "#E8CD7E" }}>{t("lunar.title")}</span>
+        <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>{"‹"}</button>
+        <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".26em", color: "#E8CD7E" }}>
+          {t("lunar.title")}
+        </span>
         <div className="w-8" />
       </header>
 
@@ -99,39 +101,55 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
           <p className="text-text-muted text-xs text-center animate-pulse">{t("lunar.loading")}</p>
         ) : (
           <>
-            {/* Block 1: Moon visualization */}
-            <div className="flex flex-col items-center gap-2">
+            {/* Block 1: Lunar day header card */}
+            <div
+              className="flex flex-col items-center gap-3 p-5"
+              style={{
+                borderRadius: 22,
+                background: "linear-gradient(160deg,rgba(58,76,134,.22),rgba(255,255,255,.012))",
+                border: "1px solid rgba(138,127,192,.24)",
+              }}
+            >
               <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl"
-                style={{ background: "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), rgba(107,78,255,0.08))", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 0 40px rgba(107,78,255,0.2)" }}>
+                style={{ background: "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), rgba(138,127,192,0.08))", border: "1px solid rgba(138,127,192,.2)", boxShadow: "0 0 40px rgba(138,127,192,0.15)" }}>
                 {today.phase_icon}
               </div>
-              <p className="font-display text-3xl text-text-primary">{today.lunar_day}</p>
-              <p className="text-text-muted text-xs">{today.lunar_day} {t("lunar.lunar_day_label")} · {today.phase_name}</p>
-              <p className="text-text-faint text-xs">{t("lunar.moon_in")} {today.moon_sign} · {today.illumination}%</p>
+              <p className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", lineHeight: 1 }}>{today.lunar_day}</p>
+              <p style={{ fontSize: 13, color: "#9890B8" }}>{today.lunar_day} {t("lunar.lunar_day_label")} · {today.phase_name}</p>
+              <p style={{ fontSize: 13, color: "#9890B8" }}>{t("lunar.moon_in")} {today.moon_sign} · {today.illumination}%</p>
             </div>
 
             {/* Block 2: Day energy */}
-            <div className="rounded-xl px-4 py-3" style={{ background: ENERGY_BG[today.energy], border: `1px solid ${ENERGY_COLORS[today.energy]}30` }}>
+            <div style={{ borderRadius: 18, padding: "16px 20px", background: ENERGY_BG[today.energy], border: `1px solid ${ENERGY_COLORS[today.energy]}30` }}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{today.day_symbol === "Лампада" || today.day_symbol === "Lamp" ? "🪔" : "✦"}</span>
-                <span className="font-display text-sm" style={{ color: ENERGY_COLORS[today.energy] }}>
-                  «{today.day_symbol}» — {today.day_title}
+                <span style={{ fontSize: 14, color: ENERGY_COLORS[today.energy] }}>
+                  {today.day_symbol === "Лампада" || today.day_symbol === "Lamp" ? "✧" : "✦"}
+                </span>
+                <span className="font-cormorant" style={{ fontSize: 16, color: ENERGY_COLORS[today.energy] }}>
+                  {"«"}{today.day_symbol}{"»"} — {today.day_title}
                 </span>
               </div>
               <p className="text-text-muted text-xs leading-relaxed">{today.day_desc}</p>
               {today.energy === "hecat" && (
                 <p className="text-xs mt-2" style={{ color: "#ef4444" }}>
-                  ⚠️ {lang === "ru" ? "День Гекаты — будьте осторожны" : "Hecate Day — be careful"}
+                  {"⚠"} {lang === "ru" ? "День Гекаты — будьте осторожны" : "Hecate Day — be careful"}
                 </p>
               )}
             </div>
 
             {/* Block 3: Favorable / Unfavorable */}
-            <Card>
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: "#4ade80" }}>
-                    ✅ {lang === "ru" ? "Благоприятно" : "Favorable"}
+                  <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#4ade80", marginBottom: 8 }}>
+                    {"✓"} {lang === "ru" ? "Благоприятно" : "Favorable"}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {today.favorable.map(f => (
@@ -140,8 +158,8 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest mb-2" style={{ color: "#f87171" }}>
-                    ❌ {lang === "ru" ? "Избегать" : "Avoid"}
+                  <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#f87171", marginBottom: 8 }}>
+                    {"✗"} {lang === "ru" ? "Избегать" : "Avoid"}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {today.unfavorable.map(f => (
@@ -150,18 +168,25 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
 
             {/* Block 4: Category tabs */}
-            <Card>
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
               <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
                 {TABS.map(tb => (
                   <button key={tb} onClick={() => setTab(tb)}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap shrink-0 transition-colors"
                     style={{
-                      background: tab === tb ? "rgba(107,78,255,0.2)" : "transparent",
-                      color: tab === tb ? "#9B8AFF" : "#9B8FBB",
-                      border: `1px solid ${tab === tb ? "rgba(107,78,255,0.3)" : "rgba(107,78,255,0.08)"}`,
+                      background: tab === tb ? "rgba(201,168,76,.15)" : "transparent",
+                      color: tab === tb ? "#E8CD7E" : "#9B8FBB",
+                      border: `1px solid ${tab === tb ? "rgba(201,168,76,.3)" : "rgba(201,168,76,.08)"}`,
                     }}>
                     <span>{TAB_ICONS[tb]}</span><span>{tabLabels[tb]}</span>
                   </button>
@@ -170,50 +195,59 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               <p className="text-text-muted text-xs leading-relaxed">
                 {today[tab as keyof LunarToday] as string}
               </p>
-            </Card>
+            </div>
 
             {/* Block 5: Moon in sign */}
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
+              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
                 {t("lunar.moon_in")} {today.moon_sign}
               </p>
               <p className="text-text-muted text-xs leading-relaxed mb-2">{today.sign_desc}</p>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div>
-                  <p style={{ color: "#4ade80" }} className="mb-1">✅</p>
+                  <p style={{ color: "#4ade80" }} className="mb-1">{"✓"}</p>
                   {today.sign_favorable.map(f => <p key={f} className="text-text-faint">{f}</p>)}
                 </div>
                 <div>
-                  <p style={{ color: "#f87171" }} className="mb-1">❌</p>
+                  <p style={{ color: "#f87171" }} className="mb-1">{"✗"}</p>
                   {today.sign_unfavorable.map(f => <p key={f} className="text-text-faint">{f}</p>)}
                 </div>
               </div>
-            </Card>
+            </div>
 
             {/* Block 6: Upcoming events */}
             {today.upcoming_events && today.upcoming_events.length > 0 && (
               <div>
-                <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-                  📅 {lang === "ru" ? "Ближайшие события" : "Upcoming Events"}
+                <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
+                  {lang === "ru" ? "Ближайшие события" : "Upcoming Events"}
                 </p>
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {today.upcoming_events.map((ev, i) => {
                     const isToday = ev.days_until === 0;
                     const isSoon = ev.days_until <= 2;
                     return (
-                      <div key={i} className="shrink-0 w-36 rounded-xl px-3 py-2.5 flex flex-col gap-1"
+                      <div key={i} className="shrink-0 w-36 flex flex-col gap-1"
                         style={{
-                          background: "rgba(107,78,255,0.06)",
+                          borderRadius: 18,
+                          padding: "12px 14px",
+                          background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
                           border: isToday ? "1px solid rgba(201,168,76,0.5)"
-                            : isSoon ? "1px solid rgba(107,78,255,0.3)"
-                            : "1px solid rgba(107,78,255,0.1)",
+                            : isSoon ? "1px solid rgba(201,168,76,.2)"
+                            : "1px solid rgba(201,168,76,.08)",
                         }}>
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm">{ev.icon}</span>
-                          <span className="text-text-primary text-[10px] font-display leading-tight">{ev.title}</span>
+                          <span className="text-text-primary text-[10px] font-cormorant leading-tight">{ev.title}</span>
                         </div>
                         <p className="text-text-faint text-[9px]">{ev.date}</p>
-                        <p className="text-[9px]" style={{ color: isToday ? "#C9A84C" : isSoon ? "#9B8AFF" : "#9B8FBB" }}>
+                        <p className="text-[9px]" style={{ color: isToday ? "#C9A84C" : isSoon ? "#E8CD7E" : "#9B8FBB" }}>
                           {isToday ? (lang === "ru" ? "Сегодня!" : "Today!")
                             : lang === "ru" ? `через ${ev.days_until} дн.` : `in ${ev.days_until} days`}
                         </p>
@@ -225,16 +259,32 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
             )}
 
             {/* Block 7: Stones */}
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">
-                💎 {lang === "ru" ? "Камни дня" : "Day Stones"}
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
+              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
+                {"♦"} {lang === "ru" ? "Камни дня" : "Day Stones"}
               </p>
               <p className="text-text-muted text-xs">{today.stones}</p>
-            </Card>
+            </div>
 
-            {/* Block 7: Month calendar */}
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">{t("lunar.calendar")}</p>
+            {/* Block 8: Month calendar */}
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
+              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 12 }}>
+                {t("lunar.calendar")}
+              </p>
               <div className="grid grid-cols-7 gap-1 text-center">
                 {weekdays.map(d => (
                   <span key={d} className="text-text-faint text-[9px] pb-1">{d}</span>
@@ -244,35 +294,45 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                   const dayNum = parseInt(day.date.split("-")[2]);
                   const isToday = day.date === todayStr;
                   return (
-                    <div key={day.date} className="flex flex-col items-center py-1 rounded-lg"
-                      style={{ background: isToday ? "rgba(107,78,255,0.2)" : "transparent",
-                               border: isToday ? "1px solid rgba(107,78,255,0.4)" : "1px solid transparent" }}>
-                      <span className={`text-[10px] ${isToday ? "text-text-primary font-bold" : "text-text-muted"}`}>{dayNum}</span>
+                    <div key={day.date} className="flex flex-col items-center py-1"
+                      style={{
+                        borderRadius: 10,
+                        background: isToday ? "rgba(201,168,76,.12)" : "transparent",
+                        border: isToday ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
+                      }}>
+                      <span className={`text-[10px] ${isToday ? "text-text-primary font-bold" : "text-text-muted"}`} style={isToday ? { color: "#E8CD7E" } : undefined}>{dayNum}</span>
                       <span className="text-[8px] leading-none">{day.phase_icon}</span>
                       <span className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: ENERGY_COLORS[day.energy] || "#9B8FBB" }} />
                     </div>
                   );
                 })}
               </div>
-            </Card>
+            </div>
 
-            {/* Block 8: AI recommendation (Pro) */}
-            <Card>
-              <p className="text-text-faint text-[9px] uppercase tracking-widest mb-3">
-                🔮 {lang === "ru" ? "AI рекомендация" : "AI Recommendation"}
+            {/* Block 9: AI recommendation (Pro) */}
+            <div
+              className="p-4"
+              style={{
+                borderRadius: 18,
+                background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                border: "1px solid rgba(201,168,76,.13)",
+              }}
+            >
+              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 12 }}>
+                {lang === "ru" ? "AI рекомендация" : "AI Recommendation"}
                 {user?.tier !== "pro" && <span className="ml-1" style={{ color: "#C9A84C" }}>Pro</span>}
               </p>
               <input className={inputCls + " mb-2"} value={question} onChange={e => setQuestion(e.target.value)}
                 placeholder={lang === "ru" ? "Задай вопрос лунному календарю..." : "Ask the lunar calendar..."} />
               {aiText ? (
                 <p className="text-text-muted text-xs leading-relaxed mb-2">
-                  {aiText}{aiLoading && <span className="animate-pulse">▍</span>}
+                  {aiText}{aiLoading && <span className="animate-pulse">{"▍"}</span>}
                 </p>
               ) : null}
-              <Button variant="primary" size="sm" className="w-full" onClick={handleAI} disabled={aiLoading}>
-                {aiLoading ? "..." : (lang === "ru" ? "Получить рекомендацию ✦" : "Get recommendation ✦")}
+              <Button variant="primary" size="sm" className="w-full" style={{ borderRadius: 14 }} onClick={handleAI} disabled={aiLoading}>
+                {aiLoading ? "..." : (lang === "ru" ? "Получить рекомендацию" : "Get recommendation")}
               </Button>
-            </Card>
+            </div>
           </>
         )}
       </main>
