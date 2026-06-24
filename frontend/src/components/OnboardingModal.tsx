@@ -1,149 +1,256 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TIMEZONES } from "../constants/timezones";
 import { useAuth } from "../context/AuthContext";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
-import { Button } from "./ui";
+import { getZodiacSign } from "../utils/zodiac";
+import { Logo } from "./Logo";
+import { ZodiacGlyph } from "./ZodiacGlyph";
 
-interface Props {
-  onClose: () => void;
-}
+interface Props { onClose: () => void; }
+
+const MONTHS_RU = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const MONTHS_EN = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const RULERS: Record<string, [string, string]> = {
+  Aries: ["Марс", "Mars"], Taurus: ["Венера", "Venus"], Gemini: ["Меркурий", "Mercury"],
+  Cancer: ["Луна", "Moon"], Leo: ["Солнце", "Sun"], Virgo: ["Меркурий", "Mercury"],
+  Libra: ["Венера", "Venus"], Scorpio: ["Плутон", "Pluto"], Sagittarius: ["Юпитер", "Jupiter"],
+  Capricorn: ["Сатурн", "Saturn"], Aquarius: ["Уран", "Uranus"], Pisces: ["Нептун", "Neptune"],
+};
+
+const ELEMENTS: Record<string, [string, string]> = {
+  Aries: ["Огненный", "Fire"], Taurus: ["Земной", "Earth"], Gemini: ["Воздушный", "Air"],
+  Cancer: ["Водный", "Water"], Leo: ["Огненный", "Fire"], Virgo: ["Земной", "Earth"],
+  Libra: ["Воздушный", "Air"], Scorpio: ["Водный", "Water"], Sagittarius: ["Огненный", "Fire"],
+  Capricorn: ["Земной", "Earth"], Aquarius: ["Воздушный", "Air"], Pisces: ["Водный", "Water"],
+};
 
 export function OnboardingModal({ onClose }: Props) {
-  const { t } = useTranslation();
-  const { token, updateUser } = useAuth();
-  const [step, setStep] = useState<"birth" | "notifications">("birth");
+  useTranslation();
+  const { token, user, updateUser } = useAuth();
+  const lang = user?.lang ?? "ru";
+  const ru = lang === "ru";
 
+  const [step, setStep] = useState(0);
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+  const [city, setCity] = useState("");
+  const [tz, setTz] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Moscow");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [cityInput, setCityInput] = useState(false);
 
-  const [tz, setTz] = useState("Europe/Moscow");
+  const dateRef = useRef<HTMLInputElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
 
-  function clearFieldError(field: string) {
-    setErrors(prev => ({ ...prev, [field]: "" }));
-  }
+  const birthDate = day && month && year ? `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}` : null;
+  const zodiac = birthDate ? getZodiacSign(birthDate) : null;
 
-  async function handleBirthSubmit() {
+  async function saveBirthDate() {
     const errs: Record<string, string> = {};
-    const dayErr = validateDay(day);
-    const monthErr = validateMonth(month);
-    const yearErr = validateYear(year);
-    if (dayErr) errs.day = dayErr;
-    if (monthErr) errs.month = monthErr;
-    if (yearErr) errs.year = yearErr;
-    if (!dayErr && !monthErr && !yearErr) {
-      const dateErr = validateDateExists(day, month, year);
-      if (dateErr) errs.date = dateErr;
-    }
-    if (Object.values(errs).some(Boolean)) { setErrors(errs); return; }
+    const de = validateDay(day); if (de) errs.day = de;
+    const me = validateMonth(month); if (me) errs.month = me;
+    const ye = validateYear(year); if (ye) errs.year = ye;
+    if (!de && !me && !ye) { const dx = validateDateExists(day, month, year); if (dx) errs.date = dx; }
+    if (Object.values(errs).some(Boolean)) { setErrors(errs); return false; }
 
     setLoading(true);
     try {
-      const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      const res = await fetch("/api/v1/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ birth_date: birthDate }),
-      });
-      if (res.ok) {
-        updateUser({ has_birth_date: true });
-        setStep("notifications");
-      }
-    } catch {}
+      const body: Record<string, unknown> = { birth_date: birthDate };
+      if (hour) { body.birth_time = `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}`; body.birth_time_known = true; }
+      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      updateUser({ has_birth_date: true });
+      return true;
+    } catch { return false; }
     finally { setLoading(false); }
   }
 
-  async function handleEnableNotifications() {
+  async function saveLocation() {
     setLoading(true);
     try {
-      await fetch("/api/v1/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ notifications_enabled: true, timezone: tz }),
-      });
-    } catch {}
-    finally { setLoading(false); onClose(); }
+      const body: Record<string, unknown> = { timezone: tz };
+      if (city) body.birth_city = city;
+      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      return true;
+    } catch { return false; }
+    finally { setLoading(false); }
   }
 
-  const inputCls =
-    "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 " +
-    "text-text-primary text-sm text-center placeholder:text-text-faint " +
-    "focus:outline-none focus:border-violet-600 transition-colors";
-  const errCls = "text-red-400 text-[10px] mt-1 text-center";
+  async function handleNext() {
+    if (step === 0) { setStep(1); return; }
+    if (step === 1) {
+      if (!day || !month || !year) return;
+      const ok = await saveBirthDate();
+      if (ok) setStep(2);
+      return;
+    }
+    if (step === 2) { await saveLocation(); setStep(3); return; }
+    if (step === 3) {
+      await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ notifications_enabled: true, timezone: tz }) }).catch(() => {});
+      onClose();
+    }
+  }
+
+  function handleDatePick(val: string) {
+    if (!val) return;
+    const [y, m, d] = val.split("-");
+    setYear(y); setMonth(String(Number(m))); setDay(String(Number(d)));
+    setErrors({});
+  }
+
+  function handleTimePick(val: string) {
+    if (!val) return;
+    const [h, m] = val.split(":");
+    setHour(h); setMinute(m);
+  }
+
+  const btnTexts = [ru ? "Начать" : "Begin", ru ? "Далее" : "Next", ru ? "Далее" : "Next", ru ? "Войти в Mystral" : "Enter Mystral"];
+  const canNext = step === 0 || step === 2 || step === 3 || (step === 1 && day && month && year);
 
   return (
-    <div
-      className="fixed inset-0 flex flex-col justify-end"
-      style={{ zIndex: 100, background: "rgba(0,0,0,0.75)" }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full max-w-[390px] mx-auto rounded-t-2xl px-5 pt-6 pb-10 flex flex-col gap-4"
-        style={{ background: "#100d24", border: "0.5px solid rgba(107,78,255,0.2)" }}
-      >
-        {step === "birth" ? (
-          <>
-            <div className="flex items-center justify-between">
-              <p className="font-display text-text-primary text-lg">{t("onboarding.title")}</p>
-              <button onClick={onClose} className="text-text-faint text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
-            </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "radial-gradient(130% 60% at 50% -5%, #0F0A26 0%, #07060F 55%)" }}>
 
-            <p className="text-text-muted text-sm">{t("onboarding.subtitle")}</p>
-
-            <div>
-              <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("onboarding.day")} type="number" min="1" max="31"
-                  value={day} onChange={e => { setDay(e.target.value); clearFieldError("day"); clearFieldError("date"); }} />
-                <input className={inputCls} placeholder={t("onboarding.month")} type="number" min="1" max="12"
-                  value={month} onChange={e => { setMonth(e.target.value); clearFieldError("month"); clearFieldError("date"); }} />
-                <input className={inputCls} placeholder={t("onboarding.year")} type="number" min="1900" max="2025"
-                  value={year} onChange={e => { setYear(e.target.value); clearFieldError("year"); clearFieldError("date"); }} />
-              </div>
-              {(errors.day || errors.month || errors.year || errors.date) && (
-                <p className={errCls}>{errors.day || errors.month || errors.year || errors.date}</p>
-              )}
-            </div>
-
-            <Button variant="primary" className="w-full" onClick={handleBirthSubmit} disabled={loading || !day || !month || !year}>
-              {loading ? "..." : t("onboarding.continue")}
-            </Button>
-
-            <p className="text-text-faint text-[10px] text-center">{t("onboarding.hint")}</p>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <p className="font-display text-text-primary text-lg">{t("onboarding.notif_title")}</p>
-              <button onClick={onClose} className="text-text-faint text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
-            </div>
-
-            <p className="text-text-muted text-sm">{t("onboarding.notif_subtitle")}</p>
-
-            <div>
-              <p className="text-text-faint text-[10px] mb-1.5">{t("onboarding.notif_tz")}</p>
-              <select
-                value={tz}
-                onChange={e => setTz(e.target.value)}
-                className="w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm focus:outline-none focus:border-violet-600 transition-colors"
-              >
-                {TIMEZONES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <Button variant="primary" className="w-full" onClick={handleEnableNotifications} disabled={loading}>
-              {loading ? "..." : t("onboarding.notif_yes")}
-            </Button>
-
-            <button onClick={onClose} className="text-text-faint text-xs text-center py-1">
-              {t("onboarding.notif_skip")}
-            </button>
-          </>
+      {/* Top bar */}
+      <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 7 }}>
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 99, background: i === step ? "linear-gradient(90deg,#C9A84C,#E8CD7E)" : "rgba(255,255,255,.16)", transition: ".3s" }} />
+          ))}
+        </div>
+        {step < 3 && (
+          <button onClick={onClose} style={{ fontSize: 13, color: "#8A8170", cursor: "pointer", background: "none", border: "none" }}>
+            {ru ? "Пропустить" : "Skip"}
+          </button>
         )}
+      </div>
+
+      {/* Center */}
+      <div key={step} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 30px", animation: "mystral-fadeup .25s ease-out" }}>
+        <div style={{ width: "100%", maxWidth: 460 }}>
+
+          {step === 0 && (
+            <>
+              <div style={{ width: 130, height: 130, margin: "0 auto", filter: "drop-shadow(0 0 38px rgba(201,168,76,.5))", animation: "mystral-float 7s ease-in-out infinite" }}>
+                <Logo size={120} />
+              </div>
+              <p className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".4em", color: "#E8CD7E", marginTop: 30 }}>MYSTRAL</p>
+              <p className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", lineHeight: 1.1, marginTop: 14 }}>
+                {ru ? <>Язык звёзд<br />в одном ритуале</> : <>Language of stars<br />in one ritual</>}
+              </p>
+              <p style={{ fontSize: 15, lineHeight: 1.7, color: "#A89E8B", margin: "16px auto 0", maxWidth: 380 }}>
+                {ru ? "Гороскопы, Таро, руны, нумерология и натальная карта — древняя мудрость в дорогой огранке." : "Horoscopes, Tarot, runes, numerology and natal chart — ancient wisdom in precious framing."}
+              </p>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
+                {ru ? "Когда вы родились?" : "When were you born?"}
+              </p>
+              <p style={{ fontSize: 14, color: "#A89E8B", margin: "10px auto 28px", maxWidth: 340 }}>
+                {ru ? "Дата рождения определяет вашу натальную карту и положение планет." : "Birth date determines your natal chart and planet positions."}
+              </p>
+
+              <input ref={dateRef} type="date" style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+                onChange={e => handleDatePick(e.target.value)} />
+              <input ref={timeRef} type="time" style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+                onChange={e => handleTimePick(e.target.value)} />
+
+              <div style={{ display: "flex", gap: 10 }}>
+                {[
+                  { label: ru ? "ДЕНЬ" : "DAY", value: day || "—", flex: 1 },
+                  { label: ru ? "МЕСЯЦ" : "MONTH", value: month ? (ru ? MONTHS_RU[Number(month)] : MONTHS_EN[Number(month)]) : "—", flex: 1.4 },
+                  { label: ru ? "ГОД" : "YEAR", value: year || "—", flex: 1.2 },
+                ].map(f => (
+                  <button key={f.label} onClick={() => dateRef.current?.showPicker?.()} style={{ flex: f.flex, padding: "14px 0", borderRadius: 14, textAlign: "center", background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", cursor: "pointer" }}>
+                    <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em", textTransform: "uppercase" }}>{f.label}</div>
+                    <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{f.value}</div>
+                  </button>
+                ))}
+              </div>
+
+              {(errors.day || errors.month || errors.year || errors.date) && (
+                <p style={{ color: "#D98A8A", fontSize: 12, marginTop: 8 }}>{errors.day || errors.month || errors.year || errors.date}</p>
+              )}
+
+              <button onClick={() => timeRef.current?.showPicker?.()} style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
+                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{ru ? "Время рождения" : "Birth time"}</span>
+                <span className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA" }}>
+                  {hour ? `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}` : "—"}
+                </span>
+              </button>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
+                {ru ? "Где вы родились?" : "Where were you born?"}
+              </p>
+              <p style={{ fontSize: 14, color: "#A89E8B", margin: "10px auto 28px", maxWidth: 340 }}>
+                {ru ? "Место и часовой пояс нужны для точного расчёта домов гороскопа." : "Location and timezone are needed for precise house calculations."}
+              </p>
+
+              {cityInput ? (
+                <input autoFocus value={city} onChange={e => setCity(e.target.value)} onBlur={() => { if (!city) setCityInput(false); }}
+                  placeholder={ru ? "Введите город..." : "Enter city..."} style={{ width: "100%", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 16, outline: "none" }} />
+              ) : (
+                <button onClick={() => setCityInput(true)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", cursor: "pointer", textAlign: "left" }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#6E6757", letterSpacing: ".06em", textTransform: "uppercase" }}>{ru ? "ГОРОД" : "CITY"}</div>
+                    <div style={{ fontSize: 16, color: city ? "#F0E9DA" : "#6E6757", marginTop: 1 }}>{city || (ru ? "Выберите город" : "Select city")}</div>
+                  </div>
+                  <span style={{ color: "#C9A84C", fontSize: 18 }}>›</span>
+                </button>
+              )}
+
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
+                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{ru ? "Часовой пояс" : "Timezone"}</span>
+                <select value={tz} onChange={e => setTz(e.target.value)} style={{ background: "transparent", border: "none", color: "#F0E9DA", fontSize: 15, textAlign: "right", outline: "none", maxWidth: 180 }}>
+                  {TIMEZONES.map(t => <option key={t.value} value={t.value} style={{ background: "#0D0B1F" }}>{t.label}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          {step === 3 && zodiac && (
+            <>
+              <div style={{ display: "flex", justifyContent: "center", margin: "0 auto" }}>
+                <ZodiacGlyph sign={zodiac.en} size={150} />
+              </div>
+              <p className="font-cinzel uppercase" style={{ fontSize: 11, letterSpacing: ".34em", color: "#C9A84C", marginTop: 8 }}>
+                {ru ? "Звёзды готовы" : "Stars are ready"}
+              </p>
+              <p className="font-cormorant" style={{ fontSize: 40, color: "#F0E9DA", lineHeight: 1, marginTop: 8 }}>
+                {ru ? `Вы — ${zodiac.sign}` : `You are ${zodiac.en}`}
+              </p>
+              <p style={{ fontSize: 14.5, lineHeight: 1.7, color: "#A89E8B", margin: "14px auto 0", maxWidth: 360 }}>
+                {ru
+                  ? `${ELEMENTS[zodiac.en]?.[0] ?? "Огненный"} знак под покровительством ${RULERS[zodiac.en]?.[0] ?? "Марса"}. Ваш первый персональный гороскоп уже составлен и ждёт внутри.`
+                  : `${ELEMENTS[zodiac.en]?.[1] ?? "Fire"} sign under the patronage of ${RULERS[zodiac.en]?.[1] ?? "Mars"}. Your first personal horoscope is ready inside.`}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom */}
+      <div style={{ padding: "18px 30px 30px", width: "100%", maxWidth: 520, margin: "0 auto", display: "flex", gap: 12 }}>
+        {step > 0 && (
+          <button onClick={() => setStep(step - 1)} style={{ height: 52, flex: 1, borderRadius: 16, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 15, cursor: "pointer" }}>
+            {ru ? "Назад" : "Back"}
+          </button>
+        )}
+        <button onClick={handleNext} disabled={loading || !canNext}
+          style={{ height: 52, flex: step > 0 ? 2 : 1, borderRadius: 16, background: canNext ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: canNext ? "#1A1206" : "#6E6757", fontWeight: 600, fontSize: 15.5, cursor: canNext ? "pointer" : "default", boxShadow: canNext ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none", border: "none", transition: ".2s" }}>
+          {loading ? "..." : btnTexts[step]}
+        </button>
       </div>
     </div>
   );
