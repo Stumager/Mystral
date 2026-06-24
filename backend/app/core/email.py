@@ -1,47 +1,57 @@
 import logging
-import smtplib
-import ssl
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+import httpx
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+RESEND_URL = "https://api.resend.com/emails"
 
-def send_verification_email(to_email: str, code: str) -> bool:
-    if not settings.smtp_host or not settings.smtp_user:
-        logger.warning("SMTP not configured, skipping email to %s", to_email)
+
+async def send_verification_email(to_email: str, code: str) -> bool:
+    if not settings.resend_api_key:
+        logger.warning("RESEND_API_KEY not set, skipping email to %s", to_email)
         return False
 
-    html = f"""
-    <div style="background:#07060F;padding:40px 20px;text-align:center;font-family:Arial,sans-serif">
-      <div style="max-width:400px;margin:0 auto">
-        <div style="font-size:22px;letter-spacing:.3em;color:#E8CD7E;margin-bottom:30px">MYSTRAL</div>
-        <div style="font-size:16px;color:#F0E9DA;margin-bottom:20px">Ваш код подтверждения:</div>
-        <div style="font-size:36px;letter-spacing:.3em;color:#C9A84C;font-weight:700;
-                    background:#0D0B1F;border:1px solid rgba(201,168,76,.3);border-radius:14px;
-                    padding:20px;margin:0 auto 20px;max-width:280px">{code}</div>
-        <div style="font-size:13px;color:#8A8170;margin-bottom:10px">Код действителен 15 минут</div>
-        <div style="font-size:12px;color:#6E6757">Если вы не регистрировались — проигнорируйте это письмо</div>
-      </div>
-    </div>
-    """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Ваш код подтверждения Mystral"
-    msg["From"] = settings.smtp_from or settings.smtp_user
-    msg["To"] = to_email
-    msg.attach(MIMEText(f"Ваш код подтверждения Mystral: {code}", "plain", "utf-8"))
-    msg.attach(MIMEText(html, "html", "utf-8"))
+    html = (
+        '<div style="background:#07060F;padding:40px 20px;font-family:Georgia,serif;max-width:480px;margin:0 auto">'
+        '<div style="text-align:center;margin-bottom:32px">'
+        '<div style="font-family:serif;font-size:13px;letter-spacing:.4em;color:#C9A84C">MYSTRAL</div>'
+        '</div>'
+        '<div style="text-align:center">'
+        '<p style="color:#A89E8B;font-size:15px;margin:0 0 24px">Ваш код подтверждения:</p>'
+        '<div style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);'
+        'border-radius:16px;padding:28px;display:inline-block">'
+        f'<span style="font-size:42px;letter-spacing:.3em;color:#C9A84C;font-weight:600">{code}</span>'
+        '</div>'
+        '<p style="color:#6E6757;font-size:13px;margin:20px 0 0">Код действителен 15 минут</p>'
+        '<p style="color:#6E6757;font-size:12px;margin:8px 0 0">'
+        'Если вы не регистрировались — проигнорируйте это письмо</p>'
+        '</div></div>'
+    )
 
     try:
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=ctx) as server:
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(msg["From"], to_email, msg.as_string())
-        logger.info("Verification email sent to %s", to_email)
-        return True
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                RESEND_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"Mystral <{settings.smtp_from}>",
+                    "to": [to_email],
+                    "subject": "Ваш код подтверждения Mystral",
+                    "html": html,
+                },
+            )
+        if resp.status_code in (200, 201):
+            logger.info("Verification email sent to %s via Resend", to_email)
+            return True
+        else:
+            logger.error("Resend API error %s: %s", resp.status_code, resp.text[:300])
+            return False
     except Exception as e:
         logger.error("Failed to send email to %s: %s", to_email, e)
         return False
