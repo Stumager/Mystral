@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     yukassa_secret_key: str = ""
     support_telegram_id: str = ""
     admin_token: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
 
 
 settings = Settings()

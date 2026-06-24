@@ -1,13 +1,18 @@
 import json
+import random
+from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+import redis.asyncio as aioredis
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
+from app.core.email import send_verification_email
 from app.core.security import (
     create_jwt,
     hash_password,
@@ -44,6 +49,15 @@ class LinkEmailRequest(BaseModel):
 class TelegramLinkRequest(BaseModel):
     init_data: Optional[str] = None
     widget_data: Optional[dict] = None
+
+
+class VerifyEmailRequest(BaseModel):
+    email: str
+    code: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: str
 
 
 class MergeRequest(BaseModel):
@@ -134,6 +148,7 @@ async def auth_telegram(
 @router.post("/register")
 async def register(
     req: RegisterRequest,
+    bg: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
     from email_validator import validate_email, EmailNotValidError
@@ -146,7 +161,14 @@ async def register(
     if result.first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    user = User(email=req.email, display_name=req.name)
+    code = str(random.randint(100000, 999999))
+    user = User(
+        email=req.email,
+        display_name=req.name,
+        email_verified=False,
+        verification_code=code,
+        verification_code_expires_at=datetime.utcnow() + timedelta(minutes=15),
+    )
     session.add(user)
     await session.flush()
 
@@ -157,14 +179,16 @@ async def register(
         password_hash=hash_password(req.password),
     ))
     await session.commit()
-    await session.refresh(user)
 
-    return await _user_response(user, create_jwt(str(user.id)), session)
+    bg.add_task(send_verification_email, req.email, code)
+
+    return {"status": "verification_required", "email": req.email}
 
 
 @router.post("/login")
 async def login(
     req: LoginRequest,
+    bg: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
     result = await session.exec(
@@ -184,7 +208,77 @@ async def login(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    if user.email and not user.email_verified:
+        code = str(random.randint(100000, 999999))
+        user.verification_code = code
+        user.verification_code_expires_at = datetime.utcnow() + timedelta(minutes=15)
+        session.add(user)
+        await session.commit()
+        bg.add_task(send_verification_email, user.email, code)
+        return {"status": "verification_required", "email": user.email}
+
     return await _user_response(user, create_jwt(str(user.id)), session)
+
+
+@router.post("/verify-email")
+async def verify_email(
+    req: VerifyEmailRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(select(User).where(User.email == req.email))
+    user = result.first()
+    if not user:
+        raise HTTPException(400, "Пользователь не найден")
+    if user.email_verified:
+        return await _user_response(user, create_jwt(str(user.id)), session)
+    if not user.verification_code:
+        raise HTTPException(400, "Код не запрошен")
+    if user.verification_code_expires_at and user.verification_code_expires_at < datetime.utcnow():
+        raise HTTPException(400, "Код истёк, запросите новый")
+    if user.verification_code != req.code:
+        raise HTTPException(400, "Неверный код")
+
+    user.email_verified = True
+    user.verification_code = None
+    user.verification_code_expires_at = None
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    return await _user_response(user, create_jwt(str(user.id)), session)
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    req: ResendVerificationRequest,
+    bg: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(select(User).where(User.email == req.email))
+    user = result.first()
+    if not user:
+        raise HTTPException(400, "Пользователь не найден")
+    if user.email_verified:
+        raise HTTPException(400, "Email уже подтверждён")
+
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        key = f"resend:{req.email}"
+        if await r.exists(key):
+            raise HTTPException(429, "Подождите минуту перед повторной отправкой")
+        await r.setex(key, 60, "1")
+    finally:
+        await r.close()
+
+    code = str(random.randint(100000, 999999))
+    user.verification_code = code
+    user.verification_code_expires_at = datetime.utcnow() + timedelta(minutes=15)
+    session.add(user)
+    await session.commit()
+
+    bg.add_task(send_verification_email, req.email, code)
+
+    return {"status": "sent"}
 
 
 @router.get("/me")

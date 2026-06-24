@@ -43,6 +43,14 @@ async def create_db_and_tables() -> None:
             "ALTER TABLE user_profiles "
             "ADD COLUMN IF NOT EXISTS full_name VARCHAR"
         ))
+        for col, ctype in [
+            ("email_verified", "BOOLEAN DEFAULT FALSE"),
+            ("verification_code", "VARCHAR(6)"),
+            ("verification_code_expires_at", "TIMESTAMP"),
+        ]:
+            await conn.execute(text(
+                f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {ctype}"
+            ))
         for col, coltype in [
             ("zodiac_sign", "VARCHAR"), ("chinese_sign", "VARCHAR"),
             ("life_path", "INTEGER"), ("birth_lat", "FLOAT"),

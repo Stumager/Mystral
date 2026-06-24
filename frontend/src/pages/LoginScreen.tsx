@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
 import { validateEmail, validatePassword, validateName } from "../utils/validate";
+import { VerifyEmail } from "./VerifyEmail";
 
 type Mode = "login" | "register";
 
@@ -18,6 +19,7 @@ export function LoginScreen() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const tgBtnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,6 +89,7 @@ export function LoginScreen() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error");
+      if (data.status === "verification_required") { setPendingEmail(data.email); return; }
       login(data.access_token, data.user);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error");
@@ -94,6 +97,8 @@ export function LoginScreen() {
       setLoading(false);
     }
   }
+
+  if (pendingEmail) return <VerifyEmail email={pendingEmail} />;
 
   const inputStyle = {
     border: "0.5px solid rgba(140,110,255,0.2)",

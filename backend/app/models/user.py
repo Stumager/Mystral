@@ -15,6 +15,9 @@ class User(SQLModel, table=True):
     subscription_tier: str = Field(default="free")
     subscription_expires_at: Optional[datetime] = None
     balance_coins: int = Field(default=0)
+    email_verified: bool = Field(default=False)
+    verification_code: Optional[str] = None
+    verification_code_expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
