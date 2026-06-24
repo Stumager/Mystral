@@ -4,6 +4,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Admin } from "./pages/Admin";
 import { Compatibility } from "./pages/Compatibility";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
@@ -14,7 +15,7 @@ import { Profile } from "./pages/Profile";
 import { Runes } from "./pages/Runes";
 import { Tarot } from "./pages/Tarot";
 
-type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes";
+type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "admin";
 
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
@@ -35,6 +36,8 @@ function AppInner() {
       </div>
     );
   }
+
+  if (page === "admin" || window.location.hash === "#admin") return <Admin />;
 
   if (!user) return <LoginScreen />;
 

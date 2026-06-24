@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     yukassa_shop_id: str = ""
     yukassa_secret_key: str = ""
     support_telegram_id: str = ""
+    admin_token: str = ""
 
 
 settings = Settings()

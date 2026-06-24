@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import auth, health
+from app.api.v1.admin import router as admin_router
 from app.api.v1.compatibility import router as compatibility_router
 from app.api.v1.horoscope import router as horoscope_router
 from app.api.v1.lunar import router as lunar_router
@@ -24,3 +25,4 @@ api_router.include_router(lunar_router, prefix="/v1", tags=["lunar"])
 api_router.include_router(compatibility_router, prefix="/v1", tags=["compatibility"])
 api_router.include_router(numerology_router, prefix="/v1", tags=["numerology"])
 api_router.include_router(runes_router, prefix="/v1", tags=["runes"])
+api_router.include_router(admin_router, prefix="/v1", tags=["admin"])
