@@ -84,14 +84,14 @@ export function Admin() {
   // ============= LOGIN =============
   if (!authed) {
     return (
-      <div style={{ ...cs, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...cs, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
         <Logo size={60} />
         <p className="font-cinzel" style={{ fontSize: 18, letterSpacing: ".3em", color: "#E8CD7E", marginTop: 20 }}>MYSTRAL ADMIN</p>
         <div style={{ width: "100%", maxWidth: 340, marginTop: 32 }}>
           <input type="password" placeholder="Admin token" value={tokenInput}
             onChange={e => setTokenInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleLogin()}
-            style={{ width: "100%", padding: "14px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 15, outline: "none" }} />
+            style={{ width: "100%", padding: "14px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
           {loginError && <p style={{ color: "#D98A8A", fontSize: 13, marginTop: 8, textAlign: "center" }}>{loginError}</p>}
           <button onClick={handleLogin} style={{ width: "100%", marginTop: 12, height: 50, borderRadius: 14, background: "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)", color: "#1A1206", fontWeight: 600, fontSize: 15, border: "none", cursor: "pointer" }}>
             Войти
@@ -111,65 +111,100 @@ export function Admin() {
 
   const gridCols = "2fr 1.5fr 1fr 1fr 1.5fr 180px";
 
+  function UserCard({ u }: { u: UserRow }) {
+    return (
+      <div style={{ padding: 16, borderRadius: 14, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            {u.display_name && <div style={{ fontSize: 14, color: "#F0E9DA", fontWeight: 500 }}>{u.display_name}</div>}
+            {u.email && <div style={{ fontSize: 13, color: "#A89E8B", wordBreak: "break-all" }}>{u.email}</div>}
+            {u.telegram_id && <div style={{ fontSize: 12, color: "#8A8170" }}>TG: {u.telegram_id}</div>}
+          </div>
+          <span className="font-cinzel" style={{
+            fontSize: 10, padding: "3px 10px", borderRadius: 99, flexShrink: 0, marginLeft: 8,
+            background: u.tier === "pro" ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.05)",
+            border: u.tier === "pro" ? "1px solid rgba(201,168,76,.3)" : "1px solid rgba(255,255,255,.08)",
+            color: u.tier === "pro" ? "#E8CD7E" : "#6E6757",
+          }}>{u.tier.toUpperCase()}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 11, color: "#6E6757" }}>
+            {u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}
+            {u.tier === "pro" && u.subscription_expires_at && ` · до ${new Date(u.subscription_expires_at).toLocaleDateString("ru-RU")}`}
+          </div>
+          <div style={{ fontSize: 10, color: "#6E6757", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {u.tier !== "pro" ? (
+            <>
+              <button onClick={() => grantPro(u.id, 30)} style={actionBtn()}>+30 дней</button>
+              <button onClick={() => grantPro(u.id, 365)} style={actionBtn()}>+1 год</button>
+            </>
+          ) : (
+            <button onClick={() => revokePro(u.id)} style={actionBtn("#D98A8A", "rgba(196,84,84,.3)")}>Убрать Pro</button>
+          )}
+          <button onClick={() => deleteUser(u.id, u.email || u.telegram_id || u.id)} style={{ ...actionBtn("#D98A8A", "rgba(196,84,84,.3)"), marginLeft: "auto" }}>Удалить</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={cs}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", borderBottom: "1px solid rgba(201,168,76,.12)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Logo size={24} />
-          <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".3em", color: "#E8CD7E" }}>MYSTRAL ADMIN</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(201,168,76,.12)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Logo size={22} />
+          <span className="font-cinzel" style={{ fontSize: 11, letterSpacing: ".25em", color: "#E8CD7E" }}>ADMIN</span>
         </div>
-        <button onClick={logout} style={{ padding: "6px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 12, cursor: "pointer" }}>
+        <button onClick={logout} style={{ padding: "6px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 12, cursor: "pointer" }}>
           Выйти
         </button>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: 32 }}>
-        {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 32 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 40px" }}>
+        {/* Stats — 2 cols on mobile, 4 on desktop */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 20 }} className="admin-stats-grid">
           {statCards.map(s => (
-            <div key={s.label} style={{ padding: 20, borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
-              <div className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase" }}>{s.label}</div>
-              <div className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", lineHeight: 1, marginTop: 8 }}>{s.value}</div>
+            <div key={s.label} style={{ padding: "14px 16px", borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+              <div className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase" }}>{s.label}</div>
+              <div className="font-cormorant" style={{ fontSize: 32, color: "#F0E9DA", lineHeight: 1, marginTop: 6 }}>{s.value}</div>
             </div>
           ))}
         </div>
 
         {/* Search */}
-        <input placeholder="Поиск по email или Telegram..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-          style={{ width: 360, padding: "12px 18px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", color: "#F0E9DA", fontSize: 14, outline: "none", marginBottom: 20 }} />
-        <span style={{ marginLeft: 16, fontSize: 13, color: "#6E6757" }}>{total} users</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <input placeholder="Поиск..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            style={{ flex: 1, minWidth: 200, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", color: "#F0E9DA", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+          <span style={{ fontSize: 12, color: "#6E6757", flexShrink: 0 }}>{total} users</span>
+        </div>
 
-        {/* Table */}
-        <div style={{ borderRadius: 18, overflow: "hidden", border: "1px solid rgba(201,168,76,.13)" }}>
-          {/* Header row */}
+        {/* Mobile: cards / Desktop: table */}
+        <div className="admin-table-desktop" style={{ borderRadius: 18, overflow: "hidden", border: "1px solid rgba(201,168,76,.13)", display: "none" }}>
           <div style={{ display: "grid", gridTemplateColumns: gridCols, padding: "12px 20px", background: "rgba(201,168,76,.06)" }}>
-            {["ID", "Email / Telegram", "Имя", "Тир", "Дата рег.", "Действия"].map(h => (
+            {["ID", "Email / TG", "Имя", "Тир", "Рег.", "Действия"].map(h => (
               <span key={h} className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".15em", color: "#C9A84C", textTransform: "uppercase" }}>{h}</span>
             ))}
           </div>
-
-          {/* Rows */}
           {users.map(u => (
             <div key={u.id} style={{ display: "grid", gridTemplateColumns: gridCols, padding: "14px 20px", alignItems: "center", borderTop: "1px solid rgba(255,255,255,.06)" }}>
-              <span style={{ fontSize: 11, color: "#6E6757", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>{u.id.slice(0, 8)}</span>
+              <span style={{ fontSize: 11, color: "#6E6757", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</span>
               <div>
-                {u.email && <div style={{ fontSize: 14, color: "#F0E9DA" }}>{u.email}</div>}
-                {u.telegram_id && <div style={{ fontSize: 12, color: "#A89E8B" }}>TG: {u.telegram_id}</div>}
+                {u.email && <div style={{ fontSize: 13, color: "#F0E9DA" }}>{u.email}</div>}
+                {u.telegram_id && <div style={{ fontSize: 11, color: "#A89E8B" }}>TG: {u.telegram_id}</div>}
                 {!u.email && !u.telegram_id && <span style={{ color: "#6E6757" }}>—</span>}
               </div>
               <span style={{ fontSize: 13, color: "#B6AC98" }}>{u.display_name || "—"}</span>
               <div>
                 <span className="font-cinzel" style={{
-                  fontSize: 11, padding: "3px 10px", borderRadius: 99,
+                  fontSize: 10, padding: "3px 8px", borderRadius: 99,
                   background: u.tier === "pro" ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.05)",
                   border: u.tier === "pro" ? "1px solid rgba(201,168,76,.3)" : "none",
                   color: u.tier === "pro" ? "#E8CD7E" : "#6E6757",
                 }}>{u.tier.toUpperCase()}</span>
                 {u.tier === "pro" && u.subscription_expires_at && (
-                  <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>
-                    до {new Date(u.subscription_expires_at).toLocaleDateString("ru-RU")}
-                  </div>
+                  <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>до {new Date(u.subscription_expires_at).toLocaleDateString("ru-RU")}</div>
                 )}
               </div>
               <span style={{ fontSize: 12, color: "#6E6757" }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}</span>
@@ -186,7 +221,14 @@ export function Admin() {
               </div>
             </div>
           ))}
+          {users.length === 0 && (
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "#6E6757" }}>Нет пользователей</div>
+          )}
+        </div>
 
+        {/* Mobile cards */}
+        <div className="admin-cards-mobile" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {users.map(u => <UserCard key={u.id} u={u} />)}
           {users.length === 0 && (
             <div style={{ padding: "40px 20px", textAlign: "center", color: "#6E6757" }}>Нет пользователей</div>
           )}
@@ -194,7 +236,7 @@ export function Admin() {
 
         {/* Pagination */}
         {pages > 1 && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 24, flexWrap: "wrap" }}>
             {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
               <button key={p} onClick={() => setPage(p)} style={{
                 width: 36, height: 36, borderRadius: 10, border: "none", cursor: "pointer",
@@ -205,14 +247,22 @@ export function Admin() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @media (min-width: 768px) {
+          .admin-stats-grid { grid-template-columns: repeat(4,1fr) !important; }
+          .admin-table-desktop { display: block !important; }
+          .admin-cards-mobile { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
 function actionBtn(color = "#E8CD7E", borderColor = "rgba(201,168,76,.3)"): React.CSSProperties {
   return {
-    height: 28, padding: "0 10px", borderRadius: 8, fontSize: 11,
+    height: 30, padding: "0 12px", borderRadius: 8, fontSize: 12,
     background: "transparent", border: `1px solid ${borderColor}`,
-    color, cursor: "pointer",
+    color, cursor: "pointer", whiteSpace: "nowrap",
   };
 }
