@@ -55,12 +55,9 @@ function AppInner() {
     </>
   );
 
-  if (page === "home") {
-    return <><Home onNavigate={navigate} />{modals}</>;
-  }
-
   let content;
-  if (page === "tarot")           content = <Tarot         onNavigate={navigate} />;
+  if (page === "home")            content = <Home          onNavigate={navigate} />;
+  else if (page === "tarot")      content = <Tarot         onNavigate={navigate} />;
   else if (page === "natal")      content = <NatalChart    onNavigate={navigate} />;
   else if (page === "profile")    content = <Profile       onNavigate={navigate} />;
   else if (page === "moon" || page === "lunar")
