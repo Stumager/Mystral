@@ -20,8 +20,8 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
 
 PRODUCTS = {
-    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 150,  "rub": "149.00", "days": 30},
-    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 1200, "rub": "990.00", "days": 365},
+    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 199,  "rub": "199.00", "days": 30},
+    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 1599, "rub": "1599.00", "days": 365},
 }
 
 

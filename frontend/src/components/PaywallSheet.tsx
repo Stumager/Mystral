@@ -79,7 +79,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
     finally { setLoading(null); }
   }
 
-  const price = plan === "year" ? "1500" : "190";
+  const price = plan === "year" ? "1599" : "199";
   const period = plan === "year" ? (ru ? "12 месяцев" : "12 months") : (ru ? "1 месяц" : "1 month");
 
   function PlanCard({ type, label, priceVal, sub, badge }: { type: "year" | "month"; label: string; priceVal: string; sub: string; badge?: string }) {
@@ -174,8 +174,8 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
           {/* Right — sticky */}
           <div style={{ position: "sticky", top: 10, padding: 28, borderRadius: 24, background: "radial-gradient(120% 80% at 50% 0%, #1A1440, #0C0A20)", border: "1px solid rgba(201,168,76,.24)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <PlanCard type="year" label={ru ? "Год" : "Year"} priceVal="1500" sub={ru ? "всего 125 Stars в месяц" : "only 125 Stars/month"} badge={ru ? "ВЫГОДНО −34%" : "SAVE −34%"} />
-              <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="190" sub={ru ? "гибкая отмена" : "flexible cancel"} />
+              <PlanCard type="year" label={ru ? "Год" : "Year"} priceVal="1599" sub={ru ? "всего 133 Stars в месяц" : "only 133 Stars/month"} badge={ru ? "ВЫГОДНО −33%" : "SAVE −33%"} />
+              <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="199" sub={ru ? "гибкая отмена" : "flexible cancel"} />
             </div>
             <div style={{ marginTop: 20 }}><BuyButton /></div>
             <Footnote />
@@ -222,7 +222,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
         {/* Plan selector */}
         <div style={{ marginTop: 26, display: "flex", gap: 12 }}>
           <PlanCard type="year" label={ru ? "Год" : "Year"} priceVal="1500" sub={ru ? "125 Stars в месяц" : "125 Stars/month"} badge={ru ? "ВЫГОДНО −34%" : "SAVE −34%"} />
-          <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="190" sub={ru ? "гибкая отмена" : "flexible cancel"} />
+          <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="199" sub={ru ? "гибкая отмена" : "flexible cancel"} />
         </div>
 
         {/* Buy button */}
