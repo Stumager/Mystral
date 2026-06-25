@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    LabeledPrice,
     Message,
     PreCheckoutQuery,
     WebAppInfo,
@@ -33,15 +34,41 @@ class SupportStates(StatesGroup):
     waiting_for_message = State()
 
 
+PLANS = {
+    "pay_month": {"title": "Mystral Pro — Месяц", "amount": 199, "payload_key": "pro_month"},
+    "pay_year":  {"title": "Mystral Pro — Год",   "amount": 1599, "payload_key": "pro_year"},
+}
+
+
+async def send_stars_invoice(message: Message, plan_key: str) -> None:
+    plan = PLANS.get(plan_key)
+    if not plan or not message.from_user:
+        return
+    payload = f"{plan['payload_key']}_{message.from_user.id}"
+    await message.answer_invoice(
+        title=plan["title"],
+        description="Безлимитные предсказания Mystral",
+        payload=payload,
+        currency="XTR",
+        prices=[LabeledPrice(label="Mystral Pro", amount=plan["amount"])],
+    )
+
+
 @dp.message(CommandStart(deep_link=True))
 async def cmd_start_deep(message: Message, state: FSMContext) -> None:
     if not message.from_user:
         return
     args = message.text or ""
-    if "support" in args:
+    deep = args.split(maxsplit=1)[1] if len(args.split()) > 1 else ""
+
+    if deep in PLANS:
+        await send_stars_invoice(message, deep)
+        return
+
+    if "support" in deep:
         await state.set_state(SupportStates.waiting_for_message)
         await message.answer(
-            "📩 Опиши свою проблему — я передам её команде Mystral.\n"
+            "Опиши свою проблему — я передам её команде Mystral.\n"
             "Обычно отвечаем в течение нескольких часов."
         )
         return

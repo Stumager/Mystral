@@ -49,7 +49,16 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(""), 3000); }
 
+  const isInTelegram = Boolean(twa()?.initData);
+
   async function handleBuy() {
+    if (!isInTelegram) {
+      const url = plan === "year"
+        ? "https://t.me/Mystrallbot?start=pay_year"
+        : "https://t.me/Mystrallbot?start=pay_month";
+      window.open(url, "_blank");
+      return;
+    }
     const product = plan === "year" ? "pro_year" : "pro_month";
     setLoading(product);
     try {
@@ -122,6 +131,11 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
         <p style={{ textAlign: "center", fontSize: 12, color: "#6E6757", marginTop: 14 }}>
           {ru ? `Оплата через Telegram Stars · ${period} · отмена в любой момент` : `Payment via Telegram Stars · ${period} · cancel anytime`}
         </p>
+        {!isInTelegram && (
+          <p style={{ fontSize: 12, color: "#8A8170", textAlign: "center", marginTop: 8 }}>
+            {ru ? "Откроется Telegram для оплаты через Stars" : "Opens Telegram for Stars payment"}
+          </p>
+        )}
         {!isTMA() && (
           <button onClick={handleYukassa} disabled={loading !== null} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
             {loading === "yukassa" ? "..." : (ru ? "Оплатить картой" : "Pay with card")}
