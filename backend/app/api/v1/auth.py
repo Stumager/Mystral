@@ -1,11 +1,12 @@
 import json
 import random
+import re
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -68,6 +69,50 @@ class ResetPasswordRequest(BaseModel):
 
 class ResendVerificationRequest(BaseModel):
     email: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ChangeEmailRequest(BaseModel):
+    new_email: str
+    password: str
+
+
+class ConfirmEmailChangeRequest(BaseModel):
+    code: str
+
+
+def _validate_password(password: str) -> str | None:
+    if len(password) < 8:
+        return "Пароль должен быть не менее 8 символов"
+    if not re.search(r'[A-Z]', password):
+        return "Пароль должен содержать заглавную букву"
+    if not re.search(r'[0-9]', password):
+        return "Пароль должен содержать цифру"
+    return None
+
+
+def _get_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def _check_ip_rate(ip: str, key_prefix: str, limit: int, window: int) -> None:
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        key = f"{key_prefix}:{ip}"
+        count = await r.incr(key)
+        if count == 1:
+            await r.expire(key, window)
+        if count > limit:
+            raise HTTPException(429, "Слишком много попыток. Подождите.")
+    finally:
+        await r.close()
 
 
 class MergeRequest(BaseModel):
@@ -158,9 +203,16 @@ async def auth_telegram(
 @router.post("/register")
 async def register(
     req: RegisterRequest,
+    request: Request,
     bg: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
+    await _check_ip_rate(_get_ip(request), "register", 5, 3600)
+
+    pwd_err = _validate_password(req.password)
+    if pwd_err:
+        raise HTTPException(400, pwd_err)
+
     from email_validator import validate_email, EmailNotValidError
     try:
         validate_email(req.email, check_deliverability=False)
@@ -198,9 +250,12 @@ async def register(
 @router.post("/login")
 async def login(
     req: LoginRequest,
+    request: Request,
     bg: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
+    await _check_ip_rate(_get_ip(request), "login_attempts", 10, 900)
+
     result = await session.exec(
         select(AuthProvider).where(
             AuthProvider.provider == "email",
@@ -294,9 +349,11 @@ async def resend_verification(
 @router.post("/forgot-password")
 async def forgot_password(
     req: ForgotPasswordRequest,
+    request: Request,
     bg: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
+    await _check_ip_rate(_get_ip(request), "forgot_pwd", 3, 3600)
     result = await session.exec(select(User).where(User.email == req.email))
     user = result.first()
     if user:
@@ -334,6 +391,93 @@ async def reset_password(
     user.reset_token = None
     user.reset_token_expires_at = None
     session.add(user)
+    await session.commit()
+    return {"status": "ok"}
+
+
+@router.post("/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(AuthProvider).where(AuthProvider.user_id == current_user.id, AuthProvider.provider == "email")
+    )
+    provider = result.first()
+    if not provider or not provider.password_hash:
+        raise HTTPException(400, "Аккаунт без пароля")
+    if not verify_password(req.current_password, provider.password_hash):
+        raise HTTPException(400, "Неверный текущий пароль")
+    pwd_err = _validate_password(req.new_password)
+    if pwd_err:
+        raise HTTPException(400, pwd_err)
+    provider.password_hash = hash_password(req.new_password)
+    session.add(provider)
+    await session.commit()
+    return {"status": "ok"}
+
+
+@router.post("/change-email")
+async def change_email(
+    req: ChangeEmailRequest,
+    bg: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(AuthProvider).where(AuthProvider.user_id == current_user.id, AuthProvider.provider == "email")
+    )
+    provider = result.first()
+    if not provider or not provider.password_hash:
+        raise HTTPException(400, "Аккаунт без пароля")
+    if not verify_password(req.password, provider.password_hash):
+        raise HTTPException(400, "Неверный пароль")
+
+    existing = await session.exec(select(User).where(User.email == req.new_email))
+    if existing.first():
+        raise HTTPException(400, "Email уже используется")
+
+    code = str(random.randint(100000, 999999))
+    current_user.pending_email = req.new_email
+    current_user.pending_email_code = code
+    current_user.pending_email_expires_at = datetime.utcnow() + timedelta(minutes=15)
+    session.add(current_user)
+    await session.commit()
+
+    bg.add_task(send_verification_email, req.new_email, code)
+    return {"status": "verification_required"}
+
+
+@router.post("/confirm-email-change")
+async def confirm_email_change(
+    req: ConfirmEmailChangeRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if not current_user.pending_email or not current_user.pending_email_code:
+        raise HTTPException(400, "Нет ожидающей смены email")
+    if current_user.pending_email_expires_at and current_user.pending_email_expires_at < datetime.utcnow():
+        raise HTTPException(400, "Код истёк")
+    if current_user.pending_email_code != req.code:
+        raise HTTPException(400, "Неверный код")
+
+    old_email = current_user.email
+    current_user.email = current_user.pending_email
+    current_user.email_verified = True
+    current_user.pending_email = None
+    current_user.pending_email_code = None
+    current_user.pending_email_expires_at = None
+    session.add(current_user)
+
+    provider_result = await session.exec(
+        select(AuthProvider).where(AuthProvider.user_id == current_user.id, AuthProvider.provider == "email")
+    )
+    provider = provider_result.first()
+    if provider:
+        provider.provider_id = current_user.email
+        session.add(provider)
+
     await session.commit()
     return {"status": "ok"}
 

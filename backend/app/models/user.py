@@ -20,6 +20,9 @@ class User(SQLModel, table=True):
     verification_code_expires_at: Optional[datetime] = None
     reset_token: Optional[str] = None
     reset_token_expires_at: Optional[datetime] = None
+    pending_email: Optional[str] = None
+    pending_email_code: Optional[str] = None
+    pending_email_expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

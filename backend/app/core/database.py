@@ -49,6 +49,9 @@ async def create_db_and_tables() -> None:
             ("verification_code_expires_at", "TIMESTAMP"),
             ("reset_token", "VARCHAR(64)"),
             ("reset_token_expires_at", "TIMESTAMP"),
+            ("pending_email", "VARCHAR"),
+            ("pending_email_code", "VARCHAR(6)"),
+            ("pending_email_expires_at", "TIMESTAMP"),
         ]:
             await conn.execute(text(
                 f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {ctype}"

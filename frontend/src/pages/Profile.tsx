@@ -50,6 +50,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifTz, setNotifTz] = useState("Europe/Moscow");
+
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [curPw, setCurPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmNewPw, setConfirmNewPw] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
@@ -463,6 +470,59 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </div>
           )}
         </Card>
+
+        {/* Security */}
+        {providers.includes("email") && (
+          <Card>
+            <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
+              {lang === "ru" ? "Безопасность" : "Security"}
+            </p>
+            {!showChangePw ? (
+              <Button variant="ghost" size="sm" className="w-full mt-3" onClick={() => setShowChangePw(true)}>
+                {lang === "ru" ? "Изменить пароль" : "Change password"}
+              </Button>
+            ) : (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, animation: "mystral-fadeup .25s ease-out" }}>
+                <input type="password" placeholder={lang === "ru" ? "Текущий пароль" : "Current password"}
+                  value={curPw} onChange={e => { setCurPw(e.target.value); setPwError(""); }} style={inputStyle} />
+                <input type="password" placeholder={lang === "ru" ? "Новый пароль" : "New password"}
+                  value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); }} style={inputStyle} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {[
+                    { ok: newPw.length >= 8, t: lang === "ru" ? "8 символов" : "8 characters" },
+                    { ok: /[A-Z]/.test(newPw), t: lang === "ru" ? "Заглавная буква" : "Uppercase letter" },
+                    { ok: /[0-9]/.test(newPw), t: lang === "ru" ? "Цифра" : "Digit" },
+                  ].map(c => (
+                    <span key={c.t} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.t}</span>
+                  ))}
+                </div>
+                <input type="password" placeholder={lang === "ru" ? "Подтвердить" : "Confirm"}
+                  value={confirmNewPw} onChange={e => { setConfirmNewPw(e.target.value); setPwError(""); }}
+                  style={{ ...inputStyle, borderColor: confirmNewPw && confirmNewPw !== newPw ? "rgba(196,84,84,.4)" : undefined }} />
+                {pwError && <p style={{ color: "#D98A8A", fontSize: 12 }}>{pwError}</p>}
+                <div className="flex gap-2">
+                  <Button variant="primary" size="sm" className="flex-1" disabled={pwSaving || newPw.length < 8 || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || confirmNewPw !== newPw}
+                    onClick={async () => {
+                      setPwSaving(true); setPwError("");
+                      try {
+                        const res = await fetch("/api/v1/auth/change-password", { method: "POST", headers: authHeaders(), body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
+                        const d = await res.json();
+                        if (!res.ok) { setPwError(d.detail || "Error"); return; }
+                        showToast(lang === "ru" ? "Пароль изменён" : "Password changed");
+                        setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw("");
+                      } catch { setPwError("Error"); }
+                      finally { setPwSaving(false); }
+                    }}>
+                    {pwSaving ? "..." : lang === "ru" ? "Сохранить" : "Save"}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw(""); setPwError(""); }}>
+                    {t("profile.cancel")}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Settings */}
         <Card>

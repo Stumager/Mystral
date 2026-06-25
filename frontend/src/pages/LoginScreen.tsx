@@ -16,6 +16,8 @@ export function LoginScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -161,9 +163,9 @@ export function LoginScreen() {
           />
           {errors.email && <p className={errCls}>{errors.email}</p>}
         </div>
-        <div>
+        <div style={{ position: "relative" }}>
           <input
-            type="password"
+            type={showPw ? "text" : "password"}
             placeholder={t("login.password")}
             value={password}
             onChange={e => { setPassword(e.target.value); clearFieldError("password"); }}
@@ -171,8 +173,37 @@ export function LoginScreen() {
             className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
             style={inputStyle}
           />
+          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#6E6757", cursor: "pointer", fontSize: 14 }}>
+            {showPw ? "◠" : "◡"}
+          </button>
           {errors.password && <p className={errCls}>{errors.password}</p>}
         </div>
+        {mode === "register" && (
+          <>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPw ? "text" : "password"}
+                placeholder="Подтвердить пароль"
+                value={confirmPw}
+                onChange={e => setConfirmPw(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
+                style={{ ...inputStyle, borderColor: confirmPw && confirmPw !== password ? "rgba(196,84,84,.4)" : undefined }}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
+              {[
+                { ok: password.length >= 8, text: "Минимум 8 символов" },
+                { ok: /[A-Z]/.test(password), text: "Заглавная буква" },
+                { ok: /[0-9]/.test(password), text: "Цифра" },
+                { ok: confirmPw.length > 0 && confirmPw === password, text: "Пароли совпадают" },
+              ].map(c => (
+                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#6E6757" }}>
+                  {c.ok ? "✓" : "✗"} {c.text}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
 
         {error && (
           <p className="text-red-400 text-xs text-center">{error}</p>
@@ -182,7 +213,7 @@ export function LoginScreen() {
           variant="primary"
           className="w-full mt-1"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || (mode === "register" && (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || confirmPw !== password))}
         >
           {loading ? "..." : mode === "login" ? t("login.submit_login") : t("login.submit_register")}
         </Button>
