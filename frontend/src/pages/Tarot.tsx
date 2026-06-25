@@ -165,7 +165,7 @@ export function Tarot({ onNavigate }: TarotProps) {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-lg shrink-0">{s.icon}</span>
+                      <span className="shrink-0" style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(201,168,76,.08)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#C9A84C" }}>{s.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-cormorant text-text-primary" style={{ fontSize: 16 }}>

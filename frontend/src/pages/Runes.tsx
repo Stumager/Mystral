@@ -194,7 +194,7 @@ export function Runes({ onNavigate }: RunesProps) {
                 <button key={s.id} onClick={() => selectSpread(s)}
                   className="text-left transition-all"
                   style={{ display: "flex", gap: 16, padding: "18px 20px", borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
-                  <span className="text-lg shrink-0">{s.icon}</span>
+                  <span className="shrink-0" style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(201,168,76,.08)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#C9A84C" }}>{s.icon}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{s.name}</span>
                     <p className="text-text-faint text-[10px] mt-0.5">{s.description}</p>
