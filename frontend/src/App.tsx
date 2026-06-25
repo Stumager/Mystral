@@ -30,9 +30,13 @@ function AppInner() {
   if (isLoading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07060F", gap: 20 }}>
-        <div style={{ filter: "drop-shadow(0 0 32px rgba(201,168,76,.6))", animation: "mystral-pulse-glow 1.8s ease-in-out infinite" }}>
+        <div style={{ animation: "mystral-logo-glow 2s ease-in-out infinite" }}>
           <Logo size={80} />
         </div>
+        <style>{`@keyframes mystral-logo-glow {
+          0%,100% { filter: drop-shadow(0 0 20px rgba(201,168,76,.4)) drop-shadow(0 0 40px rgba(201,168,76,.2)); }
+          50% { filter: drop-shadow(0 0 32px rgba(201,168,76,.8)) drop-shadow(0 0 60px rgba(201,168,76,.4)); }
+        }`}</style>
         <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".4em", color: "#E8CD7E", marginTop: 8 }}>MYSTRAL</span>
         <div style={{ display: "flex", gap: 6, marginTop: 16 }}>
           {[0, 0.2, 0.4].map((d, i) => (
