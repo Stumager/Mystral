@@ -187,6 +187,13 @@ export function LoginScreen() {
           {loading ? "..." : mode === "login" ? t("login.submit_login") : t("login.submit_register")}
         </Button>
 
+        {mode === "login" && (
+          <button onClick={() => { window.location.hash = "forgot-password"; window.location.reload(); }}
+            style={{ fontSize: 13, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", marginTop: 4, alignSelf: "center" }}>
+            Забыли пароль?
+          </button>
+        )}
+
         {/* Divider */}
         <div className="flex items-center gap-3 my-1">
           <div className="flex-1 h-px" style={{ background: "rgba(140,110,255,0.15)" }} />

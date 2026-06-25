@@ -18,6 +18,8 @@ class User(SQLModel, table=True):
     email_verified: bool = Field(default=False)
     verification_code: Optional[str] = None
     verification_code_expires_at: Optional[datetime] = None
+    reset_token: Optional[str] = None
+    reset_token_expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

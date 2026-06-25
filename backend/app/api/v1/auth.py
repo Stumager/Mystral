@@ -1,5 +1,6 @@
 import json
 import random
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -12,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
-from app.core.email import send_verification_email
+from app.core.email import send_reset_email, send_verification_email
 from app.core.security import (
     create_jwt,
     hash_password,
@@ -54,6 +55,15 @@ class TelegramLinkRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     email: str
     code: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 class ResendVerificationRequest(BaseModel):
@@ -279,6 +289,53 @@ async def resend_verification(
     bg.add_task(send_verification_email, req.email, code)
 
     return {"status": "sent"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    req: ForgotPasswordRequest,
+    bg: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(select(User).where(User.email == req.email))
+    user = result.first()
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_token_expires_at = datetime.utcnow() + timedelta(hours=1)
+        session.add(user)
+        await session.commit()
+        bg.add_task(send_reset_email, req.email, token)
+    return {"status": "sent"}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    req: ResetPasswordRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(select(User).where(User.reset_token == req.token))
+    user = result.first()
+    if not user:
+        raise HTTPException(400, "Недействительная ссылка")
+    if user.reset_token_expires_at and user.reset_token_expires_at < datetime.utcnow():
+        raise HTTPException(400, "Ссылка устарела. Запросите новую")
+    if len(req.new_password) < 8:
+        raise HTTPException(400, "Пароль должен быть не менее 8 символов")
+
+    provider_result = await session.exec(
+        select(AuthProvider).where(AuthProvider.user_id == user.id, AuthProvider.provider == "email")
+    )
+    provider = provider_result.first()
+    if provider:
+        provider.password_hash = hash_password(req.new_password)
+        session.add(provider)
+
+    user.reset_token = None
+    user.reset_token_expires_at = None
+    session.add(user)
+    await session.commit()
+    return {"status": "ok"}
 
 
 @router.get("/me")

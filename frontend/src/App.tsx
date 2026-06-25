@@ -7,6 +7,8 @@ import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Admin } from "./pages/Admin";
 import { Compatibility } from "./pages/Compatibility";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
 import { LunarCalendar } from "./pages/LunarCalendar";
@@ -42,6 +44,11 @@ function AppInner() {
   }
 
   if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin") return <Admin />;
+
+  if (window.location.search.includes("token=")) return <ResetPassword />;
+
+  const hash = window.location.hash.replace(/\/+$/, "");
+  if (hash === "#forgot-password") return <ForgotPassword onBack={() => { window.location.hash = ""; window.location.reload(); }} />;
 
   if (!user) return <LoginScreen />;
 

@@ -47,6 +47,8 @@ async def create_db_and_tables() -> None:
             ("email_verified", "BOOLEAN DEFAULT FALSE"),
             ("verification_code", "VARCHAR(6)"),
             ("verification_code_expires_at", "TIMESTAMP"),
+            ("reset_token", "VARCHAR(64)"),
+            ("reset_token_expires_at", "TIMESTAMP"),
         ]:
             await conn.execute(text(
                 f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {ctype}"
