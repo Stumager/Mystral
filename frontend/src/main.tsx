@@ -16,3 +16,9 @@ if (twa) {
   twa.ready();
   twa.expand();
 }
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

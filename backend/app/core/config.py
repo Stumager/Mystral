@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     admin_token: str = ""
     resend_api_key: str = ""
     smtp_from: str = "noreply@mail.mystral.space"
+    vapid_private_key: str = ""
+    vapid_public_key: str = ""
+    vapid_claims_email: str = "mailto:noreply@mail.mystral.space"
 
 
 settings = Settings()

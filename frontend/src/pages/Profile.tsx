@@ -4,6 +4,7 @@ import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button, Card } from "../components/ui";
 import { TIMEZONES } from "../constants/timezones";
 import { useAuth } from "../context/AuthContext";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 import { isTMA } from "../utils/telegram";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 import { getZodiacSign } from "../utils/zodiac";
@@ -256,6 +257,36 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   };
   void 0; // inputCls removed — using inputStyle instead
 
+  const push = usePushNotifications();
+
+  function PushToggle() {
+    if (!push.supported) return null;
+    const statusText = push.permission === "denied"
+      ? (lang === "ru" ? "Заблокированы в браузере" : "Blocked in browser")
+      : push.subscribed
+        ? (lang === "ru" ? "Подключены" : "Connected")
+        : (lang === "ru" ? "Выключены" : "Off");
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.06)", marginTop: 14 }}>
+        <div>
+          <p style={{ fontSize: 14, color: "#F0E9DA" }}>{lang === "ru" ? "Push в браузере" : "Browser push"}</p>
+          <p style={{ fontSize: 12, color: "#8A8170" }}>{statusText}</p>
+        </div>
+        {push.subscribed ? (
+          <button onClick={push.unsubscribe} className="w-10 h-5 rounded-full relative" style={{ background: "linear-gradient(90deg,#8A6E2E,#C9A84C)" }}>
+            <span className="block w-4 h-4 rounded-full bg-white absolute top-0.5" style={{ left: 22 }} />
+          </button>
+        ) : push.permission !== "denied" ? (
+          <button onClick={push.subscribe} style={{ height: 34, padding: "0 14px", borderRadius: 8, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontSize: 13, cursor: "pointer" }}>
+            {lang === "ru" ? "Включить" : "Enable"}
+          </button>
+        ) : (
+          <span style={{ fontSize: 11, color: "#6E6757" }}>{lang === "ru" ? "Разрешить в настройках" : "Allow in settings"}</span>
+        )}
+      </div>
+    );
+  }
+
   const firstLetter = (user?.name ?? "?")[0]?.toUpperCase() ?? "?";
   const zodiac = form.year && form.month && form.day
     ? getZodiacSign(`${form.year}-${form.month.padStart(2, "0")}-${form.day.padStart(2, "0")}`)
@@ -469,6 +500,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
               </select>
             </div>
           )}
+          <PushToggle />
         </Card>
 
         {/* Security */}

@@ -52,6 +52,7 @@ class UserProfile(SQLModel, table=True):
     full_name: Optional[str] = None
     timezone: Optional[str] = None
     notifications_enabled: bool = Field(default=False)
+    push_subscription: Optional[str] = None  # JSON string of PushSubscription
 
 
 class TarotReading(SQLModel, table=True):
