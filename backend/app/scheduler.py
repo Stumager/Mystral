@@ -41,9 +41,11 @@ def _format_message(text: str, sign: str, lang: str) -> str:
 
 
 async def _send_tg_message(http: httpx.AsyncClient, chat_id: int, text: str) -> bool:
+    webapp_url = settings.telegram_webapp_url
     keyboard = {
         "inline_keyboard": [[
-            {"text": "Открыть Mystral ✨", "url": "https://t.me/Mystrallbot/app"}
+            {"text": "Открыть Mystral", "web_app": {"url": webapp_url}} if webapp_url
+            else {"text": "Открыть Mystral", "url": "https://t.me/Mystrallbot/app"}
         ]]
     }
     resp = await http.post(
