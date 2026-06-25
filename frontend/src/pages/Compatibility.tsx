@@ -383,7 +383,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               </Card>
             ) : (
               <Button variant="primary" className="w-full" onClick={handleInterpret} disabled={interpretLoading}>
-                {interpretLoading ? "..." : (lang === "ru" ? "AI интерпретация ✦" : "AI interpretation ✦")}
+                {interpretLoading ? "..." : (lang === "ru" ? "AI интерпретация" : "AI interpretation")}
               </Button>
             )}
 

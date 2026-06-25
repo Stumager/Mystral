@@ -218,7 +218,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {chart.stelliums.length > 0 && chart.stelliums.map((s, i) => (
               <div key={i} className="rounded-xl px-4 py-3" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)" }}>
                 <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
-                  ✦ {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {lang === "ru" ? s.name_ru : s.name_en}
+                  * {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {lang === "ru" ? s.name_ru : s.name_en}
                 </span>
                 <p className="text-text-muted text-xs mt-1">{(lang === "ru" ? s.planets_ru : s.planets_en).join(", ")}</p>
               </div>

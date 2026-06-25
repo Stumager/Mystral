@@ -14,14 +14,14 @@ const twa = () => (window as any).Telegram?.WebApp;
 const isTMA = () => Boolean(twa()?.initData);
 
 const BENEFITS_RU = [
-  { icon: "✦", title: "Безлимитные расклады Таро", desc: "Все колоды и развороты без ограничений" },
+  { icon: "*", title: "Безлимитные расклады Таро", desc: "Все колоды и развороты без ограничений" },
   { icon: "◎", title: "Полная натальная карта", desc: "Аспекты, дома и AI-интерпретация" },
   { icon: "♡", title: "Глубокая совместимость", desc: "Синастрия по всем планетам" },
   { icon: "🔔", title: "Персональные прогнозы", desc: "Уведомления по вашей карте каждый день" },
   { icon: "☽", title: "Лунный календарь Pro", desc: "Детальные рекомендации на каждый день" },
 ];
 const BENEFITS_EN = [
-  { icon: "✦", title: "Unlimited Tarot spreads", desc: "All decks and spreads without limits" },
+  { icon: "*", title: "Unlimited Tarot spreads", desc: "All decks and spreads without limits" },
   { icon: "◎", title: "Full natal chart", desc: "Aspects, houses and AI interpretation" },
   { icon: "♡", title: "Deep compatibility", desc: "Synastry across all planets" },
   { icon: "🔔", title: "Personal forecasts", desc: "Daily notifications based on your chart" },

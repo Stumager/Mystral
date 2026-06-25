@@ -94,7 +94,7 @@ export function RightPanel() {
           className="rounded-xl px-3 py-2.5 flex items-center gap-2"
           style={{ background: "rgba(201,168,76,0.08)", border: "0.5px solid rgba(201,168,76,0.2)" }}
         >
-          <span style={{ color: "#C9A84C" }}>✦</span>
+          <span style={{ color: "#C9A84C" }}>Pro</span>
           <span className="text-xs font-display" style={{ color: "#C9A84C" }}>Mystral Pro</span>
         </div>
       ) : (

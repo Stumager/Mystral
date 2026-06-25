@@ -111,7 +111,7 @@ export function LoginScreen() {
         className="font-display text-5xl font-light tracking-widest mb-2"
         style={{ color: "#F0EAFF" }}
       >
-        ✦ Mystral
+        MYSTRAL
       </h1>
       <p className="text-text-muted text-xs tracking-widest uppercase mb-10">
         {t("login.subtitle")}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./i18n";
 import { AppLayout } from "./components/layout/AppLayout";
+import { Logo } from "./components/Logo";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -26,13 +27,16 @@ function AppInner() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-dark)" }}>
-        <span
-          className="font-cinzel text-2xl tracking-[.3em] animate-pulse"
-          style={{ color: "#E8CD7E" }}
-        >
-          MYSTRAL
-        </span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07060F", gap: 20 }}>
+        <div style={{ filter: "drop-shadow(0 0 32px rgba(201,168,76,.6))", animation: "mystral-pulse-glow 1.8s ease-in-out infinite" }}>
+          <Logo size={80} />
+        </div>
+        <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".4em", color: "#E8CD7E", marginTop: 8 }}>MYSTRAL</span>
+        <div style={{ display: "flex", gap: 6, marginTop: 16 }}>
+          {[0, 0.2, 0.4].map((d, i) => (
+            <span key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A84C", animation: `mystral-fadeup .6s ease-out infinite ${d}s` }} />
+          ))}
+        </div>
       </div>
     );
   }

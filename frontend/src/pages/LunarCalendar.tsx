@@ -37,7 +37,7 @@ const ENERGY_BG: Record<string, string> = {
 
 const TABS = ["work", "love", "money", "beauty", "spiritual", "dreams"] as const;
 type Tab = typeof TABS[number];
-const TAB_ICONS: Record<Tab, string> = { work: "⚒", love: "♡", money: "✦", beauty: "✧", spiritual: "☉", dreams: "☽" };
+const TAB_ICONS: Record<Tab, string> = { work: "⚒", love: "♡", money: "$", beauty: "✧", spiritual: "☉", dreams: "☽" };
 
 export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const { t } = useTranslation();
@@ -123,7 +123,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
             <div style={{ borderRadius: 18, padding: "16px 20px", background: ENERGY_BG[today.energy], border: `1px solid ${ENERGY_COLORS[today.energy]}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <span style={{ fontSize: 14, color: ENERGY_COLORS[today.energy] }}>
-                  {today.day_symbol === "Лампада" || today.day_symbol === "Lamp" ? "✧" : "✦"}
+                  {today.day_symbol === "Лампада" || today.day_symbol === "Lamp" ? "✧" : "*"}
                 </span>
                 <span className="font-cormorant" style={{ fontSize: 16, color: ENERGY_COLORS[today.energy] }}>
                   {"«"}{today.day_symbol}{"»"} — {today.day_title}

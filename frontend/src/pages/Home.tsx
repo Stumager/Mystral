@@ -173,7 +173,7 @@ export function Home({ onNavigate }: HomeProps) {
         <div className="flex flex-col lg:grid lg:grid-cols-3" style={{ marginTop: 18, gap: 11 }}>
           {bars.map(b => <ProgressBar key={b.label} {...b} />)}
         </div>
-        {!expanded && horoscope && (
+        {horoscope.length > 200 && !expanded && (
           <button onClick={() => setExpanded(true)} style={{ marginTop: 18, width: "100%", height: 46, borderRadius: 13, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontWeight: 500, fontSize: 13.5 }}>
             {ru ? "Читать полностью" : "Read full"}
           </button>

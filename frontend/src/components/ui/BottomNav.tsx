@@ -12,10 +12,10 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
   const active = activeProp !== undefined ? activeProp : internalActive;
 
   const items = [
-    { id: "home",    label: t("nav.home"),    emoji: "🏠" },
-    { id: "tarot",   label: t("nav.tarot"),   emoji: "🃏" },
-    { id: "moon",    label: t("nav.moon"),    emoji: "🌙" },
-    { id: "profile", label: t("nav.profile"), emoji: "☽" },
+    { id: "home",    label: t("nav.home"),    icon: "⌂" },
+    { id: "tarot",   label: t("nav.tarot"),   icon: "☰" },
+    { id: "moon",    label: t("nav.moon"),    icon: "☽" },
+    { id: "profile", label: t("nav.profile"), icon: "○" },
   ];
 
   function handleClick(id: string) {
@@ -36,7 +36,7 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
         backdropFilter: "blur(18px)",
       }}
     >
-      {items.map(({ id, label, emoji }) => {
+      {items.map(({ id, label, icon }) => {
         const isActive = active === id;
         return (
           <button
@@ -45,7 +45,7 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
             className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors duration-200"
             style={{ color: isActive ? "#E8CD7E" : "var(--text-muted)" }}
           >
-            <span className="text-lg leading-none">{emoji}</span>
+            <span className="text-lg leading-none">{icon}</span>
             <span className="text-[10px] font-sans">{label}</span>
             {isActive && (
               <span
