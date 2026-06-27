@@ -1,7 +1,10 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime, timedelta
+
+_CLEAN_RE = re.compile(r'[^ -~ -\xffЀ-ӿ\n\r\t«»„""\'\'–—…°%№♈-♓☽✦★{}:,\[\]"]')
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -74,7 +77,7 @@ async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncS
             max_tokens=2000,
             temperature=0.7,
         )
-        raw = resp.choices[0].message.content or ""
+        raw = _CLEAN_RE.sub('', resp.choices[0].message.content or "")
         start = raw.find("{")
         end = raw.rfind("}") + 1
         if start >= 0 and end > start:
