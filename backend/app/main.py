@@ -47,6 +47,9 @@ async def lifespan(_app: FastAPI):
     )
     scheduler.start()
     logger.info("Scheduler started: daily_horoscope (*/5min), subscription_reminders (12:00 UTC)")
+    import asyncio
+    from app.core.seo_generator import warm_seo_cache
+    asyncio.create_task(warm_seo_cache())
     yield
     scheduler.shutdown()
     await close_redis()
@@ -101,9 +104,3 @@ app.include_router(api_router)
 from app.api.v1.seo_pages import router as seo_router
 app.include_router(seo_router)
 
-import asyncio
-from app.core.seo_generator import warm_seo_cache
-
-@app.on_event("startup")
-async def seo_warmup():
-    asyncio.create_task(warm_seo_cache())
