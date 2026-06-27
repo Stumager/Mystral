@@ -280,14 +280,21 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
         {/* Step 2: Type selection */}
         {step === "types" && selectedPartner && (
           <div className="flex flex-col gap-3">
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
-              <div className="font-cormorant" style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#F0E9DA", background: "linear-gradient(135deg,#4B3C86,#C9A84C)" }}>
-                {selectedPartner.name[0]?.toUpperCase()}
+            {/* Pair visualization */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 16 }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", border: "2px solid rgba(201,168,76,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>
+                <span className="font-cormorant" style={{ fontSize: 28, color: "#0C0A18", fontWeight: 600 }}>{(user?.name ?? "?")[0]?.toUpperCase()}</span>
               </div>
-              <div>
-                <p className="text-text-primary text-sm">{selectedPartner.name}</p>
-                <p className="text-text-faint text-[10px]">{selectedPartner.zodiac_symbol} {lang === "ru" ? selectedPartner.zodiac_sign_ru : selectedPartner.zodiac_sign}</p>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,rgba(201,168,76,.3),rgba(138,127,192,.3))", border: "1.5px solid rgba(201,168,76,.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 -12px", zIndex: 3 }}>
+                <span style={{ fontSize: 14, color: "#E8CD7E" }}>♡</span>
               </div>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(225deg,#4B3C86,#C9A84C)", border: "2px solid rgba(201,168,76,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>
+                <span className="font-cormorant" style={{ fontSize: 28, color: "#0C0A18", fontWeight: 600 }}>{selectedPartner.name[0]?.toUpperCase()}</span>
+              </div>
+            </div>
+            <div style={{ textAlign: "center", marginBottom: 12 }}>
+              <p style={{ fontSize: 14, color: "#F0E9DA" }}>{user?.name ?? "?"} & {selectedPartner.name}</p>
+              <p style={{ fontSize: 12, color: "#8A8170", marginTop: 2 }}>{lang === "ru" ? selectedPartner.zodiac_sign_ru : selectedPartner.zodiac_sign}</p>
             </div>
 
             <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{lang === "ru" ? "Выбери тип анализа" : "Choose analysis type"}</p>

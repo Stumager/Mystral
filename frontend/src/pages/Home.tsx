@@ -131,14 +131,16 @@ export function Home({ onNavigate }: HomeProps) {
           <span className="font-cinzel" style={{ fontSize: 14, letterSpacing: ".3em", color: "#E8CD7E" }}>MYSTRAL</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <button onClick={() => onNavigate("profile")} style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.16)", color: "#C9A84C", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>🔔</button>
+          <button onClick={() => onNavigate("profile")} style={{ height: 34, padding: "0 14px", borderRadius: 99, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "#C9A84C", fontSize: 14 }}>
+            ♪ <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C9A84C", boxShadow: "0 0 6px rgba(201,168,76,.8)" }} />
+          </button>
           {!isPro && (
             <button onClick={() => setShowPaywall(true)} className="font-sans" style={{ height: 38, padding: "0 14px", borderRadius: 11, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontSize: 12, fontWeight: 600, letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 4, border: "none" }}>PRO</button>
           )}
         </div>
       </header>
 
-      <div style={{ padding: "10px 22px 0" }}>
+      <div style={{ padding: "6px 22px 0" }}>
         <p className="font-cinzel italic" style={{ fontSize: 14, color: "#A89E8B" }}>{dayName} · {getTimeOfDay(lang)}</p>
         <p className="font-cormorant" style={{ fontSize: 31, color: "#F0E9DA", lineHeight: 1.08, marginTop: 2 }}>
           {getGreetingWord(lang)}, {user?.name ?? t("profile.guest")}
@@ -146,12 +148,12 @@ export function Home({ onNavigate }: HomeProps) {
       </div>
 
       {/* Zodiac + Horoscope — grid on desktop */}
-      <div className="lg:grid lg:gap-5" style={{ marginTop: 16, padding: "0 22px" }} >
+      <div className="lg:grid lg:gap-5" style={{ marginTop: 12, padding: "0 22px" }} >
         <style>{`.lg\\:grid { grid-template-columns: 300px 1fr; } @media(max-width:1023px) { .lg\\:grid { display:block !important; } }`}</style>
 
-        {/* Zodiac */}
-        <div className="lg:rounded-3xl lg:p-5 lg:text-center" style={{ position: "relative", padding: "6px 0 2px", textAlign: "center" }}>
-          <ZodiacGlyph sign={userSign} size={236} />
+        {/* Zodiac — hero level */}
+        <div className="lg:rounded-3xl lg:p-5 lg:text-center" style={{ position: "relative", padding: "6px 0 2px", textAlign: "center", background: "radial-gradient(140% 100% at 50% 0%, #1C1650 0%, #0F0A2E 40%, transparent 100%)", borderRadius: 22, border: "1px solid rgba(201,168,76,.28)", boxShadow: "0 0 80px rgba(75,60,134,.25), 0 0 40px rgba(201,168,76,.08)" }}>
+          <ZodiacGlyph sign={userSign} size={200} />
           <div style={{ marginTop: -8 }}>
             <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".34em", color: "#C9A84C" }}>{ru ? "ВАШ ЗНАК" : "YOUR SIGN"}</p>
             <p className="font-cormorant" style={{ fontSize: 42, color: "#F0E9DA", lineHeight: 1.02 }}>{zodiacLabel ?? t("home.zodiac_fallback")}</p>
@@ -181,6 +183,16 @@ export function Home({ onNavigate }: HomeProps) {
       </div>
       </div>{/* end grid wrapper */}
 
+      {/* Tarot CTA */}
+      <button onClick={() => onNavigate("tarot")} className="w-full text-left" style={{ margin: "12px 22px 0", width: "calc(100% - 44px)", padding: "16px 20px", borderRadius: 18, display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(100deg, rgba(75,60,134,.2), rgba(201,168,76,.08))", border: "1px solid rgba(201,168,76,.2)", cursor: "pointer" }}>
+        <span style={{ fontSize: 28, color: "#C9A84C", filter: "drop-shadow(0 0 8px rgba(201,168,76,.4))", flexShrink: 0 }}>☰</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{ru ? "Расклад дня" : "Daily spread"}</p>
+          <p style={{ fontSize: 12, color: "#8A8170" }}>{ru ? "Узнай что говорят карты" : "See what the cards say"}</p>
+        </div>
+        <span style={{ color: "#6E6757", marginLeft: "auto" }}>›</span>
+      </button>
+
       {/* Lunar — mobile only */}
       <button onClick={() => onNavigate("moon")} className="w-full text-left lg:hidden" style={{ margin: "14px 22px 0", width: "calc(100% - 44px)", padding: "18px 20px", borderRadius: 22, display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,rgba(58,76,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)" }}>
         <div style={{ animation: "mystral-pulse-glow 3.6s ease-in-out infinite", borderRadius: "50%", flexShrink: 0, width: 52, height: 52, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#A99BE0" }}>
@@ -203,11 +215,9 @@ export function Home({ onNavigate }: HomeProps) {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3" style={{ gap: 12, marginTop: 14 }}>
           {SECTIONS.map(s => (
-            <button key={s.id} onClick={() => onNavigate(s.id)} className="text-left" style={{ position: "relative", overflow: "hidden", padding: 16, borderRadius: 18, minHeight: 104, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
-              <div style={{ position: "absolute", top: -22, right: -20, width: 84, height: 84, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,168,76,.13),transparent 70%)" }} />
-              <span style={{ fontSize: 28, color: "#C9A84C", filter: "drop-shadow(0 0 8px rgba(201,168,76,.4))" }}>{s.icon}</span>
-              <p className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA", marginTop: 14, lineHeight: 1.1 }}>{ru ? s.label_ru : s.label_en}</p>
-              <p style={{ fontSize: 11, color: "#8A8170", marginTop: 2 }}>{ru ? s.desc_ru : s.desc_en}</p>
+            <button key={s.id} onClick={() => onNavigate(s.id)} className="text-left" style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 20, color: "#C9A84C", flexShrink: 0 }}>{s.icon}</span>
+              <span className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{ru ? s.label_ru : s.label_en}</span>
             </button>
           ))}
         </div>

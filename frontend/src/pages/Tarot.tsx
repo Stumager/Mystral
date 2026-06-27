@@ -151,15 +151,24 @@ export function Tarot({ onNavigate }: TarotProps) {
               {t("tarot.choose_spread")}
             </p>
             <div className="flex flex-col gap-2.5">
-              {SPREADS.map(s => (
+              {SPREADS.map(s => {
+                const accents: Record<string, string> = {
+                  card_of_day: "rgba(201,168,76,.15)", three_cards: "rgba(75,60,134,.2)",
+                  celtic_cross: "rgba(138,127,192,.15)", horseshoe: "rgba(110,154,138,.15)",
+                  relationship: "rgba(196,84,84,.12)", yes_no: "rgba(201,168,76,.1)",
+                  two_choices: "rgba(75,60,134,.15)", person: "rgba(138,127,192,.12)", year: "rgba(110,154,138,.12)",
+                };
+                const accent = accents[s.id] || "rgba(255,255,255,.03)";
+                return (
                 <div
                   key={s.id}
                   className="cursor-pointer transition-all active:scale-[0.98]"
                   style={{
                     padding: "18px 20px",
-                    borderRadius: 18,
-                    background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))",
+                    borderRadius: "0 18px 18px 0",
+                    background: accent,
                     border: "1px solid rgba(201,168,76,.13)",
+                    borderLeft: `3px solid ${accent.replace(/[\d.]+\)$/, ".6)")}`,
                   }}
                   onClick={() => selectSpread(s)}
                 >
@@ -185,7 +194,8 @@ export function Tarot({ onNavigate }: TarotProps) {
                     <span className="text-text-faint text-sm ml-2 shrink-0" style={{ color: "rgba(201,168,76,.4)" }}>{"›"}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

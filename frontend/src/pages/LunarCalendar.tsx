@@ -189,6 +189,13 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                       border: `1px solid ${tab === tb ? "rgba(201,168,76,.3)" : "rgba(201,168,76,.08)"}`,
                     }}>
                     <span>{TAB_ICONS[tb]}</span><span>{tabLabels[tb]}</span>
+                    <span style={{ display: "flex", gap: 2, marginLeft: 2 }}>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const seed = (today?.lunar_day ?? 1) * 7 + TABS.indexOf(tb) * 13 + 3;
+                        const val = ((seed * 31 + i * 17) % 5) + 1;
+                        return <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: i < val ? "#C9A84C" : "rgba(255,255,255,.1)", boxShadow: i < val ? "0 0 4px rgba(201,168,76,.6)" : "none" }} />;
+                      })}
+                    </span>
                   </button>
                 ))}
               </div>

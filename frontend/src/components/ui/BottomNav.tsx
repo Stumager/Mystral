@@ -19,43 +19,24 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
   ];
 
   function handleClick(id: string) {
-    if (onNavigate) {
-      onNavigate(id);
-    } else if (activeProp === undefined) {
-      setInternalActive(id);
-    }
+    if (onNavigate) onNavigate(id);
+    else if (activeProp === undefined) setInternalActive(id);
   }
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 flex justify-around items-center md:hidden"
-      style={{
-        height: 56,
-        background: "rgba(7,6,15,0.94)",
-        borderTop: "1px solid var(--border-gold)",
-        backdropFilter: "blur(18px)",
-      }}
-    >
-      {items.map(({ id, label, icon }) => {
-        const isActive = active === id;
-        return (
-          <button
-            key={id}
-            onClick={() => handleClick(id)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors duration-200"
-            style={{ color: isActive ? "#E8CD7E" : "var(--text-muted)" }}
-          >
-            <span className="text-lg leading-none">{icon}</span>
-            <span className="text-[10px] font-sans">{label}</span>
-            {isActive && (
-              <span
-                className="rounded-full"
-                style={{ width: 4, height: 4, background: "#C9A84C" }}
-              />
-            )}
-          </button>
-        );
-      })}
+    <nav className="fixed bottom-0 left-0 right-0 lg:hidden" style={{ padding: "0 16px 20px", background: "linear-gradient(0deg, #07060F 50%, transparent)", pointerEvents: "none", zIndex: 40 }}>
+      <div style={{ display: "flex", gap: 4, background: "rgba(15,10,38,.92)", backdropFilter: "blur(24px)", border: "1px solid rgba(201,168,76,.18)", borderRadius: 99, padding: "6px 8px", boxShadow: "0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset", pointerEvents: "auto" }}>
+        {items.map(({ id, label, icon }) => {
+          const isActive = active === id;
+          return (
+            <button key={id} onClick={() => handleClick(id)}
+              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 99, cursor: "pointer", transition: ".2s", background: isActive ? "rgba(201,168,76,.15)" : "transparent", border: "none" }}>
+              <span style={{ fontSize: 22, lineHeight: 1, color: isActive ? "#E8CD7E" : "#6E6757", filter: isActive ? "drop-shadow(0 0 8px rgba(201,168,76,.5))" : "none" }}>{icon}</span>
+              <span className="font-cinzel" style={{ fontSize: 8, letterSpacing: ".1em", color: isActive ? "#E8CD7E" : "#6E6757" }}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 }
