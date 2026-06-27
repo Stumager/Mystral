@@ -30,9 +30,9 @@ export function BottomNav({ active: activeProp, onNavigate }: BottomNavProps) {
           const isActive = active === id;
           return (
             <button key={id} onClick={() => handleClick(id)}
-              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 99, cursor: "pointer", transition: ".2s", background: isActive ? "rgba(201,168,76,.15)" : "transparent", border: "none" }}>
-              <span style={{ fontSize: 22, lineHeight: 1, color: isActive ? "#E8CD7E" : "#6E6757", filter: isActive ? "drop-shadow(0 0 8px rgba(201,168,76,.5))" : "none" }}>{icon}</span>
-              <span className="font-cinzel" style={{ fontSize: 8, letterSpacing: ".1em", color: isActive ? "#E8CD7E" : "#6E6757" }}>{label}</span>
+              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: isActive ? "8px 16px" : "8px 4px", borderRadius: 99, cursor: "pointer", transition: ".2s", background: isActive ? "rgba(201,168,76,.18)" : "transparent", border: isActive ? "1px solid rgba(201,168,76,.35)" : "1px solid transparent" }}>
+              <span style={{ fontSize: 22, lineHeight: 1, color: isActive ? "#E8CD7E" : "#6E6757", filter: isActive ? "drop-shadow(0 0 10px rgba(201,168,76,.7))" : "none" }}>{icon}</span>
+              <span className="font-cinzel" style={{ fontSize: 8, letterSpacing: ".1em", color: isActive ? "#E8CD7E" : "#6E6757", fontWeight: isActive ? 600 : 400 }}>{label}</span>
             </button>
           );
         })}

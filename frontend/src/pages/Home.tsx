@@ -132,7 +132,7 @@ export function Home({ onNavigate }: HomeProps) {
         </div>
         <div className="flex items-center gap-2.5">
           <button onClick={() => onNavigate("profile")} style={{ height: 34, padding: "0 14px", borderRadius: 99, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "#C9A84C", fontSize: 14 }}>
-            ♪ <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C9A84C", boxShadow: "0 0 6px rgba(201,168,76,.8)" }} />
+            🔔 <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C9A84C", boxShadow: "0 0 6px rgba(201,168,76,.8)" }} />
           </button>
           {!isPro && (
             <button onClick={() => setShowPaywall(true)} className="font-sans" style={{ height: 38, padding: "0 14px", borderRadius: 11, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontSize: 12, fontWeight: 600, letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 4, border: "none" }}>PRO</button>
