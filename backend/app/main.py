@@ -97,3 +97,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
+from app.api.v1.seo_pages import router as seo_router
+app.include_router(seo_router)

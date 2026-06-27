@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /zodiac/
+Allow: /tarot/
+Allow: /runes/
+Allow: /numerology/
+Disallow: /admin
+Disallow: /api/
+Sitemap: https://mystral.space/sitemap.xml

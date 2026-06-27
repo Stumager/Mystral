@@ -1,0 +1,10 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Руны","item":"https://mystral.space/runes"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">Главная</a> › Руны{% endblock %}
+{% block content %}
+<h1>Руны Старшего Футарка — значение и толкование</h1>
+<p>24 руны Старшего Футарка с подробным значением, толкованием в гадании и применением в магических ставах.</p>
+<div class="links" style="margin-top:24px">{% for r in runes %}<a href="/runes/{{ r.slug }}" style="text-align:center;padding:18px"><span style="display:block;font-size:32px;color:#A99BE0">{{ r.symbol }}</span><span style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#F0E9DA">{{ r.name }}</span></a>{% endfor %}</div>
+{% endblock %}

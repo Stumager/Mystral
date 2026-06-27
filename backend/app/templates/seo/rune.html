@@ -1,0 +1,24 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+{% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Руны","item":"https://mystral.space/runes"},{"@type":"ListItem","position":3,"name":"{{ rune.name }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">Главная</a> › <a href="/runes">Руны</a> › {{ rune.name }}{% endblock %}
+{% block content %}
+<h1>{{ h1 }}</h1>
+<div class="card" style="text-align:center">
+  <span style="font-size:72px;color:#A99BE0;filter:drop-shadow(0 0 20px rgba(169,155,224,.5))">{{ rune.symbol }}</span>
+  <p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.3em;color:#C9A84C;margin-top:12px">{{ rune.name|upper }}</p>
+  <p style="font-size:13px;color:#8A8170;margin-top:4px">{{ rune.aett }}-й атт</p>
+</div>
+<p>{{ content.intro }}</p>
+{% for sec in content.sections %}
+<h2>{{ sec.title }}</h2>
+<p>{{ sec.text }}</p>
+{% endfor %}
+{% endblock %}
+{% block links %}
+<h2>Все руны Футарка</h2>
+<div class="links">{% for r in all_runes %}<a href="/runes/{{ r.slug }}">{{ r.symbol }} {{ r.name }}</a>{% endfor %}</div>
+{% endblock %}

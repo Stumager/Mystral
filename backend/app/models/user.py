@@ -103,6 +103,17 @@ class Review(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class SeoContent(SQLModel, table=True):
+    __tablename__ = "seo_content"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    page_type: str = Field(index=True)
+    slug: str = Field(index=True)
+    lang: str = Field(default="ru")
+    content: str = ""
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserPartner(SQLModel, table=True):
     __tablename__ = "user_partners"
 

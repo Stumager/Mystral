@@ -1,0 +1,15 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Карты Таро","item":"https://mystral.space/tarot"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">Главная</a> › Карты Таро{% endblock %}
+{% block content %}
+<h1>Карты Таро — значение всех 78 карт</h1>
+<p>Полный справочник карт Таро: 22 Старших Аркана и 56 Младших Арканов с подробным значением в прямом и обратном положении.</p>
+<h2>Старшие Арканы</h2>
+<div class="links">{% for c in major %}<a href="/tarot/{{ c.slug }}">{{ c.name_ru }}</a>{% endfor %}</div>
+{% for suit, suit_ru, cards in suits %}
+<h2>{{ suit_ru }}</h2>
+<div class="links">{% for c in cards %}<a href="/tarot/{{ c.slug }}">{{ c.name_ru }}</a>{% endfor %}</div>
+{% endfor %}
+{% endblock %}
