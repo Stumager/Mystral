@@ -33,6 +33,8 @@ export function Admin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
+  const [tab, setTab] = useState<"users" | "reviews">("users");
+  const [reviews, setReviews] = useState<{ id: string; user_name: string; user_email: string | null; rating: number; text: string | null; is_published: boolean; created_at: string | null }[]>([]);
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(search), 400);
@@ -50,7 +52,11 @@ export function Admin() {
     } catch {}
   }, [page, searchDebounced]);
 
-  useEffect(() => { if (authed) { loadStats(); loadUsers(); } }, [authed, loadStats, loadUsers]);
+  const loadReviews = useCallback(async () => {
+    try { setReviews(await apiFetch("/admin/reviews")); } catch {}
+  }, []);
+
+  useEffect(() => { if (authed) { loadStats(); loadUsers(); loadReviews(); } }, [authed, loadStats, loadUsers, loadReviews]);
 
   async function handleLogin() {
     sessionStorage.setItem("admin_token", tokenInput);
@@ -75,6 +81,16 @@ export function Admin() {
     if (!window.confirm(`Удалить пользователя ${label}?`)) return;
     await apiFetch(`/admin/users/${id}`, { method: "DELETE" });
     loadUsers(); loadStats();
+  }
+
+  async function publishReview(id: string) {
+    await apiFetch(`/admin/reviews/${id}/publish`, { method: "POST" });
+    loadReviews();
+  }
+  async function deleteReview(id: string) {
+    if (!window.confirm("Удалить отзыв?")) return;
+    await apiFetch(`/admin/reviews/${id}`, { method: "DELETE" });
+    loadReviews();
   }
 
   function logout() { sessionStorage.removeItem("admin_token"); location.reload(); }
@@ -152,10 +168,20 @@ export function Admin() {
   return (
     <div style={cs}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(201,168,76,.12)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(201,168,76,.12)", flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Logo size={22} />
           <span className="font-cinzel" style={{ fontSize: 11, letterSpacing: ".25em", color: "#E8CD7E" }}>ADMIN</span>
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {(["users", "reviews"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              padding: "6px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer",
+              background: tab === t ? "rgba(201,168,76,.15)" : "transparent",
+              border: tab === t ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
+              color: tab === t ? "#E8CD7E" : "#A89E8B",
+            }}>{t === "users" ? "Пользователи" : "Отзывы"}</button>
+          ))}
         </div>
         <button onClick={logout} style={{ padding: "6px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 12, cursor: "pointer" }}>
           Выйти
@@ -163,6 +189,51 @@ export function Admin() {
       </div>
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 40px" }}>
+
+        {/* ===== REVIEWS TAB ===== */}
+        {tab === "reviews" && (
+          <div>
+            <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 16 }}>
+              На модерации ({reviews.filter(r => !r.is_published).length}) · Опубликовано ({reviews.filter(r => r.is_published).length})
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {reviews.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Нет отзывов</p>}
+              {reviews.map(r => (
+                <div key={r.id} style={{ padding: 16, borderRadius: 14, background: "rgba(255,255,255,.025)", border: `1px solid ${r.is_published ? "rgba(110,154,138,.3)" : "rgba(255,255,255,.06)"}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <div>
+                      <span style={{ fontSize: 14, color: "#F0E9DA", fontWeight: 500 }}>{r.user_name || "?"}</span>
+                      {r.user_email && <span style={{ fontSize: 12, color: "#8A8170", marginLeft: 8 }}>{r.user_email}</span>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span key={i} style={{ fontSize: 14, color: i < r.rating ? "#C9A84C" : "rgba(201,168,76,.2)" }}>★</span>
+                      ))}
+                      <span className="font-cinzel" style={{
+                        fontSize: 10, padding: "2px 8px", borderRadius: 99, marginLeft: 8,
+                        background: r.is_published ? "rgba(110,154,138,.15)" : "rgba(201,168,76,.1)",
+                        color: r.is_published ? "#6E9A8A" : "#C9A84C",
+                      }}>{r.is_published ? "PUB" : "MOD"}</span>
+                    </div>
+                  </div>
+                  {r.text && <p style={{ fontSize: 13, color: "#B6AC98", lineHeight: 1.5 }}>{r.text}</p>}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "#6E6757" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {!r.is_published && (
+                        <button onClick={() => publishReview(r.id)} style={actionBtn("#6E9A8A", "rgba(110,154,138,.4)")}>Опубликовать</button>
+                      )}
+                      <button onClick={() => deleteReview(r.id)} style={actionBtn("#D98A8A", "rgba(196,84,84,.3)")}>Удалить</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== USERS TAB ===== */}
+        {tab === "users" && <>
         {/* Stats — 2 cols on mobile, 4 on desktop */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 20 }} className="admin-stats-grid">
           {statCards.map(s => (
@@ -246,6 +317,7 @@ export function Admin() {
             ))}
           </div>
         )}
+        </>}
       </div>
 
       <style>{`
