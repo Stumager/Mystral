@@ -15,7 +15,7 @@ from app.data.seo_data import (
 )
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent.parent / "templates"))
 TODAY = lambda: date.today().isoformat()
 
 
