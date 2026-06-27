@@ -10,9 +10,12 @@
 <meta property="og:description" content="{{ description }}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="{{ canonical }}">
-<meta property="og:image" content="https://mystral.space/icons/icon-192.svg">
+<meta property="og:image" content="{{ og_image|default('https://mystral.space/icons/icon-192.svg') }}">
 <meta property="og:site_name" content="Mystral">
 <meta name="twitter:card" content="summary">
+<meta name="robots" content="index, follow">
+<!-- Google Analytics: GA_MEASUREMENT_ID -->
+<!-- Яндекс.Метрика: YANDEX_COUNTER_ID -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

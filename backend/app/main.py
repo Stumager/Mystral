@@ -100,3 +100,10 @@ app.include_router(api_router)
 
 from app.api.v1.seo_pages import router as seo_router
 app.include_router(seo_router)
+
+import asyncio
+from app.core.seo_generator import warm_seo_cache
+
+@app.on_event("startup")
+async def seo_warmup():
+    asyncio.create_task(warm_seo_cache())

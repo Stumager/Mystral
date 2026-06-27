@@ -7,9 +7,12 @@
 {% block breadcrumbs %}<a href="/">Главная</a> › <a href="/zodiac">Знаки зодиака</a> › {{ sign.name }}{% endblock %}
 {% block content %}
 <h1>{{ h1 }}</h1>
-<div class="card">
-  <p style="font-size:13px;color:#C9A84C">{{ sign.dates }} · {{ sign.element }} · {{ sign.ruler }}</p>
-  <p style="margin-top:12px">Камень: {{ sign.stone }} · Цвет: {{ sign.color }} · Тип: {{ sign.modality }}</p>
+<div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+  <img src="/zodiac/{{ sign.slug }}/constellation.svg" alt="Созвездие {{ sign.name }} — знак зодиака" width="200" height="200" loading="lazy" style="border-radius:16px;flex-shrink:0">
+  <div style="flex:1;min-width:200px">
+    <p style="font-size:13px;color:#C9A84C">{{ sign.dates }} · {{ sign.element }} · {{ sign.ruler }}</p>
+    <p style="margin-top:12px">Камень: {{ sign.stone }} · Цвет: {{ sign.color }} · Тип: {{ sign.modality }}</p>
+  </div>
 </div>
 <p>{{ content.intro }}</p>
 {% for sec in content.sections %}

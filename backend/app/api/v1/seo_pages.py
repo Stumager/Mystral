@@ -38,10 +38,11 @@ async def zodiac_sign(slug: str, request: Request, session: AsyncSession = Depen
     content = await get_seo_content("zodiac", slug, sign, session)
     return templates.TemplateResponse("seo/zodiac_sign.html", {
         "request": request, "sign": sign, "content": content, "all_signs": ZODIAC_SIGNS,
-        "h1": f"Знак зодиака {sign['name']}",
+        "h1": f"{sign['name']} — знак зодиака: характер и гороскоп",
         "title": f"{sign['name']} — характеристика, гороскоп и совместимость | Mystral",
-        "description": f"{sign['name']} — знак {sign['element']} ({sign['dates']}). Характер, совместимость, карьера и любовь. Персональный гороскоп на Mystral.",
+        "description": f"{sign['name']} — знак {sign['element']} ({sign['dates']}). Характер, совместимость, карьера и любовь. Персональный гороскоп, натальная карта и расклады Таро бесплатно на Mystral — эзотерической платформе.",
         "canonical": f"https://mystral.space/zodiac/{slug}",
+        "og_image": f"https://mystral.space/zodiac/{slug}/constellation.svg",
         "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
         "today": TODAY(),
     })
@@ -131,6 +132,44 @@ async def numerology_page(slug: str, request: Request, session: AsyncSession = D
         "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
         "today": TODAY(),
     })
+
+
+CONSTELLATIONS = {
+    "aries": {"pts": [[28,48],[45,38],[68,30]], "lines": [[0,1],[1,2]], "bright": [2]},
+    "taurus": {"pts": [[22,20],[40,45],[28,58],[22,52],[50,58],[52,72],[60,40]], "lines": [[0,1],[1,2],[2,3],[1,4],[4,5],[3,5],[0,6]], "bright": [0,5]},
+    "gemini": {"pts": [[42,16],[60,18],[38,30],[34,48],[28,65],[64,30],[70,48],[72,65]], "lines": [[0,1],[0,2],[2,3],[3,4],[1,5],[5,6],[6,7]], "bright": [0,1]},
+    "cancer": {"pts": [[48,18],[48,38],[54,52],[72,60],[28,72],[50,72]], "lines": [[0,1],[1,2],[2,3],[2,5],[5,4]], "bright": [4]},
+    "leo": {"pts": [[78,18],[72,22],[65,32],[60,44],[55,58],[45,70],[58,52],[42,42],[22,38]], "lines": [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]], "bright": [3,5,8]},
+    "virgo": {"pts": [[68,18],[62,32],[48,48],[30,42],[22,28],[32,68],[62,62],[75,72]], "lines": [[0,1],[1,2],[2,3],[3,4],[3,5],[2,6],[6,7]], "bright": [2,5]},
+    "libra": {"pts": [[35,28],[62,20],[45,62],[68,55],[20,55]], "lines": [[0,1],[1,3],[0,4],[0,2],[2,3]], "bright": [0,2]},
+    "scorpio": {"pts": [[28,22],[42,20],[58,22],[45,32],[35,42],[28,52],[22,62],[20,72],[22,80],[30,86],[40,88],[50,84],[58,78],[65,72],[70,68]], "lines": [[0,1],[1,2],[1,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14]], "bright": [4,13]},
+    "sagittarius": {"pts": [[22,50],[28,35],[35,28],[45,35],[32,55],[45,58],[60,52],[68,40],[22,58]], "lines": [[8,0],[0,4],[4,5],[5,6],[6,7],[0,1],[1,2],[2,3],[3,7],[1,4]], "bright": [2,4,6]},
+    "capricorn": {"pts": [[25,32],[58,22],[22,55],[45,50],[72,42],[42,68]], "lines": [[0,1],[1,4],[4,5],[5,2],[2,0],[0,3],[3,4],[2,3]], "bright": [1,4]},
+    "aquarius": {"pts": [[30,28],[48,22],[65,32],[58,42],[72,55],[42,50],[38,65],[28,58]], "lines": [[0,1],[1,2],[2,3],[3,4],[3,5],[5,6],[5,7],[1,5]], "bright": [1,2]},
+    "pisces": {"pts": [[22,62],[15,52],[18,42],[26,36],[34,42],[30,55],[44,58],[55,42],[65,28],[75,25],[80,35],[78,45],[68,52],[56,55]], "lines": [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,6]], "bright": [3,6,9]},
+}
+
+
+@router.get("/zodiac/{slug}/constellation.svg", response_class=Response)
+async def constellation_svg(slug: str):
+    c = CONSTELLATIONS.get(slug)
+    if not c:
+        raise HTTPException(404)
+    sign = ZODIAC_BY_SLUG.get(slug, {})
+    lines_svg = "".join(f'<line x1="{c["pts"][a][0]}" y1="{c["pts"][a][1]}" x2="{c["pts"][b][0]}" y2="{c["pts"][b][1]}" stroke="rgba(201,168,76,.5)" stroke-width="1"/>' for a, b in c["lines"])
+    dots_svg = "".join(
+        f'<circle cx="{p[0]}" cy="{p[1]}" r="{"2.8" if i in c["bright"] else "1.6"}" fill="#F0D680"/>'
+        f'<circle cx="{p[0]}" cy="{p[1]}" r="{"8" if i in c["bright"] else "5"}" fill="none" stroke="rgba(240,214,128,.25)" stroke-width="1" opacity="{"0.28" if i in c["bright"] else "0.15"}"/>'
+        for i, p in enumerate(c["pts"])
+    )
+    svg = f'''<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="300" height="300" style="background:radial-gradient(circle,#1C1650,#07060F)">
+<defs><filter id="g"><feGaussianBlur stdDeviation="2"/></filter></defs>
+<circle cx="50" cy="50" r="45" fill="none" stroke="rgba(201,168,76,.12)" stroke-width=".5" stroke-dasharray="1 5"/>
+<g filter="url(#g)" opacity=".6">{lines_svg}{dots_svg}</g>
+<g>{lines_svg}{dots_svg}</g>
+<text x="50" y="94" text-anchor="middle" font-family="Cinzel,serif" font-size="5" letter-spacing=".2em" fill="#C9A84C">{sign.get("name","").upper()}</text>
+</svg>'''
+    return Response(content=svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/sitemap.xml", response_class=Response)
