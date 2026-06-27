@@ -13,62 +13,62 @@ interface ConstellationData {
 
 const CONSTELLATIONS: Record<string, ConstellationData> = {
   aries: {
-    points: [[30,65],[42,52],[55,28],[80,48]],
-    lines: [[0,1],[1,2],[2,3]],
+    points: [[28,48],[45,38],[68,30]],
+    lines: [[0,1],[1,2]],
     bright: [2],
   },
   taurus: {
-    points: [[18,22],[44,35],[48,50],[52,60],[38,42],[82,15],[56,52]],
-    lines: [[0,4],[4,1],[1,2],[2,3],[3,6],[4,5]],
-    bright: [3,5],
+    points: [[22,20],[40,45],[28,58],[22,52],[50,58],[52,72],[60,40]],
+    lines: [[0,1],[1,2],[2,3],[1,4],[4,5],[3,5],[0,6]],
+    bright: [0,5],
   },
   gemini: {
-    points: [[20,80],[28,68],[38,75],[42,52],[56,58],[58,35],[68,18],[78,25]],
-    lines: [[0,3],[3,5],[5,6],[2,4],[4,5],[5,7]],
-    bright: [6,7],
+    points: [[42,16],[60,18],[38,30],[34,48],[28,65],[64,30],[70,48],[72,65]],
+    lines: [[0,1],[0,2],[2,3],[3,4],[1,5],[5,6],[6,7]],
+    bright: [0,1],
   },
   cancer: {
-    points: [[28,68],[50,50],[46,32],[74,60]],
-    lines: [[0,1],[1,2],[1,3]],
-    bright: [0],
+    points: [[48,18],[48,38],[54,52],[72,60],[28,72],[50,72]],
+    lines: [[0,1],[1,2],[2,3],[2,5],[5,4]],
+    bright: [4],
   },
   leo: {
-    points: [[28,22],[30,32],[36,40],[42,48],[45,68],[38,55],[62,38],[68,50],[82,30]],
-    lines: [[0,1],[1,2],[2,3],[3,5],[5,4],[3,6],[6,7],[7,8]],
-    bright: [4,8],
+    points: [[78,18],[72,22],[65,32],[60,44],[55,58],[45,70],[58,52],[42,42],[22,38]],
+    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]],
+    bright: [3,5,8],
   },
   virgo: {
-    points: [[22,30],[34,40],[45,52],[52,78],[58,42],[65,28]],
-    lines: [[0,1],[1,2],[2,3],[2,4],[4,5]],
-    bright: [3],
+    points: [[68,18],[62,32],[48,48],[30,42],[22,28],[32,68],[62,62],[75,72]],
+    lines: [[0,1],[1,2],[2,3],[3,4],[3,5],[2,6],[6,7]],
+    bright: [2,5],
   },
   libra: {
-    points: [[30,62],[45,35],[65,40],[38,72],[62,70]],
-    lines: [[0,1],[1,2],[0,3],[3,4],[4,2]],
-    bright: [1],
+    points: [[35,28],[62,20],[45,62],[68,55],[20,55]],
+    lines: [[0,1],[1,3],[0,4],[0,2],[2,3]],
+    bright: [0,2],
   },
   scorpio: {
-    points: [[28,22],[35,28],[42,35],[48,42],[52,50],[56,58],[54,66],[48,74],[42,80],[36,82],[30,78],[26,72]],
-    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11]],
-    bright: [3,11],
+    points: [[28,22],[42,20],[58,22],[45,32],[35,42],[28,52],[22,62],[20,72],[22,80],[30,86],[40,88],[50,84],[58,78],[65,72],[70,68]],
+    lines: [[0,1],[1,2],[1,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14]],
+    bright: [4,13],
   },
   sagittarius: {
-    points: [[28,30],[35,48],[30,60],[50,30],[62,26],[72,38],[68,54],[55,58],[22,65]],
-    lines: [[0,1],[1,2],[2,8],[0,3],[3,4],[4,5],[5,6],[6,7],[7,2],[1,7]],
-    bright: [2,4],
+    points: [[22,50],[28,35],[35,28],[45,35],[32,55],[45,58],[60,52],[68,40],[22,58]],
+    lines: [[8,0],[0,4],[4,5],[5,6],[6,7],[0,1],[1,2],[2,3],[3,7],[1,4]],
+    bright: [2,4,6],
   },
   capricorn: {
-    points: [[20,42],[28,48],[38,68],[48,72],[60,65],[68,45],[75,40],[55,40]],
-    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]],
-    bright: [6],
+    points: [[25,32],[58,22],[22,55],[45,50],[72,42],[42,68]],
+    lines: [[0,1],[1,4],[4,5],[5,2],[2,0],[0,3],[3,4],[2,3]],
+    bright: [1,4],
   },
   aquarius: {
-    points: [[22,30],[38,25],[52,30],[60,40],[75,55],[46,48],[52,55],[46,38]],
-    lines: [[0,1],[1,7],[7,2],[2,3],[1,5],[5,6],[6,4],[3,4]],
+    points: [[30,28],[48,22],[65,32],[58,42],[72,55],[42,50],[38,65],[28,58]],
+    lines: [[0,1],[1,2],[2,3],[3,4],[3,5],[5,6],[5,7],[1,5]],
     bright: [1,2],
   },
   pisces: {
-    points: [[20,35],[22,22],[30,18],[38,25],[30,40],[22,45],[52,58],[55,40],[65,22],[75,32],[78,45],[70,52],[60,50]],
+    points: [[22,62],[15,52],[18,42],[26,36],[34,42],[30,55],[44,58],[55,42],[65,28],[75,25],[80,35],[78,45],[68,52],[56,55]],
     lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,6]],
     bright: [3,6,9],
   },
@@ -107,8 +107,6 @@ export function ZodiacGlyph({ sign, size = 236 }: ZodiacGlyphProps) {
 
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
-
-      {/* Layer 1 — rings */}
       <div style={{ position: "absolute", inset: 0, animation: "mystral-spin 90s linear infinite" }}>
         <svg viewBox="0 0 100 100" width={size} height={size} fill="none">
           <circle cx="50" cy="50" r="47" stroke="rgba(201,168,76,.16)" strokeWidth=".5" strokeDasharray="1 6" />
@@ -121,27 +119,17 @@ export function ZodiacGlyph({ sign, size = 236 }: ZodiacGlyphProps) {
         </svg>
       </div>
 
-      {/* Layer 2 — star particles */}
       {stars.map((s, i) => (
         <span key={i} style={{
-          position: "absolute",
-          left: `${s.x}%`, top: `${s.y}%`,
-          width: s.sz, height: s.sz,
-          borderRadius: "50%",
-          background: "#F0E9DA",
-          boxShadow: "0 0 6px rgba(240,233,218,.8)",
-          opacity: s.opacity,
-          animation: `mystral-twinkle ${2.5 + s.delay}s ease-in-out infinite ${s.delay}s`,
+          position: "absolute", left: `${s.x}%`, top: `${s.y}%`,
+          width: s.sz, height: s.sz, borderRadius: "50%",
+          background: "#F0E9DA", boxShadow: "0 0 6px rgba(240,233,218,.8)",
+          opacity: s.opacity, animation: `mystral-twinkle ${2.5 + s.delay}s ease-in-out infinite ${s.delay}s`,
         }} />
       ))}
 
-      {/* Layer 3 — center glow */}
-      <div style={{
-        position: "absolute", inset: "18%", borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(201,168,76,.22), transparent 68%)",
-      }} />
+      <div style={{ position: "absolute", inset: "18%", borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,.22), transparent 68%)" }} />
 
-      {/* Layer 4 — constellation */}
       <div style={{ position: "absolute", inset: 0, animation: "mystral-float 7s ease-in-out infinite" }}>
         <svg viewBox="0 0 100 100" width={size} height={size} fill="none"
           style={{ filter: "drop-shadow(0 0 5px rgba(240,214,128,.6))" }}>
@@ -150,11 +138,11 @@ export function ZodiacGlyph({ sign, size = 236 }: ZodiacGlyphProps) {
               stroke="rgba(201,168,76,.5)" strokeWidth="1" />
           ))}
           {c.points.map((p, i) => {
-            const isBright = c.bright.includes(i);
+            const bright = c.bright.includes(i);
             return (
               <g key={`p${i}`}>
-                <circle cx={p[0]} cy={p[1]} r={isBright ? 7 : 5} fill="none" stroke="rgba(240,214,128,.25)" strokeWidth={isBright ? 1.2 : .8} opacity={isBright ? .3 : .2} />
-                <circle cx={p[0]} cy={p[1]} r={isBright ? 2.8 : 1.6} fill="#F0D680" />
+                <circle cx={p[0]} cy={p[1]} r={bright ? 8 : 5} fill="none" stroke="rgba(240,214,128,.25)" strokeWidth={bright ? 1.2 : .8} opacity={bright ? .28 : .15} />
+                <circle cx={p[0]} cy={p[1]} r={bright ? 2.8 : 1.6} fill="#F0D680" />
               </g>
             );
           })}
