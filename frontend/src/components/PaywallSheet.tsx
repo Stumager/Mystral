@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../utils/api";
 import { Logo } from "./Logo";
+import { ReviewsBlock } from "./ReviewsBlock";
 
 interface PaywallSheetProps {
   open: boolean;
@@ -183,6 +184,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
                 </div>
               ))}
             </div>
+            <ReviewsBlock />
           </div>
 
           {/* Right — sticky */}
@@ -242,6 +244,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
         {/* Buy button */}
         <div style={{ marginTop: 20 }}><BuyButton /></div>
         <Footnote />
+        <ReviewsBlock />
       </div>
     </div>
   );
