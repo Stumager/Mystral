@@ -5,6 +5,7 @@ import { BottomNav, Button, Card } from "../components/ui";
 import { TIMEZONES } from "../constants/timezones";
 import { useAuth } from "../context/AuthContext";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { StarRating } from "../components/StarRating";
 import { isTMA } from "../utils/telegram";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 import { getZodiacSign } from "../utils/zodiac";
@@ -51,6 +52,11 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifTz, setNotifTz] = useState("Europe/Moscow");
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewExists, setReviewExists] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   const [showChangePw, setShowChangePw] = useState(false);
   const [curPw, setCurPw] = useState("");
@@ -114,6 +120,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         setExpiresAt(profileData.subscription_expires_at);
       })
       .catch(() => {});
+
+    if (token) {
+      fetch("/api/v1/reviews/my", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { if (d && d.rating) { setReviewRating(d.rating); setReviewText(d.text || ""); setReviewExists(true); } })
+        .catch(() => {});
+    }
   }, [token]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -501,6 +514,39 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             </div>
           )}
           <PushToggle />
+        </Card>
+
+        {/* Review */}
+        <Card>
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
+            {lang === "ru" ? "Мой отзыв" : "My review"}
+          </p>
+          <p className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA", marginTop: 12, marginBottom: 16 }}>
+            {lang === "ru" ? "Оцените Mystral" : "Rate Mystral"}
+          </p>
+          <StarRating value={reviewRating} onChange={setReviewRating} size={32} />
+          <textarea
+            value={reviewText} onChange={e => setReviewText(e.target.value.slice(0, 500))}
+            placeholder={lang === "ru" ? "Расскажите о вашем опыте..." : "Tell about your experience..."}
+            style={{ width: "100%", minHeight: 100, padding: "14px 16px", borderRadius: 14, resize: "none", background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 14, lineHeight: 1.6, marginTop: 16, outline: "none", boxSizing: "border-box" }}
+          />
+          <p style={{ textAlign: "right", fontSize: 11, color: "#6E6757", marginTop: 4 }}>{reviewText.length}/500</p>
+          <Button variant="primary" className="w-full" style={{ marginTop: 12 }}
+            disabled={reviewRating === 0 || reviewSaving}
+            onClick={async () => {
+              setReviewSaving(true);
+              try {
+                await fetch("/api/v1/reviews", { method: "POST", headers: authHeaders(), body: JSON.stringify({ rating: reviewRating, text: reviewText || null }) });
+                showToast(lang === "ru" ? "Отзыв отправлен на проверку" : "Review submitted for moderation");
+                setReviewExists(true);
+              } catch {}
+              finally { setReviewSaving(false); }
+            }}>
+            {reviewSaving ? "..." : reviewExists ? (lang === "ru" ? "Обновить отзыв" : "Update review") : (lang === "ru" ? "Опубликовать отзыв" : "Submit review")}
+          </Button>
+          <p style={{ fontSize: 12, color: "#6E6757", textAlign: "center", marginTop: 8 }}>
+            {lang === "ru" ? "Отзыв появится после проверки модератором" : "Review will appear after moderation"}
+          </p>
         </Card>
 
         {/* Security */}

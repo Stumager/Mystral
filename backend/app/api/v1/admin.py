@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
-from app.models.user import AuthProvider, User
+from app.models.user import AuthProvider, Review, User
 
 router = APIRouter()
 
@@ -112,8 +112,54 @@ async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
-    for table in ["auth_providers", "user_profiles", "tarot_readings", "rune_readings", "user_partners"]:
+    for table in ["auth_providers", "user_profiles", "tarot_readings", "rune_readings", "user_partners", "reviews"]:
         await session.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
     await session.delete(user)
+    await session.commit()
+    return {"ok": True}
+
+
+@router.get("/admin/reviews", dependencies=[Depends(is_admin)])
+async def admin_reviews(
+    published: Optional[bool] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    q = select(Review)
+    if published is not None:
+        q = q.where(Review.is_published == published)
+    rows = (await session.exec(q.order_by(Review.created_at.desc()))).all()
+
+    result = []
+    for r in rows:
+        user = await session.get(User, r.user_id)
+        result.append({
+            "id": str(r.id),
+            "user_name": user.display_name if user else "?",
+            "user_email": user.email if user else None,
+            "rating": r.rating,
+            "text": r.text,
+            "is_published": r.is_published,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+    return result
+
+
+@router.post("/admin/reviews/{review_id}/publish", dependencies=[Depends(is_admin)])
+async def publish_review(review_id: UUID, session: AsyncSession = Depends(get_session)):
+    review = await session.get(Review, review_id)
+    if not review:
+        raise HTTPException(404, "Review not found")
+    review.is_published = True
+    session.add(review)
+    await session.commit()
+    return {"ok": True}
+
+
+@router.delete("/admin/reviews/{review_id}", dependencies=[Depends(is_admin)])
+async def delete_review(review_id: UUID, session: AsyncSession = Depends(get_session)):
+    review = await session.get(Review, review_id)
+    if not review:
+        raise HTTPException(404, "Review not found")
+    await session.delete(review)
     await session.commit()
     return {"ok": True}

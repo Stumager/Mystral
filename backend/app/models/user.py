@@ -78,6 +78,18 @@ class RuneReading(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class Review(SQLModel, table=True):
+    __tablename__ = "reviews"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    rating: int = Field(ge=1, le=5)
+    text: Optional[str] = None
+    section: Optional[str] = None
+    is_published: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserPartner(SQLModel, table=True):
     __tablename__ = "user_partners"
 
