@@ -23,6 +23,9 @@ class User(SQLModel, table=True):
     pending_email: Optional[str] = None
     pending_email_code: Optional[str] = None
     pending_email_expires_at: Optional[datetime] = None
+    ref_code: Optional[str] = Field(default=None, index=True)
+    referred_by: Optional[UUID] = None
+    ref_bonus_days_given: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -75,6 +78,16 @@ class RuneReading(SQLModel, table=True):
     spread_type: str
     question: Optional[str] = None
     runes_json: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReferralLog(SQLModel, table=True):
+    __tablename__ = "referral_log"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    referrer_id: UUID = Field(foreign_key="users.id")
+    referred_id: UUID = Field(foreign_key="users.id")
+    bonus_days: int = Field(default=7)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

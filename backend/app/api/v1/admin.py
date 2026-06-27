@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
-from app.models.user import AuthProvider, Review, User
+from app.models.user import AuthProvider, ReferralLog, Review, User
 
 router = APIRouter()
 
@@ -164,3 +164,42 @@ async def delete_review(review_id: UUID, session: AsyncSession = Depends(get_ses
     await session.delete(review)
     await session.commit()
     return {"ok": True}
+
+
+@router.get("/admin/referrals/stats", dependencies=[Depends(is_admin)])
+async def admin_referral_stats(session: AsyncSession = Depends(get_session)):
+    total_q = await session.exec(select(func.count()).select_from(ReferralLog))
+    total = total_q.one()
+
+    days_q = await session.exec(select(func.coalesce(func.sum(ReferralLog.bonus_days), 0)).select_from(ReferralLog))
+    total_days = days_q.one()
+
+    top_q = (await session.exec(
+        select(User.id, User.display_name, User.email, User.ref_code, User.ref_bonus_days_given)
+        .where(User.ref_bonus_days_given > 0)
+        .order_by(User.ref_bonus_days_given.desc())
+        .limit(10)
+    )).all()
+
+    top = []
+    for row in top_q:
+        uid, name, email, code, days = row
+        cnt_q = await session.exec(select(func.count()).select_from(ReferralLog).where(ReferralLog.referrer_id == uid))
+        top.append({"name": name, "email": email, "ref_code": code, "referral_count": cnt_q.one(), "bonus_days": days or 0})
+
+    recent_q = (await session.exec(
+        select(ReferralLog).order_by(ReferralLog.created_at.desc()).limit(20)
+    )).all()
+
+    recent = []
+    for log in recent_q:
+        referrer = await session.get(User, log.referrer_id)
+        referred = await session.get(User, log.referred_id)
+        recent.append({
+            "referrer_name": referrer.display_name if referrer else "?",
+            "referred_name": referred.display_name if referred else "?",
+            "bonus_days": log.bonus_days,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+        })
+
+    return {"total_referrals": total, "total_bonus_days_given": int(total_days), "top_referrers": top, "recent": recent}

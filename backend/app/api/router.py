@@ -8,6 +8,7 @@ from app.api.v1.lunar import router as lunar_router
 from app.api.v1.natal import router as natal_router
 from app.api.v1.numerology import router as numerology_router
 from app.api.v1.push import router as push_router
+from app.api.v1.referrals import router as referrals_router
 from app.api.v1.reviews import router as reviews_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.profile import router as profile_router
@@ -30,3 +31,4 @@ api_router.include_router(runes_router, prefix="/v1", tags=["runes"])
 api_router.include_router(admin_router, prefix="/v1", tags=["admin"])
 api_router.include_router(push_router, prefix="/v1", tags=["push"])
 api_router.include_router(reviews_router, prefix="/v1", tags=["reviews"])
+api_router.include_router(referrals_router, prefix="/v1", tags=["referrals"])

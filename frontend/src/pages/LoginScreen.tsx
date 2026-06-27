@@ -81,8 +81,9 @@ export function LoginScreen() {
     try {
       const endpoint =
         mode === "login" ? "/api/v1/auth/login" : "/api/v1/auth/register";
-      const body =
-        mode === "login" ? { email, password } : { email, password, name };
+      const refCode = localStorage.getItem("mystral_ref_code");
+      const body: Record<string, unknown> =
+        mode === "login" ? { email, password } : { email, password, name, ref_code: refCode || undefined };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -92,6 +93,7 @@ export function LoginScreen() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error");
       if (data.status === "verification_required") { setPendingEmail(data.email); return; }
+      localStorage.removeItem("mystral_ref_code");
       login(data.access_token, data.user);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error");

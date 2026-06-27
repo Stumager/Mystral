@@ -53,6 +53,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifTz, setNotifTz] = useState("Europe/Moscow");
 
+  const [refData, setRefData] = useState<{ ref_code: string; ref_url: string; total_referrals: number; total_bonus_days: number; referrals: { name: string; bonus_days: number }[] } | null>(null);
+
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [reviewExists, setReviewExists] = useState(false);
@@ -122,6 +124,8 @@ export function Profile({ onNavigate }: ProfilePageProps) {
       .catch(() => {});
 
     if (token) {
+      fetch("/api/v1/referrals/my", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(setRefData).catch(() => {});
       fetch("/api/v1/reviews/my", { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => { if (d && d.rating) { setReviewRating(d.rating); setReviewText(d.text || ""); setReviewExists(true); } })
@@ -515,6 +519,50 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           )}
           <PushToggle />
         </Card>
+
+        {/* Referral */}
+        {refData && (
+          <div style={{ padding: 20, borderRadius: 18, background: "linear-gradient(120deg,#1B1546,#0C0A22)", border: "1px solid rgba(201,168,76,.24)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{lang === "ru" ? "Приглашай друзей" : "Invite friends"}</p>
+                <p style={{ fontSize: 13, color: "#A89E8B", marginTop: 4 }}>{lang === "ru" ? "+7 дней Pro за каждого" : "+7 days Pro per friend"}</p>
+                <p style={{ fontSize: 13, color: "#A89E8B" }}>{lang === "ru" ? "Друг получит +3 дня Pro" : "Friend gets +3 days Pro"}</p>
+              </div>
+              <span className="font-cinzel" style={{ fontSize: 11, color: "#E8CD7E", background: "rgba(201,168,76,.15)", border: "1px solid rgba(201,168,76,.3)", borderRadius: 99, padding: "4px 12px" }}>
+                {refData.total_referrals}
+              </span>
+            </div>
+            <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginTop: 16, marginBottom: 8 }}>
+              {lang === "ru" ? "Ваша ссылка" : "Your link"}
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input readOnly value={refData.ref_url} style={{ flex: 1, padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", color: "#E8CD7E", fontSize: 13, fontFamily: "monospace", outline: "none", minWidth: 0 }} />
+              <button onClick={() => { navigator.clipboard.writeText(refData.ref_url); showToast(lang === "ru" ? "Ссылка скопирована!" : "Link copied!"); }}
+                style={{ height: 44, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+                {lang === "ru" ? "Копировать" : "Copy"}
+              </button>
+            </div>
+            <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(refData.ref_url)}&text=${encodeURIComponent(lang === "ru" ? "Попробуй Mystral — эзотерическая платформа" : "Try Mystral — esoteric platform")}`, "_blank")}
+              style={{ width: "100%", height: 44, marginTop: 10, borderRadius: 12, border: "1px solid rgba(255,255,255,.1)", background: "transparent", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
+              {lang === "ru" ? "Поделиться в Telegram" : "Share on Telegram"}
+            </button>
+            {refData.referrals.length > 0 && (
+              <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 14 }}>
+                <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".15em", color: "#6E6757", textTransform: "uppercase", marginBottom: 8 }}>
+                  {lang === "ru" ? "Приглашённые" : "Invited"}
+                </p>
+                {refData.referrals.map((r, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#8A7FC0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#F0E9DA" }}>{r.name[0]}</div>
+                    <span style={{ fontSize: 13, color: "#B6AC98" }}>{r.name}</span>
+                    <span style={{ fontSize: 12, color: "#C9A84C", marginLeft: "auto" }}>+{r.bonus_days}д</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Review */}
         <Card>

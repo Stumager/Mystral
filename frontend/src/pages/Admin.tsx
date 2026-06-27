@@ -33,7 +33,8 @@ export function Admin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
-  const [tab, setTab] = useState<"users" | "reviews">("users");
+  const [tab, setTab] = useState<"users" | "reviews" | "referrals">("users");
+  const [refStats, setRefStats] = useState<{ total_referrals: number; total_bonus_days_given: number; top_referrers: { name: string; email: string; ref_code: string; referral_count: number; bonus_days: number }[]; recent: { referrer_name: string; referred_name: string; bonus_days: number; created_at: string | null }[] } | null>(null);
   const [reviews, setReviews] = useState<{ id: string; user_name: string; user_email: string | null; rating: number; text: string | null; is_published: boolean; created_at: string | null }[]>([]);
 
   useEffect(() => {
@@ -56,7 +57,11 @@ export function Admin() {
     try { setReviews(await apiFetch("/admin/reviews")); } catch {}
   }, []);
 
-  useEffect(() => { if (authed) { loadStats(); loadUsers(); loadReviews(); } }, [authed, loadStats, loadUsers, loadReviews]);
+  const loadRefStats = useCallback(async () => {
+    try { setRefStats(await apiFetch("/admin/referrals/stats")); } catch {}
+  }, []);
+
+  useEffect(() => { if (authed) { loadStats(); loadUsers(); loadReviews(); loadRefStats(); } }, [authed, loadStats, loadUsers, loadReviews, loadRefStats]);
 
   async function handleLogin() {
     sessionStorage.setItem("admin_token", tokenInput);
@@ -174,13 +179,13 @@ export function Admin() {
           <span className="font-cinzel" style={{ fontSize: 11, letterSpacing: ".25em", color: "#E8CD7E" }}>ADMIN</span>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
-          {(["users", "reviews"] as const).map(t => (
+          {(["users", "reviews", "referrals"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "6px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer",
               background: tab === t ? "rgba(201,168,76,.15)" : "transparent",
               border: tab === t ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
               color: tab === t ? "#E8CD7E" : "#A89E8B",
-            }}>{t === "users" ? "Пользователи" : "Отзывы"}</button>
+            }}>{t === "users" ? "Пользователи" : t === "reviews" ? "Отзывы" : "Рефералы"}</button>
           ))}
         </div>
         <button onClick={logout} style={{ padding: "6px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 12, cursor: "pointer" }}>
@@ -229,6 +234,55 @@ export function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ===== REFERRALS TAB ===== */}
+        {tab === "referrals" && refStats && (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+              <div style={{ padding: "14px 16px", borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+                <div className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase" }}>Рефералов</div>
+                <div className="font-cormorant" style={{ fontSize: 32, color: "#F0E9DA", lineHeight: 1, marginTop: 6 }}>{refStats.total_referrals}</div>
+              </div>
+              <div style={{ padding: "14px 16px", borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+                <div className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase" }}>Дней Pro</div>
+                <div className="font-cormorant" style={{ fontSize: 32, color: "#F0E9DA", lineHeight: 1, marginTop: 6 }}>{refStats.total_bonus_days_given}</div>
+              </div>
+            </div>
+            {refStats.top_referrers.length > 0 && (
+              <>
+                <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 10 }}>Топ рефереров</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+                  {refStats.top_referrers.map((r, i) => (
+                    <div key={i} style={{ padding: 14, borderRadius: 12, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                      <div>
+                        <span style={{ fontSize: 14, color: "#F0E9DA", fontWeight: 500 }}>{r.name || "?"}</span>
+                        {r.email && <span style={{ fontSize: 12, color: "#8A8170", marginLeft: 8 }}>{r.email}</span>}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 12, fontFamily: "monospace", background: "rgba(201,168,76,.1)", padding: "2px 8px", borderRadius: 6, color: "#C9A84C" }}>{r.ref_code}</span>
+                        <span style={{ fontSize: 13, color: "#F0E9DA" }}>{r.referral_count} чел</span>
+                        <span style={{ fontSize: 12, color: "#C9A84C" }}>+{r.bonus_days}д</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {refStats.recent.length > 0 && (
+              <>
+                <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 10 }}>Последние</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {refStats.recent.map((r, i) => (
+                    <div key={i} style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.02)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, flexWrap: "wrap", gap: 6 }}>
+                      <span style={{ color: "#B6AC98" }}>{r.referrer_name} → {r.referred_name}</span>
+                      <span style={{ color: "#6E6757" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

@@ -59,6 +59,23 @@ async def create_db_and_tables() -> None:
         await conn.execute(text(
             "ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS push_subscription TEXT"
         ))
+        for col, ctype in [
+            ("ref_code", "VARCHAR(10)"),
+            ("referred_by", "UUID"),
+            ("ref_bonus_days_given", "INTEGER DEFAULT 0"),
+        ]:
+            await conn.execute(text(
+                f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {ctype}"
+            ))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS referral_log (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                referrer_id UUID NOT NULL REFERENCES users(id),
+                referred_id UUID NOT NULL REFERENCES users(id),
+                bonus_days INTEGER NOT NULL DEFAULT 7,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """))
         for col, coltype in [
             ("zodiac_sign", "VARCHAR"), ("chinese_sign", "VARCHAR"),
             ("life_path", "INTEGER"), ("birth_lat", "FLOAT"),

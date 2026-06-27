@@ -47,6 +47,13 @@ function AppInner() {
     );
   }
 
+  // Handle ref links: /ref/CODE or #ref/CODE
+  const refMatch = window.location.pathname.match(/\/ref\/(\w+)/) || window.location.hash.match(/#ref\/(\w+)/);
+  if (refMatch) {
+    localStorage.setItem("mystral_ref_code", refMatch[1]);
+    window.history.replaceState(null, "", "/");
+  }
+
   if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin") return <Admin />;
 
   if (window.location.search.includes("token=")) return <ResetPassword />;
