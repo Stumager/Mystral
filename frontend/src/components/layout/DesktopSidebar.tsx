@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { getZodiacSign } from "../../utils/zodiac";
 import { Logo } from "../Logo";
-import { useEffect, useRef, useState } from "react";
 
 interface Props {
   activePage: string;
@@ -9,17 +10,18 @@ interface Props {
 }
 
 const NAV_ITEMS = [
-  { id: "home",       icon: "⌂",  label_ru: "Главная",        label_en: "Home" },
-  { id: "tarot",      icon: "☰",  label_ru: "Таро",           label_en: "Tarot" },
-  { id: "moon",       icon: "☽",  label_ru: "Луна",           label_en: "Moon" },
-  { id: "compat",     icon: "♡",  label_ru: "Совместимость",  label_en: "Compatibility" },
-  { id: "natal",      icon: "◎",  label_ru: "Натальная карта", label_en: "Natal Chart" },
-  { id: "numerology", icon: "#",  label_ru: "Нумерология",    label_en: "Numerology" },
-  { id: "runes",      icon: "ᚱ",  label_ru: "Руны",           label_en: "Runes" },
-  { id: "profile",    icon: "○",  label_ru: "Профиль",        label_en: "Profile" },
+  { id: "home",       icon: "⌂",  key: "nav.home" },
+  { id: "tarot",      icon: "☰",  key: "nav.tarot" },
+  { id: "moon",       icon: "☽",  key: "nav.moon" },
+  { id: "compat",     icon: "♡",  key: "nav.compat" },
+  { id: "natal",      icon: "◎",  key: "nav.natal" },
+  { id: "numerology", icon: "#",  key: "nav.numerology" },
+  { id: "runes",      icon: "ᚱ",  key: "nav.runes" },
+  { id: "profile",    icon: "○",  key: "nav.profile" },
 ];
 
 export function DesktopSidebar({ activePage, onNavigate }: Props) {
+  const { t } = useTranslation();
   const { user, token } = useAuth();
   const ru = (user?.lang ?? "ru") === "ru";
   const isPro = user?.tier === "pro";
@@ -62,7 +64,7 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
               color: isActive ? "#E8CD7E" : "#A89E8B", fontWeight: isActive ? 600 : 400,
             }}>
               <span style={{ fontSize: 20, width: 20, textAlign: "center" }}>{n.icon}</span>
-              <span style={{ fontSize: 13.5 }}>{ru ? n.label_ru : n.label_en}</span>
+              <span style={{ fontSize: 13.5 }}>{t(n.key)}</span>
             </button>
           );
         })}
@@ -73,7 +75,7 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
           <span className="font-cormorant" style={{ fontSize: 19, color: "#0C0A18", fontWeight: 600 }}>{firstLetter}</span>
         </div>
         <div>
-          <div style={{ fontSize: 13.5, color: "#F0E9DA", fontWeight: 500 }}>{user?.name ?? "Guest"}</div>
+          <div style={{ fontSize: 13.5, color: "#F0E9DA", fontWeight: 500 }}>{user?.name ?? t("profile.guest")}</div>
           <div style={{ fontSize: 11, color: "#C9A84C" }}>{zodiacLabel ?? "—"} · {isPro ? "Pro" : "Free"}</div>
         </div>
       </div>

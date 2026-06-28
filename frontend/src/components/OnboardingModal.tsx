@@ -31,7 +31,7 @@ const YEARS = Array.from({ length: CURRENT_YEAR - 1923 }, (_, i) => CURRENT_YEAR
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function OnboardingModal({ onClose }: Props) {
-  useTranslation();
+  const { t } = useTranslation();
   const { token, user, updateUser } = useAuth();
   const lang = user?.lang ?? "ru";
   const ru = lang === "ru";
@@ -104,7 +104,7 @@ export function OnboardingModal({ onClose }: Props) {
     }
   }
 
-  const btnTexts = [ru ? "Начать" : "Begin", ru ? "Далее" : "Next", ru ? "Далее" : "Next", ru ? "Войти в Mystral" : "Enter Mystral"];
+  const btnTexts = [t("onboarding.begin"), t("onboarding.next"), t("onboarding.next"), t("onboarding.enter_mystral")];
   const canNext = step === 0 || step === 2 || step === 3 || (step === 1 && !!day && !!month && !!year);
 
   const fieldStyle = (gold?: boolean): React.CSSProperties => ({
@@ -126,7 +126,7 @@ export function OnboardingModal({ onClose }: Props) {
         </div>
         {step < 3 && (
           <button onClick={onClose} style={{ fontSize: 13, color: "#8A8170", cursor: "pointer", background: "none", border: "none" }}>
-            {ru ? "Пропустить" : "Skip"}
+            {t("onboarding.skip")}
           </button>
         )}
       </div>
@@ -143,10 +143,10 @@ export function OnboardingModal({ onClose }: Props) {
               </div>
               <p className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".4em", color: "#E8CD7E", marginTop: 30 }}>MYSTRAL</p>
               <p className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", lineHeight: 1.1, marginTop: 14 }}>
-                {ru ? <>Язык звёзд<br />в одном ритуале</> : <>Language of stars<br />in one ritual</>}
+                {t("onboarding.welcome_title")}
               </p>
               <p style={{ fontSize: 15, lineHeight: 1.7, color: "#A89E8B", margin: "16px auto 0", maxWidth: 380 }}>
-                {ru ? "Гороскопы, Таро, руны, нумерология и натальная карта — древняя мудрость в дорогой огранке." : "Horoscopes, Tarot, runes, numerology and natal chart — ancient wisdom in precious framing."}
+                {t("onboarding.welcome_desc")}
               </p>
             </>
           )}
@@ -155,10 +155,10 @@ export function OnboardingModal({ onClose }: Props) {
           {step === 1 && (
             <>
               <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
-                {ru ? "Когда вы родились?" : "When were you born?"}
+                {t("onboarding.when_born")}
               </p>
               <p style={{ fontSize: 14, color: "#A89E8B", margin: "10px auto 28px", maxWidth: 340 }}>
-                {ru ? "Дата рождения определяет вашу натальную карту и положение планет." : "Birth date determines your natal chart and planet positions."}
+                {t("onboarding.birth_determines")}
               </p>
 
               {/* Hidden time input */}
@@ -173,7 +173,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {DAYS.map(d => <option key={d} value={String(d)}>{d}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "ДЕНЬ" : "DAY"}</div>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.day_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{day || "—"}</div>
                 </div>
 
@@ -184,7 +184,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {(ru ? MONTHS_RU : MONTHS_EN).slice(1).map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "МЕСЯЦ" : "MONTH"}</div>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.month_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>
                     {month ? (ru ? MONTHS_RU[Number(month)] : MONTHS_EN[Number(month)]) : "—"}
                   </div>
@@ -197,7 +197,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {YEARS.map(y => <option key={y} value={String(y)}>{y}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{ru ? "ГОД" : "YEAR"}</div>
+                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.year_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{year || "—"}</div>
                 </div>
               </div>
@@ -208,7 +208,7 @@ export function OnboardingModal({ onClose }: Props) {
 
               <button onClick={() => timeRef.current?.showPicker?.()}
                 style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
-                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{ru ? "Время рождения" : "Birth time"}</span>
+                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{t("onboarding.birth_time")}</span>
                 <span className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA" }}>
                   {hour ? `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}` : "—"}
                 </span>
@@ -220,27 +220,27 @@ export function OnboardingModal({ onClose }: Props) {
           {step === 2 && (
             <>
               <p className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA", lineHeight: 1.1, marginTop: 24 }}>
-                {ru ? "Где вы родились?" : "Where were you born?"}
+                {t("onboarding.where_born")}
               </p>
               <p style={{ fontSize: 14, color: "#A89E8B", margin: "10px auto 28px", maxWidth: 340 }}>
-                {ru ? "Место и часовой пояс нужны для точного расчёта домов гороскопа." : "Location and timezone are needed for precise house calculations."}
+                {t("onboarding.place_needed")}
               </p>
 
               {cityInput ? (
                 <input autoFocus value={city} onChange={e => setCity(e.target.value)} onBlur={() => { if (!city) setCityInput(false); }}
-                  placeholder={ru ? "Введите город..." : "Enter city..."} style={{ width: "100%", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 16, outline: "none" }} />
+                  placeholder={t("onboarding.enter_city")} style={{ width: "100%", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 16, outline: "none" }} />
               ) : (
                 <button onClick={() => setCityInput(true)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", cursor: "pointer", textAlign: "left" }}>
                   <div>
-                    <div style={{ fontSize: 11, color: "#6E6757", letterSpacing: ".06em", textTransform: "uppercase" }}>{ru ? "ГОРОД" : "CITY"}</div>
-                    <div style={{ fontSize: 16, color: city ? "#F0E9DA" : "#6E6757", marginTop: 1 }}>{city || (ru ? "Выберите город" : "Select city")}</div>
+                    <div style={{ fontSize: 11, color: "#6E6757", letterSpacing: ".06em", textTransform: "uppercase" }}>{t("onboarding.city")}</div>
+                    <div style={{ fontSize: 16, color: city ? "#F0E9DA" : "#6E6757", marginTop: 1 }}>{city || t("onboarding.select_city")}</div>
                   </div>
                   <span style={{ color: "#C9A84C", fontSize: 18 }}>›</span>
                 </button>
               )}
 
               <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
-                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{ru ? "Часовой пояс" : "Timezone"}</span>
+                <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{t("onboarding.timezone")}</span>
                 <select value={tz} onChange={e => setTz(e.target.value)} style={{ background: "transparent", border: "none", color: "#F0E9DA", fontSize: 15, textAlign: "right", outline: "none", maxWidth: 180 }}>
                   {TIMEZONES.map(t => <option key={t.value} value={t.value} style={{ background: "#0D0B1F" }}>{t.label}</option>)}
                 </select>
@@ -255,15 +255,16 @@ export function OnboardingModal({ onClose }: Props) {
                 <ZodiacGlyph sign={zodiac.en} size={150} />
               </div>
               <p className="font-cinzel uppercase" style={{ fontSize: 11, letterSpacing: ".34em", color: "#C9A84C", marginTop: 8 }}>
-                {ru ? "Звёзды готовы" : "Stars are ready"}
+                {t("onboarding.stars_ready")}
               </p>
               <p className="font-cormorant" style={{ fontSize: 40, color: "#F0E9DA", lineHeight: 1, marginTop: 8 }}>
-                {ru ? `Вы — ${zodiac.sign}` : `You are ${zodiac.en}`}
+                {t("onboarding.you_are", { sign: ru ? zodiac.sign : zodiac.en })}
               </p>
               <p style={{ fontSize: 14.5, lineHeight: 1.7, color: "#A89E8B", margin: "14px auto 0", maxWidth: 360 }}>
-                {ru
-                  ? `${ELEMENTS[zodiac.en]?.[0] ?? "Огненный"} знак под покровительством ${RULERS[zodiac.en]?.[0] ?? "Марса"}. Ваш первый персональный гороскоп уже составлен и ждёт внутри.`
-                  : `${ELEMENTS[zodiac.en]?.[1] ?? "Fire"} sign under the patronage of ${RULERS[zodiac.en]?.[1] ?? "Mars"}. Your first personal horoscope is ready inside.`}
+                {t("onboarding.result_desc", {
+                  element: ru ? (ELEMENTS[zodiac.en]?.[0] ?? "Огненный") : (ELEMENTS[zodiac.en]?.[1] ?? "Fire"),
+                  ruler: ru ? (RULERS[zodiac.en]?.[0] ?? "Марса") : (RULERS[zodiac.en]?.[1] ?? "Mars"),
+                })}
               </p>
             </>
           )}
@@ -274,7 +275,7 @@ export function OnboardingModal({ onClose }: Props) {
       <div style={{ padding: "18px 30px 30px", width: "100%", maxWidth: 520, margin: "0 auto", display: "flex", gap: 12 }}>
         {step > 0 && (
           <button onClick={() => setStep(step - 1)} style={{ height: 52, flex: 1, borderRadius: 16, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 15, cursor: "pointer" }}>
-            {ru ? "Назад" : "Back"}
+            {t("onboarding.back")}
           </button>
         )}
         <button onClick={handleNext} disabled={loading || !canNext}

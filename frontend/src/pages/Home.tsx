@@ -13,40 +13,44 @@ interface LunarToday {
   lunar_day: number; phase_name: string; phase_icon: string; moon_sign: string; illumination: number;
 }
 
-const ZODIAC_META: Record<string, { element_ru: string; element_en: string; modality_ru: string; modality_en: string; dates: string }> = {
-  Aries:       { element_ru: "Огонь", element_en: "Fire", modality_ru: "Кардинальный", modality_en: "Cardinal", dates: "21.03 – 19.04" },
-  Taurus:      { element_ru: "Земля", element_en: "Earth", modality_ru: "Фиксированный", modality_en: "Fixed", dates: "20.04 – 20.05" },
-  Gemini:      { element_ru: "Воздух", element_en: "Air", modality_ru: "Мутабельный", modality_en: "Mutable", dates: "21.05 – 20.06" },
-  Cancer:      { element_ru: "Вода", element_en: "Water", modality_ru: "Кардинальный", modality_en: "Cardinal", dates: "21.06 – 22.07" },
-  Leo:         { element_ru: "Огонь", element_en: "Fire", modality_ru: "Фиксированный", modality_en: "Fixed", dates: "23.07 – 22.08" },
-  Virgo:       { element_ru: "Земля", element_en: "Earth", modality_ru: "Мутабельный", modality_en: "Mutable", dates: "23.08 – 22.09" },
-  Libra:       { element_ru: "Воздух", element_en: "Air", modality_ru: "Кардинальный", modality_en: "Cardinal", dates: "23.09 – 22.10" },
-  Scorpio:     { element_ru: "Вода", element_en: "Water", modality_ru: "Фиксированный", modality_en: "Fixed", dates: "23.10 – 21.11" },
-  Sagittarius: { element_ru: "Огонь", element_en: "Fire", modality_ru: "Мутабельный", modality_en: "Mutable", dates: "22.11 – 21.12" },
-  Capricorn:   { element_ru: "Земля", element_en: "Earth", modality_ru: "Кардинальный", modality_en: "Cardinal", dates: "22.12 – 19.01" },
-  Aquarius:    { element_ru: "Воздух", element_en: "Air", modality_ru: "Фиксированный", modality_en: "Fixed", dates: "20.01 – 18.02" },
-  Pisces:      { element_ru: "Вода", element_en: "Water", modality_ru: "Мутабельный", modality_en: "Mutable", dates: "19.02 – 20.03" },
+const ZODIAC_META: Record<string, { element: string; modality: string; dates: string }> = {
+  Aries:       { element: "fire", modality: "cardinal", dates: "21.03 – 19.04" },
+  Taurus:      { element: "earth", modality: "fixed", dates: "20.04 – 20.05" },
+  Gemini:      { element: "air", modality: "mutable", dates: "21.05 – 20.06" },
+  Cancer:      { element: "water", modality: "cardinal", dates: "21.06 – 22.07" },
+  Leo:         { element: "fire", modality: "fixed", dates: "23.07 – 22.08" },
+  Virgo:       { element: "earth", modality: "mutable", dates: "23.08 – 22.09" },
+  Libra:       { element: "air", modality: "cardinal", dates: "23.09 – 22.10" },
+  Scorpio:     { element: "water", modality: "fixed", dates: "23.10 – 21.11" },
+  Sagittarius: { element: "fire", modality: "mutable", dates: "22.11 – 21.12" },
+  Capricorn:   { element: "earth", modality: "cardinal", dates: "22.12 – 19.01" },
+  Aquarius:    { element: "air", modality: "fixed", dates: "20.01 – 18.02" },
+  Pisces:      { element: "water", modality: "mutable", dates: "19.02 – 20.03" },
 };
 
 const SECTIONS = [
-  { id: "tarot",  icon: "☰",  label_ru: "Таро",          label_en: "Tarot",        desc_ru: "Расклады на любой вопрос",  desc_en: "Spreads for any question" },
-  { id: "moon",   icon: "☽",  label_ru: "Лунный день",   label_en: "Moon Day",     desc_ru: "Лунный календарь",          desc_en: "Lunar calendar" },
-  { id: "compat", icon: "♡",  label_ru: "Совместимость", label_en: "Compatibility", desc_ru: "Анализ пары",               desc_en: "Couple analysis" },
-  { id: "natal",  icon: "◎",  label_ru: "Натальная",     label_en: "Natal Chart",   desc_ru: "Карта рождения",            desc_en: "Birth chart" },
-  { id: "numero", icon: "#",  label_ru: "Нумерология",   label_en: "Numerology",    desc_ru: "Числа судьбы",              desc_en: "Destiny numbers" },
-  { id: "runes",  icon: "ᚱ",  label_ru: "Руны",          label_en: "Runes",         desc_ru: "Древние знаки",             desc_en: "Ancient signs" },
+  { id: "tarot",  icon: "☰",  labelKey: "home.section_tarot",  descKey: "home.section_desc_tarot" },
+  { id: "moon",   icon: "☽",  labelKey: "home.section_moon",   descKey: "home.section_desc_moon" },
+  { id: "compat", icon: "♡",  labelKey: "home.section_compat", descKey: "home.section_desc_compat" },
+  { id: "natal",  icon: "◎",  labelKey: "home.section_natal",  descKey: "home.section_desc_natal" },
+  { id: "numero", icon: "#",  labelKey: "home.section_numero", descKey: "home.section_desc_numero" },
+  { id: "runes",  icon: "ᚱ",  labelKey: "home.section_runes",  descKey: "home.section_desc_runes" },
 ];
 
-function getTimeOfDay(lang: string): string {
+function getTimeOfDayKey(): string {
   const h = new Date().getHours();
-  if (lang === "ru") return h >= 6 && h < 12 ? "утро" : h >= 12 && h < 18 ? "день" : h >= 18 ? "вечер" : "ночь";
-  return h >= 6 && h < 12 ? "morning" : h >= 12 && h < 18 ? "afternoon" : h >= 18 ? "evening" : "night";
+  if (h >= 6 && h < 12) return "home.time_morning";
+  if (h >= 12 && h < 18) return "home.time_afternoon";
+  if (h >= 18) return "home.time_evening";
+  return "home.time_night";
 }
 
-function getGreetingWord(lang: string): string {
+function getGreetingKey(): string {
   const h = new Date().getHours();
-  if (lang === "ru") return h >= 6 && h < 12 ? "Доброе утро" : h >= 12 && h < 18 ? "Добрый день" : h >= 18 ? "Добрый вечер" : "Доброй ночи";
-  return h >= 6 && h < 12 ? "Good morning" : h >= 12 && h < 18 ? "Good afternoon" : h >= 18 ? "Good evening" : "Good night";
+  if (h >= 6 && h < 12) return "home.greeting_morning";
+  if (h >= 12 && h < 18) return "home.greeting_afternoon";
+  if (h >= 18) return "home.greeting_evening";
+  return "home.greeting_night";
 }
 
 export function Home({ onNavigate }: HomeProps) {
@@ -96,12 +100,13 @@ export function Home({ onNavigate }: HomeProps) {
   const meta = zodiac ? ZODIAC_META[zodiac.en] : null;
   const isPro = user?.tier === "pro";
   const now = new Date();
-  const dayName = now.toLocaleDateString(ru ? "ru-RU" : "en-US", { weekday: "long", day: "numeric", month: "long" });
+  const locale = lang === "ru" ? "ru-RU" : lang === "uk" ? "uk-UA" : lang === "es" ? "es-ES" : lang === "pt" ? "pt-BR" : lang === "tr" ? "tr-TR" : "en-US";
+  const dayName = now.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
 
   const bars = [
-    { label: ru ? "Любовь" : "Love", value: scores?.love ?? 0, color: "#C9A84C" },
-    { label: ru ? "Карьера" : "Career", value: scores?.career ?? 0, color: "#8A7FC0" },
-    { label: ru ? "Здоровье" : "Health", value: scores?.health ?? 0, color: "#6E9A8A" },
+    { label: t("home.score_love"), value: scores?.love ?? 0, color: "#C9A84C" },
+    { label: t("home.score_career"), value: scores?.career ?? 0, color: "#8A7FC0" },
+    { label: t("home.score_health"), value: scores?.health ?? 0, color: "#6E9A8A" },
   ];
 
   function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
@@ -141,9 +146,9 @@ export function Home({ onNavigate }: HomeProps) {
       </header>
 
       <div style={{ padding: "6px 22px 0" }}>
-        <p className="font-cinzel italic" style={{ fontSize: 14, color: "#A89E8B" }}>{dayName} · {getTimeOfDay(lang)}</p>
+        <p className="font-cinzel italic" style={{ fontSize: 14, color: "#A89E8B" }}>{dayName} · {t(getTimeOfDayKey())}</p>
         <p className="font-cormorant" style={{ fontSize: 31, color: "#F0E9DA", lineHeight: 1.08, marginTop: 2 }}>
-          {getGreetingWord(lang)}, {user?.name ?? t("profile.guest")}
+          {t(getGreetingKey())}, {user?.name ?? t("profile.guest")}
         </p>
       </div>
 
@@ -155,9 +160,9 @@ export function Home({ onNavigate }: HomeProps) {
         <div className="lg:rounded-3xl lg:p-5 lg:text-center" style={{ position: "relative", padding: "6px 0 2px", textAlign: "center", background: "radial-gradient(140% 100% at 50% 0%, #1C1650 0%, #0F0A2E 40%, transparent 100%)", borderRadius: 22, border: "1px solid rgba(201,168,76,.28)", boxShadow: "0 0 80px rgba(75,60,134,.25), 0 0 40px rgba(201,168,76,.08)" }}>
           <ZodiacGlyph sign={userSign} size={200} />
           <div style={{ marginTop: -8 }}>
-            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".34em", color: "#C9A84C" }}>{ru ? "ВАШ ЗНАК" : "YOUR SIGN"}</p>
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".34em", color: "#C9A84C" }}>{t("home.your_sign")}</p>
             <p className="font-cormorant" style={{ fontSize: 42, color: "#F0E9DA", lineHeight: 1.02 }}>{zodiacLabel ?? t("home.zodiac_fallback")}</p>
-            {meta && <p style={{ fontSize: 12, color: "#8A8170", letterSpacing: ".04em", marginTop: 2 }}>{ru ? meta.element_ru : meta.element_en} · {ru ? meta.modality_ru : meta.modality_en} · {meta.dates}</p>}
+            {meta && <p style={{ fontSize: 12, color: "#8A8170", letterSpacing: ".04em", marginTop: 2 }}>{t(`home.element_${meta.element}`)} · {t(`home.modality_${meta.modality}`)} · {meta.dates}</p>}
           </div>
         </div>
 
@@ -165,7 +170,7 @@ export function Home({ onNavigate }: HomeProps) {
         <div style={{ padding: 22, borderRadius: 22, background: "linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015))", border: "1px solid rgba(201,168,76,.16)", backdropFilter: "blur(12px)" }}>
         <div className="flex items-center justify-between">
           <span className="font-cinzel uppercase" style={{ fontSize: 10.5, letterSpacing: ".28em", color: "#C9A84C" }}>{t("home.daily_horoscope")}</span>
-          <span style={{ fontSize: 11, color: "#6E6757" }}>{now.toLocaleDateString(ru ? "ru-RU" : "en-US", { day: "numeric", month: "short" })}</span>
+          <span style={{ fontSize: 11, color: "#6E6757" }}>{now.toLocaleDateString(locale, { day: "numeric", month: "short" })}</span>
         </div>
         <div style={{ marginTop: 13, fontSize: 14.5, lineHeight: 1.72, color: "#D7CFBE", overflow: "hidden", maxHeight: expanded ? "none" : 105 }}>
           {horoscopeLoading && !horoscope
@@ -177,7 +182,7 @@ export function Home({ onNavigate }: HomeProps) {
         </div>
         {horoscope.length > 200 && !expanded && (
           <button onClick={() => setExpanded(true)} style={{ marginTop: 18, width: "100%", height: 46, borderRadius: 13, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontWeight: 500, fontSize: 13.5 }}>
-            {ru ? "Читать полностью" : "Read full"}
+            {t("home.read_full")}
           </button>
         )}
       </div>
@@ -187,8 +192,8 @@ export function Home({ onNavigate }: HomeProps) {
       <button onClick={() => onNavigate("tarot")} className="w-full text-left" style={{ margin: "12px 22px 0", width: "calc(100% - 44px)", padding: "16px 20px", borderRadius: 18, display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(100deg, rgba(75,60,134,.2), rgba(201,168,76,.08))", border: "1px solid rgba(201,168,76,.2)", cursor: "pointer" }}>
         <span style={{ fontSize: 28, color: "#C9A84C", filter: "drop-shadow(0 0 8px rgba(201,168,76,.4))", flexShrink: 0 }}>☰</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{ru ? "Расклад дня" : "Daily spread"}</p>
-          <p style={{ fontSize: 12, color: "#8A8170" }}>{ru ? "Узнай что говорят карты" : "See what the cards say"}</p>
+          <p className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{t("home.daily_spread")}</p>
+          <p style={{ fontSize: 12, color: "#8A8170" }}>{t("home.daily_spread_hint")}</p>
         </div>
         <span style={{ color: "#6E6757", marginLeft: "auto" }}>›</span>
       </button>
@@ -199,11 +204,11 @@ export function Home({ onNavigate }: HomeProps) {
           {lunar?.phase_icon ?? "☽"}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".26em", color: "#A99BE0" }}>{ru ? "ЛУННЫЙ ДЕНЬ" : "LUNAR DAY"}</p>
+          <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".26em", color: "#A99BE0" }}>{t("home.lunar_day_title")}</p>
           <p className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", lineHeight: 1.15, marginTop: 3 }}>
-            {lunar ? `${lunar.lunar_day} ${ru ? "лунный день" : "lunar day"}` : "..."}
+            {lunar ? `${lunar.lunar_day} ${t("home.lunar_day")}` : "..."}
           </p>
-          {lunar && <p style={{ fontSize: 12, color: "#9890B8", marginTop: 4 }}>{lunar.phase_name} · {ru ? "Луна в" : "Moon in"} {lunar.moon_sign}</p>}
+          {lunar && <p style={{ fontSize: 12, color: "#9890B8", marginTop: 4 }}>{lunar.phase_name} · {t("lunar.moon_in")} {lunar.moon_sign}</p>}
         </div>
         <span style={{ marginLeft: "auto", color: "#6E6757", fontSize: 18 }}>›</span>
       </button>
@@ -211,13 +216,13 @@ export function Home({ onNavigate }: HomeProps) {
       {/* Sections */}
       <div style={{ padding: "24px 22px 0" }}>
         <div className="flex items-center justify-between">
-          <span className="font-cormorant" style={{ fontSize: 24, color: "#F0E9DA" }}>{ru ? "Разделы" : "Sections"}</span>
+          <span className="font-cormorant" style={{ fontSize: 24, color: "#F0E9DA" }}>{t("home.sections")}</span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3" style={{ gap: 12, marginTop: 14 }}>
           {SECTIONS.map(s => (
             <button key={s.id} onClick={() => onNavigate(s.id)} className="text-left" style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.06)", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 20, color: "#C9A84C", flexShrink: 0 }}>{s.icon}</span>
-              <span className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{ru ? s.label_ru : s.label_en}</span>
+              <span className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{t(s.labelKey)}</span>
             </button>
           ))}
         </div>
@@ -226,10 +231,10 @@ export function Home({ onNavigate }: HomeProps) {
       {/* Natal banner — mobile only */}
       <button onClick={() => onNavigate("natal")} className="w-full text-left lg:hidden" style={{ margin: "20px 22px 24px", width: "calc(100% - 44px)", position: "relative", overflow: "hidden", padding: 24, borderRadius: 22, background: "linear-gradient(120deg,#1B1546,#0C0A22)", border: "1px solid rgba(201,168,76,.24)" }}>
         <div style={{ position: "absolute", top: -30, right: -10, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,168,76,.16),transparent 68%)" }} />
-        <p className="font-cinzel uppercase" style={{ fontSize: 10.5, letterSpacing: ".28em", color: "#C9A84C", position: "relative" }}>{ru ? "НАТАЛЬНАЯ КАРТА" : "NATAL CHART"}</p>
-        <p className="font-cormorant" style={{ fontSize: 25, color: "#F0E9DA", margin: "6px 0 10px", lineHeight: 1.15, position: "relative" }}>{ru ? "Ваша карта рождения готова" : "Your birth chart is ready"}</p>
-        <p style={{ fontSize: 13, lineHeight: 1.6, color: "#A89E8B", margin: "0 0 16px", maxWidth: "90%", position: "relative" }}>{ru ? "Большая тройка, планеты и аспекты — всё, что записали звёзды в момент вашего рождения." : "Big three, planets and aspects — everything the stars wrote at your birth."}</p>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 44, padding: "0 20px", borderRadius: 12, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontWeight: 600, fontSize: 13.5, position: "relative" }}>{ru ? "Открыть карту" : "Open chart"}</span>
+        <p className="font-cinzel uppercase" style={{ fontSize: 10.5, letterSpacing: ".28em", color: "#C9A84C", position: "relative" }}>{t("home.natal_title")}</p>
+        <p className="font-cormorant" style={{ fontSize: 25, color: "#F0E9DA", margin: "6px 0 10px", lineHeight: 1.15, position: "relative" }}>{t("home.natal_ready")}</p>
+        <p style={{ fontSize: 13, lineHeight: 1.6, color: "#A89E8B", margin: "0 0 16px", maxWidth: "90%", position: "relative" }}>{t("home.natal_banner_desc")}</p>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 44, padding: "0 20px", borderRadius: 12, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontWeight: 600, fontSize: 13.5, position: "relative" }}>{t("home.open_chart")}</span>
       </button>
 
       <div className="pb-20 lg:pb-8" />

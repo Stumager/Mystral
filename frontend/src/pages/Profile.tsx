@@ -279,14 +279,14 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   function PushToggle() {
     if (!push.supported) return null;
     const statusText = push.permission === "denied"
-      ? (lang === "ru" ? "Заблокированы в браузере" : "Blocked in browser")
+      ? t("profile.push_blocked")
       : push.subscribed
-        ? (lang === "ru" ? "Подключены" : "Connected")
-        : (lang === "ru" ? "Выключены" : "Off");
+        ? t("profile.push_connected")
+        : t("profile.push_off");
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.06)", marginTop: 14 }}>
         <div>
-          <p style={{ fontSize: 14, color: "#F0E9DA" }}>{lang === "ru" ? "Push в браузере" : "Browser push"}</p>
+          <p style={{ fontSize: 14, color: "#F0E9DA" }}>{t("profile.push_browser")}</p>
           <p style={{ fontSize: 12, color: "#8A8170" }}>{statusText}</p>
         </div>
         {push.subscribed ? (
@@ -295,10 +295,10 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           </button>
         ) : push.permission !== "denied" ? (
           <button onClick={push.subscribe} style={{ height: 34, padding: "0 14px", borderRadius: 8, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontSize: 13, cursor: "pointer" }}>
-            {lang === "ru" ? "Включить" : "Enable"}
+            {t("profile.push_enable")}
           </button>
         ) : (
-          <span style={{ fontSize: 11, color: "#6E6757" }}>{lang === "ru" ? "Разрешить в настройках" : "Allow in settings"}</span>
+          <span style={{ fontSize: 11, color: "#6E6757" }}>{t("profile.push_allow_settings")}</span>
         )}
       </div>
     );
@@ -525,32 +525,32 @@ export function Profile({ onNavigate }: ProfilePageProps) {
           <div style={{ padding: 20, borderRadius: 18, background: "linear-gradient(120deg,#1B1546,#0C0A22)", border: "1px solid rgba(201,168,76,.24)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{lang === "ru" ? "Приглашай друзей" : "Invite friends"}</p>
-                <p style={{ fontSize: 13, color: "#A89E8B", marginTop: 4 }}>{lang === "ru" ? "+7 дней Pro за каждого" : "+7 days Pro per friend"}</p>
-                <p style={{ fontSize: 13, color: "#A89E8B" }}>{lang === "ru" ? "Друг получит +3 дня Pro" : "Friend gets +3 days Pro"}</p>
+                <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{t("profile.invite_friends")}</p>
+                <p style={{ fontSize: 13, color: "#A89E8B", marginTop: 4 }}>{t("profile.ref_bonus_you")}</p>
+                <p style={{ fontSize: 13, color: "#A89E8B" }}>{t("profile.ref_bonus_friend")}</p>
               </div>
               <span className="font-cinzel" style={{ fontSize: 11, color: "#E8CD7E", background: "rgba(201,168,76,.15)", border: "1px solid rgba(201,168,76,.3)", borderRadius: 99, padding: "4px 12px" }}>
                 {refData.total_referrals}
               </span>
             </div>
             <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginTop: 16, marginBottom: 8 }}>
-              {lang === "ru" ? "Ваша ссылка" : "Your link"}
+              {t("profile.your_link")}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <input readOnly value={refData.ref_url} style={{ flex: 1, padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", color: "#E8CD7E", fontSize: 13, fontFamily: "monospace", outline: "none", minWidth: 0 }} />
-              <button onClick={() => { navigator.clipboard.writeText(refData.ref_url); showToast(lang === "ru" ? "Ссылка скопирована!" : "Link copied!"); }}
+              <button onClick={() => { navigator.clipboard.writeText(refData.ref_url); showToast(t("profile.link_copied")); }}
                 style={{ height: 44, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(201,168,76,.4)", background: "rgba(201,168,76,.06)", color: "#E8CD7E", fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
-                {lang === "ru" ? "Копировать" : "Copy"}
+                {t("profile.copy")}
               </button>
             </div>
-            <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(refData.ref_url)}&text=${encodeURIComponent(lang === "ru" ? "Попробуй Mystral — эзотерическая платформа" : "Try Mystral — esoteric platform")}`, "_blank")}
+            <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(refData.ref_url)}&text=${encodeURIComponent(t("profile.share_text"))}`, "_blank")}
               style={{ width: "100%", height: 44, marginTop: 10, borderRadius: 12, border: "1px solid rgba(255,255,255,.1)", background: "transparent", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
-              {lang === "ru" ? "Поделиться в Telegram" : "Share on Telegram"}
+              {t("profile.share_telegram")}
             </button>
             {refData.referrals.length > 0 && (
               <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 14 }}>
                 <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".15em", color: "#6E6757", textTransform: "uppercase", marginBottom: 8 }}>
-                  {lang === "ru" ? "Приглашённые" : "Invited"}
+                  {t("profile.invited")}
                 </p>
                 {refData.referrals.map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
@@ -567,15 +567,15 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {/* Review */}
         <Card>
           <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
-            {lang === "ru" ? "Мой отзыв" : "My review"}
+            {t("profile.my_review")}
           </p>
           <p className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA", marginTop: 12, marginBottom: 16 }}>
-            {lang === "ru" ? "Оцените Mystral" : "Rate Mystral"}
+            {t("profile.rate_mystral")}
           </p>
           <StarRating value={reviewRating} onChange={setReviewRating} size={32} />
           <textarea
             value={reviewText} onChange={e => setReviewText(e.target.value.slice(0, 500))}
-            placeholder={lang === "ru" ? "Расскажите о вашем опыте..." : "Tell about your experience..."}
+            placeholder={t("profile.review_placeholder")}
             style={{ width: "100%", minHeight: 100, padding: "14px 16px", borderRadius: 14, resize: "none", background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 14, lineHeight: 1.6, marginTop: 16, outline: "none", boxSizing: "border-box" }}
           />
           <p style={{ textAlign: "right", fontSize: 11, color: "#6E6757", marginTop: 4 }}>{reviewText.length}/500</p>
@@ -585,15 +585,15 @@ export function Profile({ onNavigate }: ProfilePageProps) {
               setReviewSaving(true);
               try {
                 await fetch("/api/v1/reviews", { method: "POST", headers: authHeaders(), body: JSON.stringify({ rating: reviewRating, text: reviewText || null }) });
-                showToast(lang === "ru" ? "Отзыв отправлен на проверку" : "Review submitted for moderation");
+                showToast(t("profile.review_sent"));
                 setReviewExists(true);
               } catch {}
               finally { setReviewSaving(false); }
             }}>
-            {reviewSaving ? "..." : reviewExists ? (lang === "ru" ? "Обновить отзыв" : "Update review") : (lang === "ru" ? "Опубликовать отзыв" : "Submit review")}
+            {reviewSaving ? "..." : reviewExists ? t("profile.update_review") : t("profile.submit_review")}
           </Button>
           <p style={{ fontSize: 12, color: "#6E6757", textAlign: "center", marginTop: 8 }}>
-            {lang === "ru" ? "Отзыв появится после проверки модератором" : "Review will appear after moderation"}
+            {t("profile.review_moderation")}
           </p>
         </Card>
 
@@ -601,28 +601,28 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         {providers.includes("email") && (
           <Card>
             <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
-              {lang === "ru" ? "Безопасность" : "Security"}
+              {t("profile.security")}
             </p>
             {!showChangePw ? (
               <Button variant="ghost" size="sm" className="w-full mt-3" onClick={() => setShowChangePw(true)}>
-                {lang === "ru" ? "Изменить пароль" : "Change password"}
+                {t("profile.change_password")}
               </Button>
             ) : (
               <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, animation: "mystral-fadeup .25s ease-out" }}>
-                <input type="password" placeholder={lang === "ru" ? "Текущий пароль" : "Current password"}
+                <input type="password" placeholder={t("profile.current_password")}
                   value={curPw} onChange={e => { setCurPw(e.target.value); setPwError(""); }} style={inputStyle} />
-                <input type="password" placeholder={lang === "ru" ? "Новый пароль" : "New password"}
+                <input type="password" placeholder={t("profile.new_password")}
                   value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); }} style={inputStyle} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {[
-                    { ok: newPw.length >= 8, t: lang === "ru" ? "8 символов" : "8 characters" },
-                    { ok: /[A-Z]/.test(newPw), t: lang === "ru" ? "Заглавная буква" : "Uppercase letter" },
-                    { ok: /[0-9]/.test(newPw), t: lang === "ru" ? "Цифра" : "Digit" },
+                    { ok: newPw.length >= 8, label: t("profile.min_8_chars") },
+                    { ok: /[A-Z]/.test(newPw), label: t("profile.uppercase_letter") },
+                    { ok: /[0-9]/.test(newPw), label: t("profile.digit") },
                   ].map(c => (
-                    <span key={c.t} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.t}</span>
+                    <span key={c.label} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.label}</span>
                   ))}
                 </div>
-                <input type="password" placeholder={lang === "ru" ? "Подтвердить" : "Confirm"}
+                <input type="password" placeholder={t("profile.confirm_new")}
                   value={confirmNewPw} onChange={e => { setConfirmNewPw(e.target.value); setPwError(""); }}
                   style={{ ...inputStyle, borderColor: confirmNewPw && confirmNewPw !== newPw ? "rgba(196,84,84,.4)" : undefined }} />
                 {pwError && <p style={{ color: "#D98A8A", fontSize: 12 }}>{pwError}</p>}
@@ -634,12 +634,12 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                         const res = await fetch("/api/v1/auth/change-password", { method: "POST", headers: authHeaders(), body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
                         const d = await res.json();
                         if (!res.ok) { setPwError(d.detail || "Error"); return; }
-                        showToast(lang === "ru" ? "Пароль изменён" : "Password changed");
+                        showToast(t("profile.password_changed"));
                         setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw("");
                       } catch { setPwError("Error"); }
                       finally { setPwSaving(false); }
                     }}>
-                    {pwSaving ? "..." : lang === "ru" ? "Сохранить" : "Save"}
+                    {pwSaving ? "..." : t("profile.save_pw")}
                   </Button>
                   <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw(""); setPwError(""); }}>
                     {t("profile.cancel")}

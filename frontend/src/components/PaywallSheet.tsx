@@ -90,7 +90,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   }
 
   const price = plan === "year" ? "1599" : "199";
-  const period = plan === "year" ? (ru ? "12 месяцев" : "12 months") : (ru ? "1 месяц" : "1 month");
+  const period = plan === "year" ? t("paywall.period_year") : t("paywall.period_month");
 
   function PlanCard({ type, label, priceVal, sub, badge }: { type: "year" | "month"; label: string; priceVal: string; sub: string; badge?: string }) {
     const active = plan === type;
@@ -120,7 +120,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
       <button onClick={handleBuy} disabled={loading !== null} style={{ position: "relative", overflow: "hidden", width: "100%", height: 56, borderRadius: 16, cursor: loading ? "default" : "pointer", background: "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, boxShadow: "0 12px 32px -8px rgba(201,168,76,.6)", border: "none" }}>
         <span style={{ position: "absolute", inset: 0, background: "linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%)", backgroundSize: "200% 100%", animation: "mystral-shimmer 2.6s linear infinite" }} />
         <span style={{ position: "relative", color: "#1A1206", fontWeight: 600, fontSize: 15.5, display: "flex", alignItems: "center", gap: 8 }}>
-          ⭐ {loading ? "..." : (ru ? `Оформить за ${price} Stars` : `Subscribe for ${price} Stars`)}
+          ⭐ {loading ? "..." : t("paywall.subscribe_for", { price })}
         </span>
       </button>
     );
@@ -130,16 +130,16 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
     return (
       <>
         <p style={{ textAlign: "center", fontSize: 12, color: "#6E6757", marginTop: 14 }}>
-          {ru ? `Оплата через Telegram Stars · ${period} · отмена в любой момент` : `Payment via Telegram Stars · ${period} · cancel anytime`}
+          {t("paywall.payment_info", { period })}
         </p>
         {!isInTelegram && (
           <p style={{ fontSize: 12, color: "#8A8170", textAlign: "center", marginTop: 8 }}>
-            {ru ? "Откроется Telegram для оплаты через Stars" : "Opens Telegram for Stars payment"}
+            {t("paywall.opens_telegram")}
           </p>
         )}
         {!isTMA() && (
           <button onClick={handleYukassa} disabled={loading !== null} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
-            {loading === "yukassa" ? "..." : (ru ? "Оплатить картой" : "Pay with card")}
+            {loading === "yukassa" ? "..." : t("paywall.pay_card")}
           </button>
         )}
         {toast && <p style={{ textAlign: "center", fontSize: 13, color: "#C9A84C", marginTop: 10 }}>{toast}</p>}
@@ -168,7 +168,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
               <div>
                 <p className="font-cinzel" style={{ fontSize: 30, letterSpacing: ".24em", color: "#E8CD7E" }}>MYSTRAL PRO</p>
                 <p className="font-cormorant italic" style={{ fontSize: 20, color: "#A89E8B", marginTop: 6 }}>
-                  {ru ? "Полный доступ к языку звёзд" : "Full access to the language of stars"}
+                  {t("paywall.full_access")}
                 </p>
               </div>
             </div>
@@ -190,8 +190,8 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
           {/* Right — sticky */}
           <div style={{ position: "sticky", top: 10, padding: 28, borderRadius: 24, background: "radial-gradient(120% 80% at 50% 0%, #1A1440, #0C0A20)", border: "1px solid rgba(201,168,76,.24)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <PlanCard type="year" label={ru ? "Год" : "Year"} priceVal="1599" sub={ru ? "всего 133 Stars в месяц" : "only 133 Stars/month"} badge={ru ? "ВЫГОДНО −33%" : "SAVE −33%"} />
-              <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="199" sub={ru ? "гибкая отмена" : "flexible cancel"} />
+              <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1599" sub={t("paywall.stars_per_month_year")} badge={t("paywall.save_percent")} />
+              <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
             </div>
             <div style={{ marginTop: 20 }}><BuyButton /></div>
             <Footnote />
@@ -218,7 +218,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
           </div>
           <p className="font-cinzel" style={{ fontSize: 26, letterSpacing: ".26em", color: "#E8CD7E", marginTop: 20 }}>MYSTRAL PRO</p>
           <p className="font-cormorant italic" style={{ fontSize: 19, color: "#A89E8B", marginTop: 8 }}>
-            {ru ? "Полный доступ к языку звёзд" : "Full access to the language of stars"}
+            {t("paywall.full_access")}
           </p>
         </div>
 
@@ -237,8 +237,8 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
 
         {/* Plan selector */}
         <div style={{ marginTop: 26, display: "flex", gap: 12 }}>
-          <PlanCard type="year" label={ru ? "Год" : "Year"} priceVal="1500" sub={ru ? "125 Stars в месяц" : "125 Stars/month"} badge={ru ? "ВЫГОДНО −34%" : "SAVE −34%"} />
-          <PlanCard type="month" label={ru ? "Месяц" : "Month"} priceVal="199" sub={ru ? "гибкая отмена" : "flexible cancel"} />
+          <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1500" sub={t("paywall.stars_per_month_mobile")} badge={t("paywall.save_percent_mobile")} />
+          <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
         </div>
 
         {/* Buy button */}
