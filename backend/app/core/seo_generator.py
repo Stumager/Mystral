@@ -136,6 +136,7 @@ async def warm_seo_cache() -> None:
     total = len(items)
     logger.info("SEO cache warm: starting %d pages", total)
 
+    errors = 0
     for i, (ptype, slug, data) in enumerate(items):
         async with get_session_context() as session:
             result = await session.exec(
@@ -146,8 +147,13 @@ async def warm_seo_cache() -> None:
             try:
                 await get_seo_content(ptype, slug, data, session)
                 logger.info("SEO cache warm: %s/%s (%d/%d)", ptype, slug, i + 1, total)
+                errors = 0
             except Exception as e:
                 logger.error("SEO warm error %s/%s: %s", ptype, slug, e)
-        await asyncio.sleep(2)
+                errors += 1
+                if errors >= 3:
+                    logger.warning("SEO cache warm: stopping after 3 consecutive errors (rate limit?)")
+                    break
+        await asyncio.sleep(3)
 
     logger.info("SEO cache warm: done")
