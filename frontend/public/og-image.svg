@@ -1,0 +1,23 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#15102E"/>
+      <stop offset="1" stop-color="#07060F"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7A5E22"/>
+      <stop offset=".4" stop-color="#C9A84C"/>
+      <stop offset=".7" stop-color="#F0D680"/>
+      <stop offset="1" stop-color="#A9882F"/>
+    </linearGradient>
+    <mask id="m">
+      <circle cx="540" cy="280" r="90" fill="white"/>
+      <circle cx="590" cy="268" r="78" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="540" cy="280" r="90" fill="url(#gold)" mask="url(#m)"/>
+  <circle cx="590" cy="268" r="78" fill="none" stroke="url(#gold)" stroke-width="2.5" opacity=".5"/>
+  <text x="600" y="440" text-anchor="middle" font-family="Georgia,serif" font-size="48" letter-spacing="14" fill="#E8CD7E">MYSTRAL</text>
+  <text x="600" y="490" text-anchor="middle" font-family="Georgia,serif" font-size="18" fill="#A89E8B">Эзотерическая платформа</text>
+</svg>
