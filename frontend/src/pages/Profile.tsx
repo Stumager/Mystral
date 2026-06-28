@@ -658,20 +658,20 @@ export function Profile({ onNavigate }: ProfilePageProps) {
 
           <div className="flex items-center justify-between mb-4">
             <span className="text-text-muted text-sm">{t("profile.language")}</span>
-            <div className="flex rounded-xl overflow-hidden border border-border-subtle">
-              {(["ru", "en"] as const).map(l => (
-                <button
-                  key={l}
-                  onClick={() => handleLang(l)}
-                  className="px-4 py-1.5 text-xs font-sans transition-colors"
-                  style={{
-                    background: lang === l ? "rgba(201,168,76,.15)" : "transparent",
-                    color: lang === l ? "#E8CD7E" : "#A89E8B",
-                  }}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+            <div>
+              <select value={lang} onChange={e => handleLang(e.target.value)}
+                style={{ padding: "10px 14px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 14, outline: "none" }}>
+                {[
+                  { code: "ru", label: "Русский" },
+                  { code: "en", label: "English" },
+                  { code: "es", label: "Español" },
+                  { code: "pt", label: "Português" },
+                  { code: "tr", label: "Türkçe" },
+                  { code: "uk", label: "Українська" },
+                ].map(l => (
+                  <option key={l.code} value={l.code} style={{ background: "#0D0B1F" }}>{l.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 

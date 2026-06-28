@@ -7,9 +7,7 @@ from typing import AsyncIterator
 logger = logging.getLogger(__name__)
 
 _client = None
-_CLEAN_RE = re.compile(
-    r'[^ -~ -ÿЀ-ӿ\n\r\t«»„“”‘’–—…°%№♈-♓☽✦★]'
-)
+_CLEAN_RE = re.compile(r'[^\x20-\x7EÀ-ɏĞğİıŞşЀ-ӿ\n\r\t«»„“”‘’–—…°%№♈-♓☽✦★]')
 
 
 def _clean_chunk(text: str) -> str:
@@ -48,16 +46,16 @@ async def safe_groq_stream(
     except Exception as e:
         ename = type(e).__name__.lower()
         if "timeout" in ename:
-            msg = "AI сервис не отвечает, попробуй позже" if ru else "AI service not responding, try later"
+            msg = "AI service not responding, try later" if lang == "en" else "AI сервис не отвечает, попробуй позже"
             err = "timeout"
         elif "ratelimit" in ename:
-            msg = "Слишком много запросов к AI, подожди минуту" if ru else "Too many AI requests, wait a minute"
+            msg = "Too many AI requests, wait a minute" if lang == "en" else "Слишком много запросов к AI, подожди минуту"
             err = "groq_limit"
         elif "connection" in ename:
-            msg = "Нет связи с AI сервисом" if ru else "No connection to AI service"
+            msg = "No connection to AI service" if lang == "en" else "Нет связи с AI сервисом"
             err = "connection"
         else:
             logger.error("Groq stream error: %s %s", type(e).__name__, e)
-            msg = "Что-то пошло не так" if ru else "Something went wrong"
+            msg = "Something went wrong" if lang == "en" else "Что-то пошло не так"
             err = "unknown"
         yield f'data: {json.dumps({"error": err, "message": msg})}\n\n'
