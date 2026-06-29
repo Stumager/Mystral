@@ -194,15 +194,19 @@ export function Privacy() {
           {ru ? (<>
             По всем вопросам, связанным с обработкой персональных данных, обращайтесь:
             <br /><br />
-            Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
+            Самозанятый Нечунаев Александр Вячеславович
             <br />
-            Оператор: Самозанятый Нечунаев Александр Вячеславович
+            ИНН: 230307450300
+            <br />
+            Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
           </>) : (<>
             For all questions related to personal data processing, contact us:
             <br /><br />
-            Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
+            Alexander Nechunaev, sole proprietor
             <br />
-            Controller: Alexander Nechunaev, sole proprietor
+            TIN: 230307450300
+            <br />
+            Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
           </>)}
         </Section>
 

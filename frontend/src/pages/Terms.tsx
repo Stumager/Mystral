@@ -199,9 +199,13 @@ export function Terms() {
           {ru ? (<>
             Самозанятый Нечунаев Александр Вячеславович
             <br />
+            ИНН: 230307450300
+            <br />
             Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
           </>) : (<>
             Alexander Nechunaev, sole proprietor
+            <br />
+            TIN: 230307450300
             <br />
             Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
           </>)}
