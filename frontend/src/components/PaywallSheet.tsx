@@ -12,7 +12,6 @@ interface PaywallSheetProps {
 }
 
 const twa = () => (window as any).Telegram?.WebApp;
-const isTMA = () => Boolean(twa()?.initData);
 
 const BENEFITS_RU = [
   { icon: "*", title: "Безлимитные расклады Таро", desc: "Все колоды и развороты без ограничений" },
@@ -51,13 +50,11 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(""), 3000); }
 
   const isInTelegram = Boolean(twa()?.initData);
+  const [showYukassaStub, setShowYukassaStub] = useState(false);
 
   async function handleBuy() {
     if (!isInTelegram) {
-      const url = plan === "year"
-        ? "https://t.me/Mystrallbot?start=pay_year"
-        : "https://t.me/Mystrallbot?start=pay_month";
-      window.open(url, "_blank");
+      setShowYukassaStub(true);
       return;
     }
     const product = plan === "year" ? "pro_year" : "pro_month";
@@ -80,22 +77,16 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
     } catch { showToast(t("paywall.error")); setLoading(null); }
   }
 
-  async function handleYukassa() {
-    setLoading("yukassa");
-    try {
-      const data = await apiRequest<{ payment_url: string }>("/payments/yukassa/create", { product: "pro_month" }, token ?? undefined);
-      window.open(data.payment_url, "_blank");
-    } catch { showToast(t("paywall.error")); }
-    finally { setLoading(null); }
-  }
-
-  const price = plan === "year" ? "1599" : "199";
+  const price = isInTelegram
+    ? (plan === "year" ? "1599" : "199")
+    : (plan === "year" ? "2 999" : "399");
+  const currency = isInTelegram ? " Stars" : " ₽";
   const period = plan === "year" ? t("paywall.period_year") : t("paywall.period_month");
 
-  function PlanCard({ type, label, priceVal, sub, badge }: { type: "year" | "month"; label: string; priceVal: string; sub: string; badge?: string }) {
+  function PlanCard({ type, label, priceVal, sub, badge, currencySymbol }: { type: "year" | "month"; label: string; priceVal: string; sub: string; badge?: string; currencySymbol?: string }) {
     const active = plan === type;
     return (
-      <button onClick={() => setPlan(type)} style={{
+      <button onClick={() => { setPlan(type); setShowYukassaStub(false); }} style={{
         position: "relative", flex: 1, padding: "20px 16px", borderRadius: 16, cursor: "pointer", textAlign: "left",
         background: active ? "linear-gradient(155deg,rgba(201,168,76,.12),rgba(201,168,76,.04))" : "rgba(255,255,255,.04)",
         border: `1.5px solid ${active ? "rgba(201,168,76,.5)" : "rgba(255,255,255,.1)"}`,
@@ -107,7 +98,9 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
         )}
         <div style={{ fontSize: 13, color: "#B6AC98" }}>{label}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, lineHeight: 1 }}>
-          <span style={{ fontSize: 18, color: "#C9A84C" }}>⭐</span>
+          {currencySymbol
+            ? <span style={{ fontSize: 16, color: "#C9A84C" }}>{currencySymbol}</span>
+            : <span style={{ fontSize: 18, color: "#C9A84C" }}>⭐</span>}
           <span className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA" }}>{priceVal}</span>
         </div>
         <div style={{ fontSize: 11, color: "#6E6757", marginTop: 3 }}>{sub}</div>
@@ -116,11 +109,14 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   }
 
   function BuyButton() {
+    const btnText = loading ? "..." : (ru
+      ? `Оформить за ${price}${currency}`
+      : `Subscribe for ${price}${currency}`);
     return (
       <button onClick={handleBuy} disabled={loading !== null} style={{ position: "relative", overflow: "hidden", width: "100%", height: 56, borderRadius: 16, cursor: loading ? "default" : "pointer", background: "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, boxShadow: "0 12px 32px -8px rgba(201,168,76,.6)", border: "none" }}>
         <span style={{ position: "absolute", inset: 0, background: "linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%)", backgroundSize: "200% 100%", animation: "mystral-shimmer 2.6s linear infinite" }} />
         <span style={{ position: "relative", color: "#1A1206", fontWeight: 600, fontSize: 15.5, display: "flex", alignItems: "center", gap: 8 }}>
-          ⭐ {loading ? "..." : t("paywall.subscribe_for", { price })}
+          {isInTelegram ? "⭐" : "💳"} {btnText}
         </span>
       </button>
     );
@@ -129,18 +125,32 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   function Footnote() {
     return (
       <>
-        <p style={{ textAlign: "center", fontSize: 12, color: "#6E6757", marginTop: 14 }}>
-          {t("paywall.payment_info", { period })}
-        </p>
-        {!isInTelegram && (
-          <p style={{ fontSize: 12, color: "#8A8170", textAlign: "center", marginTop: 8 }}>
-            {t("paywall.opens_telegram")}
+        {isInTelegram ? (
+          <p style={{ textAlign: "center", fontSize: 12, color: "#6E6757", marginTop: 14 }}>
+            {t("paywall.payment_info", { period })}
           </p>
-        )}
-        {!isTMA() && (
-          <button onClick={handleYukassa} disabled={loading !== null} style={{ width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
-            {loading === "yukassa" ? "..." : t("paywall.pay_card")}
-          </button>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14 }}>
+              <span style={{ fontSize: 14, color: "#6E6757" }}>🛡</span>
+              <span style={{ fontSize: 12, color: "#6E6757" }}>{ru ? "Защищено ЮKassa" : "Secured by YuKassa"}</span>
+            </div>
+            <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 6 }}>
+              Visa · Mastercard · Мир
+            </p>
+            {showYukassaStub && (
+              <div style={{ padding: 16, borderRadius: 14, textAlign: "center", marginTop: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)" }}>
+                <p style={{ fontSize: 14, color: "#A89E8B", lineHeight: 1.6 }}>
+                  {ru
+                    ? "Подключение карточной оплаты в процессе настройки. Для оформления подписки напишите нам:"
+                    : "Card payment integration is being set up. To subscribe, contact us:"}
+                </p>
+                <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ fontSize: 14, color: "#C9A84C", marginTop: 8, display: "inline-block" }}>
+                  sasha.nechunaev1234@gmail.com
+                </a>
+              </div>
+            )}
+          </>
         )}
         {toast && <p style={{ textAlign: "center", fontSize: 13, color: "#C9A84C", marginTop: 10 }}>{toast}</p>}
         <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 12 }}>
@@ -196,8 +206,13 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
           {/* Right — sticky */}
           <div style={{ position: "sticky", top: 10, padding: 28, borderRadius: 24, background: "radial-gradient(120% 80% at 50% 0%, #1A1440, #0C0A20)", border: "1px solid rgba(201,168,76,.24)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1599" sub={t("paywall.stars_per_month_year")} badge={t("paywall.save_percent")} />
-              <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
+              {isInTelegram ? (<>
+                <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1 599" sub={t("paywall.stars_per_month_year")} badge={t("paywall.save_percent")} />
+                <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
+              </>) : (<>
+                <PlanCard type="year" label={t("paywall.year_plan")} priceVal="2 999" sub={ru ? "250 ₽ в месяц" : "250 ₽/month"} badge={ru ? "ВЫГОДНО −37%" : "SAVE −37%"} currencySymbol="₽" />
+                <PlanCard type="month" label={t("paywall.month_plan")} priceVal="399" sub={t("paywall.flexible_cancel")} currencySymbol="₽" />
+              </>)}
             </div>
             <div style={{ marginTop: 20 }}><BuyButton /></div>
             <Footnote />
@@ -243,8 +258,13 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
 
         {/* Plan selector */}
         <div style={{ marginTop: 26, display: "flex", gap: 12 }}>
-          <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1500" sub={t("paywall.stars_per_month_mobile")} badge={t("paywall.save_percent_mobile")} />
-          <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
+          {isInTelegram ? (<>
+            <PlanCard type="year" label={t("paywall.year_plan")} priceVal="1 599" sub={t("paywall.stars_per_month_mobile")} badge={t("paywall.save_percent_mobile")} />
+            <PlanCard type="month" label={t("paywall.month_plan")} priceVal="199" sub={t("paywall.flexible_cancel")} />
+          </>) : (<>
+            <PlanCard type="year" label={t("paywall.year_plan")} priceVal="2 999" sub={ru ? "250 ₽/мес" : "250 ₽/mo"} badge={ru ? "−37%" : "−37%"} currencySymbol="₽" />
+            <PlanCard type="month" label={t("paywall.month_plan")} priceVal="399" sub={t("paywall.flexible_cancel")} currencySymbol="₽" />
+          </>)}
         </div>
 
         {/* Buy button */}
