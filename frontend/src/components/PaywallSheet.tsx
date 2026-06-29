@@ -143,6 +143,12 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
           </button>
         )}
         {toast && <p style={{ textAlign: "center", fontSize: 13, color: "#C9A84C", marginTop: 10 }}>{toast}</p>}
+        <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 12 }}>
+          {t("paywall.legal_prefix")}{" "}
+          <a href="/terms" style={{ color: "#C9A84C", textDecoration: "none" }}>{t("legal.terms_gen")}</a>
+          {" "}{t("paywall.legal_and")}{" "}
+          <a href="/privacy" style={{ color: "#C9A84C", textDecoration: "none" }}>{t("legal.privacy_gen")}</a>
+        </p>
       </>
     );
   }

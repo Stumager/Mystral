@@ -185,7 +185,7 @@ export function LoginScreen() {
             <div style={{ position: "relative" }}>
               <input
                 type={showPw ? "text" : "password"}
-                placeholder="Подтвердить пароль"
+                placeholder={t("login.confirm_password")}
                 value={confirmPw}
                 onChange={e => setConfirmPw(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
@@ -194,10 +194,10 @@ export function LoginScreen() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
               {[
-                { ok: password.length >= 8, text: "Минимум 8 символов" },
-                { ok: /[A-Z]/.test(password), text: "Заглавная буква" },
-                { ok: /[0-9]/.test(password), text: "Цифра" },
-                { ok: confirmPw.length > 0 && confirmPw === password, text: "Пароли совпадают" },
+                { ok: password.length >= 8, text: t("login.pw_min_8") },
+                { ok: /[A-Z]/.test(password), text: t("login.pw_uppercase") },
+                { ok: /[0-9]/.test(password), text: t("login.pw_digit") },
+                { ok: confirmPw.length > 0 && confirmPw === password, text: t("login.pw_match") },
               ].map(c => (
                 <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#6E6757" }}>
                   {c.ok ? "✓" : "✗"} {c.text}
@@ -223,8 +223,15 @@ export function LoginScreen() {
         {mode === "login" && (
           <button onClick={() => { window.location.hash = "forgot-password"; window.location.reload(); }}
             style={{ fontSize: 13, color: "#C9A84C", background: "none", border: "none", cursor: "pointer", marginTop: 4, alignSelf: "center" }}>
-            Забыли пароль?
+            {t("login.forgot_password")}
           </button>
+        )}
+
+        {mode === "register" && (
+          <p style={{ fontSize: 12, color: "#6E6757", textAlign: "center", marginTop: 4 }}>
+            {t("login.agree_prefix")}{" "}
+            <a href="/terms" style={{ color: "#C9A84C", textDecoration: "none" }}>{t("legal.terms_acc")}</a>
+          </p>
         )}
 
         {/* Divider */}

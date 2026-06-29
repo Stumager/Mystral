@@ -205,7 +205,14 @@
     "submit_register": "Cadastrar-se",
     "or": "ou",
     "tma_hint": "No aplicativo do Telegram, o login é automático",
-    "tg_error": "Erro ao entrar pelo Telegram"
+    "tg_error": "Erro ao entrar pelo Telegram",
+    "forgot_password": "Esqueceu a senha?",
+    "agree_prefix": "Ao se registrar, você aceita os",
+    "confirm_password": "Confirmar senha",
+    "pw_min_8": "Mínimo 8 caracteres",
+    "pw_uppercase": "Letra maiúscula",
+    "pw_digit": "Dígito",
+    "pw_match": "As senhas coincidem"
   },
   "paywall": {
     "feature_tarot": "Tiragens de Tarot ilimitadas todos os dias",
@@ -234,7 +241,9 @@
     "period_month": "1 mês",
     "stars_per_month_year": "apenas 133 Stars por mês",
     "stars_per_month_mobile": "125 Stars por mês",
-    "payment_info": "Pagamento via Telegram Stars · {{period}} · cancelar a qualquer momento"
+    "payment_info": "Pagamento via Telegram Stars · {{period}} · cancelar a qualquer momento",
+    "legal_prefix": "Ao assinar, você aceita os",
+    "legal_and": "e a"
   },
   "merge": {
     "title": "Vincular à conta",
@@ -383,5 +392,12 @@
     "error": "Erro",
     "loading": "Carregando...",
     "open_profile": "Abrir perfil"
+  },
+  "legal": {
+    "privacy": "Política de privacidade",
+    "terms": "Termos de uso",
+    "privacy_gen": "Política de privacidade",
+    "terms_gen": "Termos de uso",
+    "terms_acc": "Termos de uso"
   }
 }

@@ -205,7 +205,14 @@
     "submit_register": "Sign up",
     "or": "or",
     "tma_hint": "In Telegram app, login is automatic",
-    "tg_error": "Telegram login error"
+    "tg_error": "Telegram login error",
+    "forgot_password": "Forgot password?",
+    "agree_prefix": "By registering, you accept the",
+    "confirm_password": "Confirm password",
+    "pw_min_8": "At least 8 characters",
+    "pw_uppercase": "Uppercase letter",
+    "pw_digit": "Digit",
+    "pw_match": "Passwords match"
   },
   "paywall": {
     "feature_tarot": "Unlimited Tarot spreads every day",
@@ -234,7 +241,9 @@
     "period_month": "1 month",
     "stars_per_month_year": "only 133 Stars/month",
     "stars_per_month_mobile": "125 Stars/month",
-    "payment_info": "Payment via Telegram Stars · {{period}} · cancel anytime"
+    "payment_info": "Payment via Telegram Stars · {{period}} · cancel anytime",
+    "legal_prefix": "By subscribing, you accept the",
+    "legal_and": "and"
   },
   "merge": {
     "title": "Link to account",
@@ -383,5 +392,12 @@
     "error": "Error",
     "loading": "Loading...",
     "open_profile": "Open profile"
+  },
+  "legal": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "privacy_gen": "Privacy Policy",
+    "terms_gen": "Terms of Use",
+    "terms_acc": "Terms of Use"
   }
 }

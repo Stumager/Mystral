@@ -70,13 +70,20 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
         })}
       </nav>
 
-      <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.07)", padding: "14px 10px 4px", display: "flex", gap: 12, alignItems: "center" }}>
-        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span className="font-cormorant" style={{ fontSize: 19, color: "#0C0A18", fontWeight: 600 }}>{firstLetter}</span>
+      <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.07)", padding: "14px 10px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span className="font-cormorant" style={{ fontSize: 19, color: "#0C0A18", fontWeight: 600 }}>{firstLetter}</span>
+          </div>
+          <div>
+            <div style={{ fontSize: 13.5, color: "#F0E9DA", fontWeight: 500 }}>{user?.name ?? t("profile.guest")}</div>
+            <div style={{ fontSize: 11, color: "#C9A84C" }}>{zodiacLabel ?? "—"} · {isPro ? "Pro" : "Free"}</div>
+          </div>
         </div>
-        <div>
-          <div style={{ fontSize: 13.5, color: "#F0E9DA", fontWeight: 500 }}>{user?.name ?? t("profile.guest")}</div>
-          <div style={{ fontSize: 11, color: "#C9A84C" }}>{zodiacLabel ?? "—"} · {isPro ? "Pro" : "Free"}</div>
+        <div style={{ fontSize: 11, color: "#6E6757", paddingLeft: 2 }}>
+          <a href="/privacy" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.privacy")}</a>
+          {" · "}
+          <a href="/terms" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.terms")}</a>
         </div>
       </div>
     </aside>

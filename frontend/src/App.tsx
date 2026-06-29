@@ -12,6 +12,8 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
 import { LunarCalendar } from "./pages/LunarCalendar";
+import { Privacy } from "./pages/Privacy";
+import { Terms } from "./pages/Terms";
 import { NatalChart } from "./pages/NatalChart";
 import { Numerology } from "./pages/Numerology";
 import { Profile } from "./pages/Profile";
@@ -53,6 +55,11 @@ function AppInner() {
     localStorage.setItem("mystral_ref_code", refMatch[1]);
     window.history.replaceState(null, "", "/");
   }
+
+  // Public pages (no auth required)
+  const path = window.location.pathname;
+  if (path === "/privacy") return <Privacy />;
+  if (path === "/terms") return <Terms />;
 
   if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin") return <Admin />;
 

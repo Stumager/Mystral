@@ -205,7 +205,14 @@
     "submit_register": "Зареєструватися",
     "or": "або",
     "tma_hint": "У додатку Telegram вхід відбувається автоматично",
-    "tg_error": "Помилка входу через Telegram"
+    "tg_error": "Помилка входу через Telegram",
+    "forgot_password": "Забули пароль?",
+    "agree_prefix": "Реєструючись, ви приймаєте",
+    "confirm_password": "Підтвердити пароль",
+    "pw_min_8": "Мінімум 8 символів",
+    "pw_uppercase": "Велика літера",
+    "pw_digit": "Цифра",
+    "pw_match": "Паролі збігаються"
   },
   "paywall": {
     "feature_tarot": "Безлімітні розклади Таро щодня",
@@ -234,7 +241,9 @@
     "period_month": "1 місяць",
     "stars_per_month_year": "лише 133 Stars на місяць",
     "stars_per_month_mobile": "125 Stars на місяць",
-    "payment_info": "Оплата через Telegram Stars · {{period}} · скасування будь-коли"
+    "payment_info": "Оплата через Telegram Stars · {{period}} · скасування будь-коли",
+    "legal_prefix": "Оформлюючи підписку, ви приймаєте умови",
+    "legal_and": "та"
   },
   "merge": {
     "title": "Зв'язати з акаунтом",
@@ -383,5 +392,12 @@
     "error": "Помилка",
     "loading": "Завантаження...",
     "open_profile": "Відкрити профіль"
+  },
+  "legal": {
+    "privacy": "Політика конфіденційності",
+    "terms": "Оферта",
+    "privacy_gen": "Політики конфіденційності",
+    "terms_gen": "Оферти",
+    "terms_acc": "Угоду користувача"
   }
 }

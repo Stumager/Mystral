@@ -205,7 +205,14 @@
     "submit_register": "Зарегистрироваться",
     "or": "или",
     "tma_hint": "В Telegram-приложении вход происходит автоматически",
-    "tg_error": "Ошибка входа через Telegram"
+    "tg_error": "Ошибка входа через Telegram",
+    "forgot_password": "Забыли пароль?",
+    "agree_prefix": "Регистрируясь, вы принимаете",
+    "confirm_password": "Подтвердить пароль",
+    "pw_min_8": "Минимум 8 символов",
+    "pw_uppercase": "Заглавная буква",
+    "pw_digit": "Цифра",
+    "pw_match": "Пароли совпадают"
   },
   "paywall": {
     "feature_tarot": "Безлимитные расклады Таро каждый день",
@@ -234,7 +241,9 @@
     "period_month": "1 месяц",
     "stars_per_month_year": "всего 133 Stars в месяц",
     "stars_per_month_mobile": "125 Stars в месяц",
-    "payment_info": "Оплата через Telegram Stars · {{period}} · отмена в любой момент"
+    "payment_info": "Оплата через Telegram Stars · {{period}} · отмена в любой момент",
+    "legal_prefix": "Оформляя подписку, вы принимаете условия",
+    "legal_and": "и"
   },
   "merge": {
     "title": "Связать с аккаунтом",
@@ -383,5 +392,12 @@
     "error": "Ошибка",
     "loading": "Загрузка...",
     "open_profile": "Открыть профиль"
+  },
+  "legal": {
+    "privacy": "Политика конфиденциальности",
+    "terms": "Оферта",
+    "privacy_gen": "Политики конфиденциальности",
+    "terms_gen": "Оферты",
+    "terms_acc": "Пользовательское соглашение"
   }
 }

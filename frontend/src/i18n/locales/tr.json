@@ -205,7 +205,14 @@
     "submit_register": "Kayıt ol",
     "or": "veya",
     "tma_hint": "Telegram uygulamasında giriş otomatik olarak yapılır",
-    "tg_error": "Telegram ile giriş hatası"
+    "tg_error": "Telegram ile giriş hatası",
+    "forgot_password": "Şifreni mi unuttun?",
+    "agree_prefix": "Kayıt olarak kabul edersiniz:",
+    "confirm_password": "Şifreyi onayla",
+    "pw_min_8": "En az 8 karakter",
+    "pw_uppercase": "Büyük harf",
+    "pw_digit": "Rakam",
+    "pw_match": "Şifreler eşleşiyor"
   },
   "paywall": {
     "feature_tarot": "Her gün sınırsız Tarot açılımı",
@@ -234,7 +241,9 @@
     "period_month": "1 ay",
     "stars_per_month_year": "ayda sadece 133 Stars",
     "stars_per_month_mobile": "ayda 125 Stars",
-    "payment_info": "Telegram Stars ile ödeme · {{period}} · istediğin zaman iptal"
+    "payment_info": "Telegram Stars ile ödeme · {{period}} · istediğin zaman iptal",
+    "legal_prefix": "Abone olarak kabul edersiniz:",
+    "legal_and": "ve"
   },
   "merge": {
     "title": "Hesaba bağla",
@@ -383,5 +392,12 @@
     "error": "Hata",
     "loading": "Yükleniyor...",
     "open_profile": "Profili aç"
+  },
+  "legal": {
+    "privacy": "Gizlilik politikası",
+    "terms": "Kullanım koşulları",
+    "privacy_gen": "Gizlilik Politikasını",
+    "terms_gen": "Kullanım Koşullarını",
+    "terms_acc": "Kullanım Koşullarını"
   }
 }
