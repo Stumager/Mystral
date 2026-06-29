@@ -27,7 +27,6 @@ async def safe_groq_stream(
     max_tokens: int = 400,
     lang: str = "ru",
 ) -> AsyncIterator[str]:
-    ru = lang == "ru"
     try:
         client = _get_client()
         stream = client.chat.completions.create(
@@ -46,16 +45,56 @@ async def safe_groq_stream(
     except Exception as e:
         ename = type(e).__name__.lower()
         if "timeout" in ename:
-            msg = "AI service not responding, try later" if lang == "en" else "AI сервис не отвечает, попробуй позже"
+            msg = _err_msg(lang, "timeout")
             err = "timeout"
         elif "ratelimit" in ename:
-            msg = "Too many AI requests, wait a minute" if lang == "en" else "Слишком много запросов к AI, подожди минуту"
+            msg = _err_msg(lang, "ratelimit")
             err = "groq_limit"
         elif "connection" in ename:
-            msg = "No connection to AI service" if lang == "en" else "Нет связи с AI сервисом"
+            msg = _err_msg(lang, "connection")
             err = "connection"
         else:
             logger.error("Groq stream error: %s %s", type(e).__name__, e)
-            msg = "Something went wrong" if lang == "en" else "Что-то пошло не так"
+            msg = _err_msg(lang, "unknown")
             err = "unknown"
         yield f'data: {json.dumps({"error": err, "message": msg})}\n\n'
+
+
+_ERROR_MESSAGES = {
+    "timeout": {
+        "ru": "AI сервис не отвечает, попробуй позже",
+        "en": "AI service not responding, try later",
+        "es": "El servicio de IA no responde, inténtalo más tarde",
+        "pt": "Serviço de IA não responde, tente mais tarde",
+        "tr": "AI servisi yanıt vermiyor, daha sonra dene",
+        "uk": "AI сервіс не відповідає, спробуй пізніше",
+    },
+    "ratelimit": {
+        "ru": "Слишком много запросов к AI, подожди минуту",
+        "en": "Too many AI requests, wait a minute",
+        "es": "Demasiadas solicitudes de IA, espera un momento",
+        "pt": "Muitas solicitações de IA, aguarde um momento",
+        "tr": "Çok fazla AI isteği, bir dakika bekle",
+        "uk": "Забагато запитів до AI, зачекай хвилинку",
+    },
+    "connection": {
+        "ru": "Нет связи с AI сервисом",
+        "en": "No connection to AI service",
+        "es": "Sin conexión con el servicio de IA",
+        "pt": "Sem conexão com o serviço de IA",
+        "tr": "AI servisine bağlantı yok",
+        "uk": "Немає зв'язку з AI сервісом",
+    },
+    "unknown": {
+        "ru": "Что-то пошло не так",
+        "en": "Something went wrong",
+        "es": "Algo salió mal",
+        "pt": "Algo deu errado",
+        "tr": "Bir şeyler ters gitti",
+        "uk": "Щось пішло не так",
+    },
+}
+
+
+def _err_msg(lang: str, key: str) -> str:
+    return _ERROR_MESSAGES.get(key, {}).get(lang, _ERROR_MESSAGES[key]["en"])

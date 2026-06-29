@@ -14,7 +14,7 @@ from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.data.numerology import life_path as calc_life_path
 from app.data.runes import RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
 from app.data.staves import STAVES
@@ -210,8 +210,7 @@ async def interpret(
             )
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "runes_interpret", 3, 30)
-    lang_enforce = " Отвечай ТОЛЬКО на русском." if ru else " Answer ONLY in English."
-    sys = system_prompt(req.lang) + lang_enforce
+    sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     max_tok = 600 if req.spread_type == "year_spread" else 400
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 

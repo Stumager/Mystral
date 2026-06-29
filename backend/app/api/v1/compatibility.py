@@ -14,7 +14,7 @@ from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce, system_prompt
 from app.models.user import User, UserPartner, UserProfile
 
 router = APIRouter()
@@ -106,14 +106,23 @@ for a in range(1, 10):
         else: NUM_COMPAT[(a, b)] = 55 + ((a * b) % 20)
 
 
+_DESCS = {
+    "ru": ("Гармоничная пара с глубоким взаимопониманием.", "Интересный союз с потенциалом роста.", "Непростое сочетание, требующее работы над собой."),
+    "en": ("A harmonious pair with deep mutual understanding.", "An interesting union with growth potential.", "A challenging combination requiring patience and self-work."),
+    "es": ("Una pareja armoniosa con profunda comprensión mutua.", "Una unión interesante con potencial de crecimiento.", "Una combinación desafiante que requiere paciencia y trabajo personal."),
+    "pt": ("Um par harmonioso com profunda compreensão mútua.", "Uma união interessante com potencial de crescimento.", "Uma combinação desafiadora que requer paciência e autoconhecimento."),
+    "tr": ("Derin karşılıklı anlayışa sahip uyumlu bir çift.", "Büyüme potansiyeli olan ilginç bir birliktelik.", "Sabır ve öz çalışma gerektiren zorlu bir kombinasyon."),
+    "uk": ("Гармонійна пара з глибоким взаєморозумінням.", "Цікавий союз із потенціалом зростання.", "Непросте поєднання, що потребує роботи над собою."),
+}
+
+
 def _desc(score: int, lang: str) -> str:
-    if lang == "ru":
-        if score >= 75: return "Гармоничная пара с глубоким взаимопониманием."
-        if score >= 50: return "Интересный союз с потенциалом роста."
-        return "Непростое сочетание, требующее работы над собой."
-    if score >= 75: return "A harmonious pair with deep mutual understanding."
-    if score >= 50: return "An interesting union with growth potential."
-    return "A challenging combination requiring patience and self-work."
+    high, mid, low = _DESCS.get(lang, _DESCS["en"])
+    if score >= 75:
+        return high
+    if score >= 50:
+        return mid
+    return low
 
 
 # ---- Partner CRUD ----
@@ -296,7 +305,15 @@ async def compat_moon(req: CompatTypeRequest, current_user: User = Depends(get_c
                       session: AsyncSession = Depends(get_session)):
     prof, partner = await _get_user_and_partner(req, current_user, session)
     if not prof.birth_time or not partner.birth_time:
-        msg = "Для лунной совместимости нужно время рождения обоих" if req.lang == "ru" else "Moon compatibility requires birth time for both"
+        _moon_msgs = {
+            "ru": "Для лунной совместимости нужно время рождения обоих",
+            "en": "Moon compatibility requires birth time for both",
+            "es": "La compatibilidad lunar requiere hora de nacimiento de ambos",
+            "pt": "A compatibilidade lunar requer horário de nascimento de ambos",
+            "tr": "Ay uyumu için her ikisinin de doğum saati gerekli",
+            "uk": "Для місячної сумісності потрібен час народження обох",
+        }
+        msg = _moon_msgs.get(req.lang, _moon_msgs["en"])
         raise HTTPException(400, msg)
 
     try:
@@ -425,8 +442,7 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
 
     i1, i2 = _sign_idx(prof.birth_date), _sign_idx(partner.birth_date)
     s1, s2 = SIGNS[i1], SIGNS[i2]
-    sys = system_prompt(req.lang)
-    lang_enforce = " Отвечай ТОЛЬКО на русском." if req.lang == "ru" else " Answer ONLY in English."
+    sys = system_prompt(req.lang) + lang_enforce(req.lang)
 
     if req.lang == "ru":
         prompt = (
@@ -443,7 +459,7 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
         )
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "compat_interpret", 5, 50)
-    msgs = [{"role": "system", "content": sys + lang_enforce}, {"role": "user", "content": prompt}]
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
     return StreamingResponse(safe_groq_stream(msgs, max_tokens=300, lang=req.lang),
                              media_type="text/event-stream",

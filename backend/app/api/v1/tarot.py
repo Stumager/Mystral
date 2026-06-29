@@ -16,7 +16,7 @@ from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.models.user import TarotReading, User
 
 router = APIRouter()
@@ -155,8 +155,7 @@ async def tarot_interpret(
         cards_desc.append(f"{name}{rev} — {pos}")
 
     cards_text = "\n".join(cards_desc)
-    lang_enforce = "Отвечай ТОЛЬКО на русском языке. Не используй английские слова или другие языки." if req.lang == "ru" else "Answer ONLY in English."
-    sys = system_prompt(req.lang) + f" {lang_enforce}"
+    sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     question_part = f'\nВопрос клиента: "{req.question}". Строй ответ вокруг этого вопроса.' if req.question else ""
     yes_no_part = ""
 

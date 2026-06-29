@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce, system_prompt
 from app.models.user import User
 
 router = APIRouter()
@@ -447,8 +447,7 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
                              aspects_text=aspects_text, transits_text=transits_text, stellium_text=stellium_text)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_interpret", 2, 20)
-    lang_enforce = "Отвечай ТОЛЬКО на русском. Обращайся на 'ты'." if sru else "Answer ONLY in English. Use 'you'."
-    sys = system_prompt(req.lang) + f" {lang_enforce}"
+    sys = system_prompt(req.lang) + lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
     return StreamingResponse(safe_groq_stream(msgs, max_tokens=400, lang=req.lang),

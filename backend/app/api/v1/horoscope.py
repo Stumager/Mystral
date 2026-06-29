@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.groq_client import safe_groq_stream
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce, system_prompt
 
 router = APIRouter()
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
@@ -29,6 +29,21 @@ SIGNS_RU = {
     "pisces": "Рыбы",
 }
 
+SIGNS_I18N = {
+    "es": {"aries": "Aries", "taurus": "Tauro", "gemini": "Géminis", "cancer": "Cáncer", "leo": "Leo", "virgo": "Virgo", "libra": "Libra", "scorpio": "Escorpio", "sagittarius": "Sagitario", "capricorn": "Capricornio", "aquarius": "Acuario", "pisces": "Piscis"},
+    "pt": {"aries": "Áries", "taurus": "Touro", "gemini": "Gêmeos", "cancer": "Câncer", "leo": "Leão", "virgo": "Virgem", "libra": "Libra", "scorpio": "Escorpião", "sagittarius": "Sagitário", "capricorn": "Capricórnio", "aquarius": "Aquário", "pisces": "Peixes"},
+    "tr": {"aries": "Koç", "taurus": "Boğa", "gemini": "İkizler", "cancer": "Yengeç", "leo": "Aslan", "virgo": "Başak", "libra": "Terazi", "scorpio": "Akrep", "sagittarius": "Yay", "capricorn": "Oğlak", "aquarius": "Kova", "pisces": "Balık"},
+    "uk": {"aries": "Овен", "taurus": "Телець", "gemini": "Близнюки", "cancer": "Рак", "leo": "Лев", "virgo": "Діва", "libra": "Терези", "scorpio": "Скорпіон", "sagittarius": "Стрілець", "capricorn": "Козеріг", "aquarius": "Водолій", "pisces": "Риби"},
+}
+
+
+def _sign_name(sign: str, lang: str) -> str:
+    if lang == "ru":
+        return SIGNS_RU.get(sign, sign)
+    if lang in SIGNS_I18N:
+        return SIGNS_I18N[lang].get(sign, sign.capitalize())
+    return sign.capitalize()
+
 
 class HoroscopeRequest(BaseModel):
     sign: str
@@ -38,14 +53,14 @@ class HoroscopeRequest(BaseModel):
 
 @router.post("/horoscope/stream")
 async def horoscope_stream(req: HoroscopeRequest):
-    sign_name = SIGNS_RU.get(req.sign, req.sign)
+    sname = _sign_name(req.sign, req.lang)
     today = date.today().isoformat()
     cache_key = f"horoscope:{req.sign}:{req.lang}:{today}"
-    sys = system_prompt(req.lang)
+    sys = system_prompt(req.lang) + lang_enforce(req.lang)
 
     if req.lang == "ru":
         prompt = (
-            f"Знак: {sign_name}. Дата: {req.date or today}.\n"
+            f"Знак: {sname}. Дата: {req.date or today}.\n"
             f"Напиши гороскоп на день. Обязательно укажи:\n"
             f"1. Одну конкретную сферу жизни (работа/отношения/финансы/здоровье)\n"
             f"2. Один конкретный совет что сделать или избежать\n"
@@ -54,12 +69,12 @@ async def horoscope_stream(req: HoroscopeRequest):
         )
     else:
         prompt = (
-            f"Sign: {req.sign.capitalize()}. Date: {req.date or today}.\n"
+            f"Sign: {sname}. Date: {req.date or today}.\n"
             f"Write a daily horoscope. Must include:\n"
             f"1. One specific life area (work/relationships/finances/health)\n"
             f"2. One concrete tip — what to do or avoid\n"
             f"3. Best time of day if relevant\n"
-            f"60-70 words. No greetings like 'Dear Scorpio'."
+            f"60-70 words. No greetings like 'Dear {sname}'."
         )
 
     async def generate():

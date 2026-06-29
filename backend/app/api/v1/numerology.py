@@ -14,7 +14,7 @@ from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.data.numerology import (
     ANGEL_NUMBERS,
     KARMIC_DESCRIPTIONS_EN,
@@ -251,8 +251,7 @@ async def interpret(
         raise HTTPException(400, "Invalid section")
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "numerology_interpret", 2, 20)
-    lang_enforce = " Отвечай ТОЛЬКО на русском." if ru else " Answer ONLY in English."
-    sys = system_prompt(req.lang) + lang_enforce
+    sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
     return StreamingResponse(safe_groq_stream(msgs, max_tokens=500, lang=req.lang),

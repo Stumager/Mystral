@@ -3,7 +3,7 @@ from datetime import date
 
 from groq import Groq
 
-from app.core.prompts import system_prompt
+from app.core.prompts import lang_enforce, system_prompt
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -39,7 +39,7 @@ def zodiac_from_date(d: date) -> str:
 async def generate_horoscope(sign: str, lang: str) -> str:
     sign_name = SIGNS_RU.get(sign, sign)
     today = date.today().isoformat()
-    sys = system_prompt(lang)
+    sys = system_prompt(lang) + lang_enforce(lang)
 
     if lang == "ru":
         prompt = (
