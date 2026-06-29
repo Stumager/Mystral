@@ -1,6 +1,20 @@
 import { RefObject, useState } from "react";
 import html2canvas from "html2canvas";
 
+async function captureToFile(el: HTMLElement): Promise<File> {
+  await document.fonts.ready;
+  const canvas = await html2canvas(el, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#07060F",
+    logging: false,
+  });
+  const blob = await new Promise<Blob>((resolve) =>
+    canvas.toBlob((b) => resolve(b!), "image/png")
+  );
+  return new File([blob], "mystral-reading.png", { type: "image/png" });
+}
+
 export function useShareCard(ref: RefObject<HTMLElement | null>) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -8,30 +22,43 @@ export function useShareCard(ref: RefObject<HTMLElement | null>) {
     if (!ref.current) return;
     setIsLoading(true);
     try {
-      await document.fonts.ready;
-      const canvas = await html2canvas(ref.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#07060F",
-      });
-      const dataUrl = canvas.toDataURL("image/png");
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], "mystral-reading.png", { type: "image/png" });
-
+      const file = await captureToFile(ref.current);
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Mystral", text: "Мой расклад на Mystral" });
+        await navigator.share({ files: [file], title: "Mystral" });
       } else {
         const a = document.createElement("a");
-        a.href = dataUrl;
+        a.href = URL.createObjectURL(file);
         a.download = "mystral-reading.png";
         a.click();
+        URL.revokeObjectURL(a.href);
       }
     } catch (e) {
-      console.error("Share failed:", e);
+      if ((e as Error).name !== "AbortError") console.error("Share failed:", e);
     } finally {
       setIsLoading(false);
     }
   }
 
-  return { share, isLoading };
+  async function shareToTelegram(text: string) {
+    if (!ref.current) return;
+    setIsLoading(true);
+    try {
+      const file = await captureToFile(ref.current);
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Mystral", text });
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(file);
+        a.download = "mystral-reading.png";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") console.error("Share failed:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return { share, shareToTelegram, isLoading };
 }

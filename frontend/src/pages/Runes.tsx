@@ -471,8 +471,7 @@ export function Runes({ onNavigate }: RunesProps) {
         <ShareCard
           type="runes"
           title={drawResult.spread_name}
-          runes={drawResult.drawn_runes.slice(0, 3).map(r => ({ id: r.id, name: r.name, symbol: r.symbol, reversed: r.reversed }))}
-          interpretation={interpretation}
+          runes={drawResult.drawn_runes.slice(0, 5).map(r => ({ id: r.id, name: r.name, symbol: r.symbol, reversed: r.reversed }))}
           onClose={() => setShowShareCard(false)}
         />
       )}

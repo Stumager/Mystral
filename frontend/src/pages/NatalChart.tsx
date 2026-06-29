@@ -405,7 +405,6 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         <ShareCard
           type="natal"
           title={lang === "ru" ? "Натальная карта" : "Natal Chart"}
-          interpretation={interpretation}
           onClose={() => setShowShareCard(false)}
         />
       )}

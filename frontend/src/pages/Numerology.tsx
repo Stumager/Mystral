@@ -388,7 +388,6 @@ export function Numerology({ onNavigate }: NumerologyProps) {
           title={ru ? "Число жизненного пути" : "Life Path Number"}
           number={profile.life_path.number}
           numberLabel={profile.life_path.data?.title}
-          interpretation={aiText || profile.life_path.data?.description || ""}
           onClose={() => setShowShareCard(false)}
         />
       )}

@@ -340,8 +340,7 @@ export function Tarot({ onNavigate }: TarotProps) {
         <ShareCard
           type="tarot"
           title={lang === "ru" ? spread.name_ru : spread.name_en}
-          cards={cards.slice(0, 3)}
-          interpretation={interpretation}
+          cards={cards.slice(0, 5)}
           onClose={() => setShowShareCard(false)}
         />
       )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest, streamRequest } from "../utils/api";
@@ -72,6 +73,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   const [interpretLoading, setInterpretLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showShareCard, setShowShareCard] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
@@ -394,7 +396,12 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               </Button>
             )}
 
-            <Button variant="ghost" className="w-full" onClick={() => { setStep("types"); setResult(null); setInterpretation(""); }}>
+            <button onClick={() => setShowShareCard(true)}
+              style={{ width: "100%", height: 44, marginTop: 8, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+              {t("share.share_btn")}
+            </button>
+
+            <Button variant="ghost" className="w-full" onClick={() => { setStep("types"); setResult(null); setInterpretation(""); setShowShareCard(false); }}>
               {lang === "ru" ? "Другой анализ" : "Another analysis"}
             </Button>
           </div>
@@ -404,6 +411,16 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
 
       <BottomNav active="home" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && result && (
+        <ShareCard
+          type="compat"
+          title={result.partner_name}
+          subtitle={typeLabels[result.type]?.[lang === "ru" ? 0 : 1]}
+          score={result.score}
+          scoreLabel={result.description}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }

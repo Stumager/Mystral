@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
@@ -50,6 +51,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -169,6 +171,12 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 </div>
               </div>
             </div>
+
+            {/* Share */}
+            <button onClick={() => setShowShareCard(true)}
+              style={{ width: "100%", height: 42, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+              {t("share.share_btn")}
+            </button>
 
             {/* Block 4: Category tabs */}
             <div
@@ -346,6 +354,16 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
 
       <BottomNav active="moon" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && today && (
+        <ShareCard
+          type="lunar"
+          title={`${today.lunar_day} ${t("lunar.lunar_day_label")}`}
+          subtitle={`${today.phase_name} · ${t("lunar.moon_in")} ${today.moon_sign}`}
+          lunarDay={today.lunar_day}
+          lunarPhase={today.phase_name}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }
