@@ -407,5 +407,16 @@
     "privacy_gen": "Gizlilik Politikasını",
     "terms_gen": "Kullanım Koşullarını",
     "terms_acc": "Kullanım Koşullarını"
+  },
+  "share": {
+    "type_tarot": "Tarot",
+    "type_runes": "Runlar",
+    "type_numerology": "Numeroloji",
+    "type_natal": "Doğum haritası",
+    "download": "PNG indir",
+    "tg_text": "Mystral'daki falıma bak 🌙",
+    "promo": "Falını paylaş ve her arkadaş için +7 gün Pro kazan",
+    "your_reading": "Kişisel okuman",
+    "share_btn": "Paylaş"
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest, streamRequest } from "../utils/api";
@@ -59,6 +60,7 @@ export function Runes({ onNavigate }: RunesProps) {
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const [error, setError] = useState("");
 
   const [personalData, setPersonalData] = useState<PersonalData | null>(null);
@@ -324,6 +326,13 @@ export function Runes({ onNavigate }: RunesProps) {
               </Button>
             )}
 
+            {interpretation && !interpretLoading && (
+              <button onClick={() => setShowShareCard(true)}
+                style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                {t("share.share_btn")}
+              </button>
+            )}
+
             <Button variant="ghost" className="w-full" onClick={reset}>{t("runes.new_draw")}</Button>
           </>
         )}
@@ -458,6 +467,15 @@ export function Runes({ onNavigate }: RunesProps) {
 
       <BottomNav active="home" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && drawResult && (
+        <ShareCard
+          type="runes"
+          title={drawResult.spread_name}
+          runes={drawResult.drawn_runes.slice(0, 3).map(r => ({ id: r.id, name: r.name, symbol: r.symbol, reversed: r.reversed }))}
+          interpretation={interpretation}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }

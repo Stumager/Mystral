@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { TarotCard } from "../components/tarot/TarotCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
@@ -37,6 +38,7 @@ export function Tarot({ onNavigate }: TarotProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
 
   function selectSpread(s: SpreadType) {
     if (s.tier === "pro" && user?.tier !== "pro") {
@@ -315,6 +317,13 @@ export function Tarot({ onNavigate }: TarotProps) {
               </div>
             )}
 
+            {interpretation && !isReading && (
+              <button onClick={() => setShowShareCard(true)}
+                style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                {t("share.share_btn")}
+              </button>
+            )}
+
             {allRevealed && !isReading && (
               <Button variant="gold" className="w-full" style={{ height: 50, borderRadius: 14 }} onClick={reset}>
                 {t("tarot.new_spread")}
@@ -327,6 +336,15 @@ export function Tarot({ onNavigate }: TarotProps) {
 
       <BottomNav active="tarot" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && spread && (
+        <ShareCard
+          type="tarot"
+          title={lang === "ru" ? spread.name_ru : spread.name_en}
+          cards={cards.slice(0, 3)}
+          interpretation={interpretation}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }

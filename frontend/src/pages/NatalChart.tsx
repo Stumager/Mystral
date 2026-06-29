@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
@@ -53,6 +54,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [interpretation, setInterpretation] = useState("");
   const [interpretLoading, setInterpretLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
 
   const profileLoaded = useRef(false);
   useEffect(() => {
@@ -375,9 +377,17 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 ))}
               </div>
               {interpretation ? (
-                <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
-                </p>
+                <>
+                  <p className="text-text-muted text-xs leading-relaxed">
+                    {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
+                  </p>
+                  {!interpretLoading && (
+                    <button onClick={() => setShowShareCard(true)}
+                      style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                      {t("share.share_btn")}
+                    </button>
+                  )}
+                </>
               ) : (
                 <p className="text-text-faint text-xs text-center">
                   {lang === "ru" ? "Выбери раздел для анализа" : "Select a section"}
@@ -391,6 +401,14 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
       <BottomNav active="natal" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && (
+        <ShareCard
+          type="natal"
+          title={lang === "ru" ? "Натальная карта" : "Natal Chart"}
+          interpretation={interpretation}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }

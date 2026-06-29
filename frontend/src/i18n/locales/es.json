@@ -407,5 +407,16 @@
     "privacy_gen": "Política de privacidad",
     "terms_gen": "Términos de uso",
     "terms_acc": "Términos de uso"
+  },
+  "share": {
+    "type_tarot": "Tarot",
+    "type_runes": "Runas",
+    "type_numerology": "Numerología",
+    "type_natal": "Carta natal",
+    "download": "Descargar PNG",
+    "tg_text": "Mira mi tirada en Mystral 🌙",
+    "promo": "Comparte tu lectura y obtén +7 días Pro por cada amigo",
+    "your_reading": "Tu lectura personal",
+    "share_btn": "Compartir"
   }
 }

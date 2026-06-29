@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaywallSheet } from "../components/PaywallSheet";
+import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
@@ -69,6 +70,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
   const [aiLoading, setAiLoading] = useState(false);
 
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -367,6 +369,12 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                   {aiText}{aiLoading && <span className="animate-pulse">|</span>}
                 </p>
               )}
+              {aiText && !aiLoading && (
+                <button onClick={() => setShowShareCard(true)}
+                  style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                  {t("share.share_btn")}
+                </button>
+              )}
             </div>
           </>
         ) : null}
@@ -374,6 +382,16 @@ export function Numerology({ onNavigate }: NumerologyProps) {
 
       <BottomNav active="home" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showShareCard && profile && (
+        <ShareCard
+          type="numerology"
+          title={ru ? "Число жизненного пути" : "Life Path Number"}
+          number={profile.life_path.number}
+          numberLabel={profile.life_path.data?.title}
+          interpretation={aiText || profile.life_path.data?.description || ""}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </div>
   );
 }
