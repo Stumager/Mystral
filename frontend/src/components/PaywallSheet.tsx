@@ -36,6 +36,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [showYukassaStub, setShowYukassaStub] = useState(false);
 
   useEffect(() => {
     const h = () => setIsDesktop(window.innerWidth >= 1024);
@@ -50,7 +51,6 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(""), 3000); }
 
   const isInTelegram = Boolean(twa()?.initData);
-  const [showYukassaStub, setShowYukassaStub] = useState(false);
 
   async function handleBuy() {
     if (!isInTelegram) {
