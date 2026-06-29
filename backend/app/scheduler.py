@@ -10,7 +10,16 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.core.database import get_session_context
-from app.models.user import AuthProvider, User, UserProfile
+from app.models.user import (
+    AuthProvider,
+    ReferralLog,
+    Review,
+    RuneReading,
+    TarotReading,
+    User,
+    UserPartner,
+    UserProfile,
+)
 from app.api.v1.lunar import get_lunar_today_data, get_upcoming_events
 from app.services.horoscope import (
     SIGNS_EMOJI,
@@ -178,6 +187,48 @@ async def send_subscription_reminders():
         logger.error("Subscription reminders failed: %s", e)
     finally:
         await redis.close()
+
+
+async def cleanup_deleted_accounts():
+    """Delete users whose deletion_scheduled_at has passed and is_active is False."""
+    async with get_session_context() as session:
+        stmt = select(User).where(
+            User.is_active == False,  # noqa: E712
+            User.deletion_scheduled_at.is_not(None),
+            User.deletion_scheduled_at < datetime.utcnow(),
+        )
+        results = await session.exec(stmt)
+        users = results.all()
+
+        if not users:
+            logger.info("Cleanup: no accounts to delete")
+            return
+
+        for user in users:
+            uid = user.id
+
+            for model in (TarotReading, RuneReading, Review, UserPartner, ReferralLog):
+                rows = await session.exec(select(model).where(model.user_id == uid))
+                for row in rows.all():
+                    await session.delete(row)
+
+            profile = await session.exec(
+                select(UserProfile).where(UserProfile.user_id == uid)
+            )
+            for row in profile.all():
+                await session.delete(row)
+
+            providers = await session.exec(
+                select(AuthProvider).where(AuthProvider.user_id == uid)
+            )
+            for row in providers.all():
+                await session.delete(row)
+
+            await session.delete(user)
+            logger.info("Cleanup: deleted user %s", uid)
+
+        await session.commit()
+        logger.info("Cleanup: removed %d deleted accounts", len(users))
 
 
 async def send_astro_event_notifications():

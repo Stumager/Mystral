@@ -26,6 +26,9 @@ class User(SQLModel, table=True):
     ref_code: Optional[str] = Field(default=None, index=True)
     referred_by: Optional[UUID] = None
     ref_bonus_days_given: int = Field(default=0)
+    is_active: bool = Field(default=True)
+    deletion_scheduled_at: Optional[datetime] = None
+    subscription_created_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

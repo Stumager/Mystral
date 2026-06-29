@@ -85,6 +85,11 @@ class ConfirmEmailChangeRequest(BaseModel):
     code: str
 
 
+class DeleteAccountRequest(BaseModel):
+    password: Optional[str] = None
+    confirm: bool = False
+
+
 def _validate_password(password: str) -> str | None:
     if len(password) < 8:
         return "Пароль должен быть не менее 8 символов"
@@ -480,6 +485,42 @@ async def confirm_email_change(
 
     await session.commit()
     return {"status": "ok"}
+
+
+@router.delete("/account")
+async def delete_account(
+    req: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(AuthProvider).where(AuthProvider.user_id == current_user.id)
+    )
+    providers = result.all()
+
+    has_email_provider = False
+    for p in providers:
+        if p.provider == "email" and p.password_hash:
+            has_email_provider = True
+            if not req.password:
+                raise HTTPException(400, "Password required to delete account")
+            if not verify_password(req.password, p.password_hash):
+                raise HTTPException(400, "Invalid password")
+            break
+
+    if not has_email_provider:
+        if not req.confirm:
+            raise HTTPException(400, "Confirmation required to delete account")
+
+    current_user.is_active = False
+    current_user.deletion_scheduled_at = datetime.utcnow() + timedelta(days=30)
+    session.add(current_user)
+    await session.commit()
+
+    return {
+        "status": "scheduled",
+        "deletion_date": current_user.deletion_scheduled_at.isoformat(),
+    }
 
 
 @router.get("/me")

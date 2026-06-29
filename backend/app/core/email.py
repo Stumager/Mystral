@@ -57,6 +57,59 @@ async def send_verification_email(to_email: str, code: str) -> bool:
         return False
 
 
+async def send_refund_email(
+    to_admin: str,
+    user_email: str,
+    user_name: str,
+    user_id: str,
+    reason: str,
+    subscription_date: str,
+) -> bool:
+    if not settings.resend_api_key:
+        logger.warning("RESEND_API_KEY not set, skipping refund email")
+        return False
+
+    html = (
+        '<div style="background:#07060F;padding:40px 20px;font-family:Georgia,serif;max-width:480px;margin:0 auto">'
+        '<div style="text-align:center;margin-bottom:32px">'
+        '<div style="font-family:serif;font-size:13px;letter-spacing:.4em;color:#C9A84C">MYSTRAL</div>'
+        '</div>'
+        '<div style="text-align:left;color:#F0E9DA;font-size:14px">'
+        '<p style="color:#C9A84C;font-size:18px;font-weight:600;margin:0 0 20px">Запрос на возврат</p>'
+        f'<p><b>Пользователь:</b> {user_name}</p>'
+        f'<p><b>Email:</b> {user_email}</p>'
+        f'<p><b>ID:</b> {user_id}</p>'
+        f'<p><b>Дата подписки:</b> {subscription_date}</p>'
+        f'<p><b>Причина:</b> {reason or "Не указана"}</p>'
+        '</div></div>'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                RESEND_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"Mystral <{settings.smtp_from}>",
+                    "to": [to_admin],
+                    "subject": f"Запрос возврата — {user_email or user_name}",
+                    "html": html,
+                },
+            )
+        if resp.status_code in (200, 201):
+            logger.info("Refund request email sent to %s", to_admin)
+            return True
+        else:
+            logger.error("Resend refund error %s: %s", resp.status_code, resp.text[:300])
+            return False
+    except Exception as e:
+        logger.error("Failed to send refund email: %s", e)
+        return False
+
+
 async def send_reset_email(to_email: str, token: str) -> bool:
     if not settings.resend_api_key:
         logger.warning("RESEND_API_KEY not set, skipping reset email to %s", to_email)

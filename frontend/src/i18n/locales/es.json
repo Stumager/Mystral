@@ -192,7 +192,15 @@
     "push_off": "Desactivadas",
     "push_enable": "Activar",
     "push_allow_settings": "Permitir en ajustes",
-    "save_pw": "Guardar"
+    "save_pw": "Guardar",
+    "delete_account": "Eliminar cuenta",
+    "delete_warning": "La cuenta se eliminará en 30 días. Todos los datos, historial y suscripción se perderán permanentemente.",
+    "delete_password_placeholder": "Ingresa la contraseña para confirmar",
+    "delete_confirm_check": "Entiendo que mi cuenta será eliminada",
+    "delete_forever": "Eliminar para siempre",
+    "request_refund": "Solicitar reembolso",
+    "refund_sent": "Solicitud enviada. Nos comunicaremos en 24 horas.",
+    "refund_expired": "El período de solicitud de reembolso ha expirado (24 horas)"
   },
   "login": {
     "subtitle": "Plataforma esotérica",

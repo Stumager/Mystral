@@ -35,7 +35,7 @@ export function Terms() {
 
         <Section title={ru ? "1. Предмет соглашения" : "1. Subject of agreement"}>
           {ru ? (<>
-            Настоящее Пользовательское соглашение (далее — «Соглашение») регулирует отношения между Самозанятым Нечунаевым Александром Викторовичем (далее — «Исполнитель») и пользователем сервиса Mystral (далее — «Пользователь»).
+            Настоящее Пользовательское соглашение (далее — «Соглашение») регулирует отношения между Самозанятым Нечунаевым Александром Вячеславовичем (далее — «Исполнитель») и пользователем сервиса Mystral (далее — «Пользователь»).
             <br /><br />
             Сервис Mystral предоставляет информационно-развлекательные услуги в сфере астрологии, Таро, нумерологии, рунологии и лунного календаря.
             <br /><br />
@@ -95,25 +95,29 @@ export function Terms() {
           {ru ? (<>
             Стоимость подписки Mystral Pro:
             <br /><br />
+            — 399 ₽ / месяц<br />
+            — 2 999 ₽ / год (экономия ~37%)<br />
             — 199 Telegram Stars / месяц<br />
-            — 1 599 Telegram Stars / год (экономия ~33%)
+            — 1 599 Telegram Stars / год
             <br /><br />
-            Оплата осуществляется через Telegram Stars. Рублёвые тарифы через ЮKassa будут доступны после подключения платёжной системы.
+            Оплата через банковскую карту (ЮKassa) или Telegram Stars.
             <br /><br />
             Автопродление подписки отсутствует. По истечении оплаченного периода доступ к Pro-функциям приостанавливается.
             <br /><br />
-            <B>Возврат средств:</B> возврат возможен в течение 24 часов с момента оплаты при условии, что Pro-функции не были использованы. Для возврата обратитесь на email, указанный в разделе «Реквизиты».
+            <B>Возврат средств:</B> возврат возможен в течение 24 часов с момента оплаты при условии, что Pro-функции не были использованы. Для возврата обратитесь на email, указанный в разделе «Реквизиты», или кнопку «Запросить возврат» в разделе Профиль → Подписка.
           </>) : (<>
             Mystral Pro subscription pricing:
             <br /><br />
+            — 399 ₽ / month<br />
+            — 2,999 ₽ / year (~37% savings)<br />
             — 199 Telegram Stars / month<br />
-            — 1,599 Telegram Stars / year (~33% savings)
+            — 1,599 Telegram Stars / year
             <br /><br />
-            Payment is processed via Telegram Stars.
+            Payment via bank card (YuKassa) or Telegram Stars.
             <br /><br />
             There is no auto-renewal. After the paid period expires, access to Pro features is suspended.
             <br /><br />
-            <B>Refunds:</B> refunds are available within 24 hours of payment, provided Pro features have not been used. To request a refund, contact the email listed in the "Details" section.
+            <B>Refunds:</B> refunds are available within 24 hours of payment, provided Pro features have not been used. To request a refund, contact the email listed in the "Details" section, or the "Request refund" button in Profile → Subscription.
           </>)}
         </Section>
 
@@ -193,7 +197,7 @@ export function Terms() {
 
         <Section title={ru ? "10. Реквизиты" : "10. Details"}>
           {ru ? (<>
-            Самозанятый Нечунаев Александр Викторович
+            Самозанятый Нечунаев Александр Вячеславович
             <br />
             Email: <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ color: "#C9A84C" }}>sasha.nechunaev1234@gmail.com</a>
           </>) : (<>

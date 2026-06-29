@@ -192,7 +192,15 @@
     "push_off": "Kapalı",
     "push_enable": "Etkinleştir",
     "push_allow_settings": "Ayarlardan izin ver",
-    "save_pw": "Kaydet"
+    "save_pw": "Kaydet",
+    "delete_account": "Hesabı sil",
+    "delete_warning": "Hesap 30 gün içinde silinecek. Tüm veriler, geçmiş ve abonelik kalıcı olarak kaybolacak.",
+    "delete_password_placeholder": "Onaylamak için şifreyi girin",
+    "delete_confirm_check": "Hesabımın silineceğini anlıyorum",
+    "delete_forever": "Kalıcı olarak sil",
+    "request_refund": "İade talep et",
+    "refund_sent": "Talep gönderildi. 24 saat içinde geri döneceğiz.",
+    "refund_expired": "İade talep süresi doldu (24 saat)"
   },
   "login": {
     "subtitle": "Ezoterik platform",

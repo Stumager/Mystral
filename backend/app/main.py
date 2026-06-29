@@ -15,7 +15,7 @@ import app.models  # noqa: F401 — register models with SQLModel.metadata
 from app.api.router import api_router
 from app.core.database import create_db_and_tables
 from app.core.redis import close_redis, init_redis
-from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders, send_astro_event_notifications
+from app.scheduler import scheduler, send_daily_horoscopes, send_subscription_reminders, send_astro_event_notifications, cleanup_deleted_accounts
 
 
 @asynccontextmanager
@@ -45,8 +45,16 @@ async def lifespan(_app: FastAPI):
         id="astro_events",
         replace_existing=True,
     )
+    scheduler.add_job(
+        cleanup_deleted_accounts,
+        trigger="cron",
+        hour=3,
+        minute=0,
+        id="cleanup_deleted_accounts",
+        replace_existing=True,
+    )
     scheduler.start()
-    logger.info("Scheduler started: daily_horoscope (*/5min), subscription_reminders (12:00 UTC)")
+    logger.info("Scheduler started: daily_horoscope (*/5min), subscription_reminders (12:00 UTC), cleanup_deleted_accounts (03:00 UTC)")
     import asyncio
     from app.core.seo_generator import warm_seo_cache
     asyncio.create_task(warm_seo_cache())

@@ -192,7 +192,15 @@
     "push_off": "Off",
     "push_enable": "Enable",
     "push_allow_settings": "Allow in settings",
-    "save_pw": "Save"
+    "save_pw": "Save",
+    "delete_account": "Delete account",
+    "delete_warning": "Account will be deleted in 30 days. All data, history, and subscription will be permanently lost.",
+    "delete_password_placeholder": "Enter password to confirm",
+    "delete_confirm_check": "I understand my account will be deleted",
+    "delete_forever": "Delete forever",
+    "request_refund": "Request refund",
+    "refund_sent": "Request sent. We'll get back within 24 hours.",
+    "refund_expired": "Refund request period has expired (24 hours)"
   },
   "login": {
     "subtitle": "Esoteric platform",

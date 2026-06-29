@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
+from app.core.email import send_refund_email
 from app.models.user import AuthProvider, User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -29,6 +30,7 @@ def _activate_pro(user: User, product_key: str) -> None:
     product = PRODUCTS.get(product_key, PRODUCTS["pro_month"])
     user.subscription_tier = "pro"
     user.subscription_expires_at = datetime.utcnow() + timedelta(days=product["days"])
+    user.subscription_created_at = datetime.utcnow()
 
 
 class StarsCreateRequest(BaseModel):
@@ -121,6 +123,37 @@ async def stars_activate(
     await session.commit()
     logger.info("Stars activate: user %s activated %s via bot", user.id, product_key)
     return {"status": "ok"}
+
+
+class RefundRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+@router.post("/refund-request")
+async def refund_request(
+    req: RefundRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.subscription_tier != "pro":
+        raise HTTPException(status_code=400, detail="No active Pro subscription")
+
+    if not current_user.subscription_created_at:
+        raise HTTPException(status_code=400, detail="Subscription date unknown")
+
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    if current_user.subscription_created_at < cutoff:
+        return {"status": "expired", "message": "Refund period has expired (24 hours)"}
+
+    await send_refund_email(
+        to_admin="sasha.nechunaev1234@gmail.com",
+        user_email=current_user.email or "",
+        user_name=current_user.display_name or "",
+        user_id=str(current_user.id),
+        reason=req.reason or "",
+        subscription_date=current_user.subscription_created_at.isoformat(),
+    )
+
+    return {"status": "sent"}
 
 
 @router.post("/yukassa/create")

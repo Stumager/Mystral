@@ -69,6 +69,13 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
+
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -417,6 +424,23 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             <Button variant="gold" size="sm" className="w-full mt-2" onClick={() => setShowPaywall(true)}>
               {t("profile.renew")}
             </Button>
+            <button
+              onClick={async () => {
+                setRefundLoading(true);
+                try {
+                  const res = await fetch("/api/v1/payments/refund-request", { method: "POST", headers: authHeaders(), body: JSON.stringify({}) });
+                  const d = await res.json();
+                  if (d.status === "sent") showToast(t("profile.refund_sent"));
+                  else if (d.status === "expired") showToast(t("profile.refund_expired"));
+                  else showToast(d.message || "Error");
+                } catch { showToast("Error"); }
+                finally { setRefundLoading(false); }
+              }}
+              disabled={refundLoading}
+              style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(196,84,84,.3)", background: "transparent", color: "#D98A8A", fontSize: 13, cursor: "pointer" }}
+            >
+              {refundLoading ? "..." : t("profile.request_refund")}
+            </button>
           </Card>
         ) : (
           <Card>
@@ -598,57 +622,64 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         </Card>
 
         {/* Security */}
-        {providers.includes("email") && (
-          <Card>
-            <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
-              {t("profile.security")}
-            </p>
-            {!showChangePw ? (
-              <Button variant="ghost" size="sm" className="w-full mt-3" onClick={() => setShowChangePw(true)}>
-                {t("profile.change_password")}
-              </Button>
-            ) : (
-              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, animation: "mystral-fadeup .25s ease-out" }}>
-                <input type="password" placeholder={t("profile.current_password")}
-                  value={curPw} onChange={e => { setCurPw(e.target.value); setPwError(""); }} style={inputStyle} />
-                <input type="password" placeholder={t("profile.new_password")}
-                  value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); }} style={inputStyle} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {[
-                    { ok: newPw.length >= 8, label: t("profile.min_8_chars") },
-                    { ok: /[A-Z]/.test(newPw), label: t("profile.uppercase_letter") },
-                    { ok: /[0-9]/.test(newPw), label: t("profile.digit") },
-                  ].map(c => (
-                    <span key={c.label} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.label}</span>
-                  ))}
+        <Card>
+          <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", textTransform: "uppercase" }}>
+            {t("profile.security")}
+          </p>
+          {providers.includes("email") && (
+            <>
+              {!showChangePw ? (
+                <Button variant="ghost" size="sm" className="w-full mt-3" onClick={() => setShowChangePw(true)}>
+                  {t("profile.change_password")}
+                </Button>
+              ) : (
+                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, animation: "mystral-fadeup .25s ease-out" }}>
+                  <input type="password" placeholder={t("profile.current_password")}
+                    value={curPw} onChange={e => { setCurPw(e.target.value); setPwError(""); }} style={inputStyle} />
+                  <input type="password" placeholder={t("profile.new_password")}
+                    value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); }} style={inputStyle} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {[
+                      { ok: newPw.length >= 8, label: t("profile.min_8_chars") },
+                      { ok: /[A-Z]/.test(newPw), label: t("profile.uppercase_letter") },
+                      { ok: /[0-9]/.test(newPw), label: t("profile.digit") },
+                    ].map(c => (
+                      <span key={c.label} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.label}</span>
+                    ))}
+                  </div>
+                  <input type="password" placeholder={t("profile.confirm_new")}
+                    value={confirmNewPw} onChange={e => { setConfirmNewPw(e.target.value); setPwError(""); }}
+                    style={{ ...inputStyle, borderColor: confirmNewPw && confirmNewPw !== newPw ? "rgba(196,84,84,.4)" : undefined }} />
+                  {pwError && <p style={{ color: "#D98A8A", fontSize: 12 }}>{pwError}</p>}
+                  <div className="flex gap-2">
+                    <Button variant="primary" size="sm" className="flex-1" disabled={pwSaving || newPw.length < 8 || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || confirmNewPw !== newPw}
+                      onClick={async () => {
+                        setPwSaving(true); setPwError("");
+                        try {
+                          const res = await fetch("/api/v1/auth/change-password", { method: "POST", headers: authHeaders(), body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
+                          const d = await res.json();
+                          if (!res.ok) { setPwError(d.detail || "Error"); return; }
+                          showToast(t("profile.password_changed"));
+                          setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw("");
+                        } catch { setPwError("Error"); }
+                        finally { setPwSaving(false); }
+                      }}>
+                      {pwSaving ? "..." : t("profile.save_pw")}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw(""); setPwError(""); }}>
+                      {t("profile.cancel")}
+                    </Button>
+                  </div>
                 </div>
-                <input type="password" placeholder={t("profile.confirm_new")}
-                  value={confirmNewPw} onChange={e => { setConfirmNewPw(e.target.value); setPwError(""); }}
-                  style={{ ...inputStyle, borderColor: confirmNewPw && confirmNewPw !== newPw ? "rgba(196,84,84,.4)" : undefined }} />
-                {pwError && <p style={{ color: "#D98A8A", fontSize: 12 }}>{pwError}</p>}
-                <div className="flex gap-2">
-                  <Button variant="primary" size="sm" className="flex-1" disabled={pwSaving || newPw.length < 8 || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || confirmNewPw !== newPw}
-                    onClick={async () => {
-                      setPwSaving(true); setPwError("");
-                      try {
-                        const res = await fetch("/api/v1/auth/change-password", { method: "POST", headers: authHeaders(), body: JSON.stringify({ current_password: curPw, new_password: newPw }) });
-                        const d = await res.json();
-                        if (!res.ok) { setPwError(d.detail || "Error"); return; }
-                        showToast(t("profile.password_changed"));
-                        setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw("");
-                      } catch { setPwError("Error"); }
-                      finally { setPwSaving(false); }
-                    }}>
-                    {pwSaving ? "..." : t("profile.save_pw")}
-                  </Button>
-                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowChangePw(false); setCurPw(""); setNewPw(""); setConfirmNewPw(""); setPwError(""); }}>
-                    {t("profile.cancel")}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
+              )}
+            </>
+          )}
+          <Button variant="ghost" size="sm" className="w-full mt-3"
+            style={{ color: "#D98A8A", borderColor: "rgba(196,84,84,.3)" }}
+            onClick={() => setShowDeleteModal(true)}>
+            {t("profile.delete_account")}
+          </Button>
+        </Card>
 
         {/* Settings */}
         <Card>
@@ -697,6 +728,53 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         </Card>
 
       </main>
+
+      {/* Delete account modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 100, background: "rgba(0,0,0,.7)", backdropFilter: "blur(8px)" }} onClick={e => e.target === e.currentTarget && setShowDeleteModal(false)}>
+          <div style={{ padding: 28, borderRadius: 22, maxWidth: 400, width: "90%", background: "linear-gradient(155deg,rgba(20,8,8,.95),rgba(10,4,4,.98))", border: "1px solid rgba(196,84,84,.3)" }}>
+            <h3 className="font-cormorant" style={{ fontSize: 28, color: "#D98A8A" }}>{t("profile.delete_account")}</h3>
+            <p style={{ fontSize: 14, color: "#A89E8B", lineHeight: 1.7, margin: "12px 0 20px" }}>
+              {t("profile.delete_warning")}
+            </p>
+
+            {providers.includes("email") ? (
+              <input type="password" placeholder={t("profile.delete_password_placeholder")} value={deletePassword} onChange={e => { setDeletePassword(e.target.value); setDeleteError(""); }}
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(196,84,84,.2)", color: "#F0E9DA", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 12 }} />
+            ) : (
+              <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, cursor: "pointer" }}>
+                <input type="checkbox" checked={deleteConfirm} onChange={e => setDeleteConfirm(e.target.checked)} style={{ accentColor: "#D98A8A" }} />
+                <span style={{ fontSize: 13, color: "#A89E8B" }}>{t("profile.delete_confirm_check")}</span>
+              </label>
+            )}
+
+            {deleteError && <p style={{ color: "#D98A8A", fontSize: 12, marginBottom: 10 }}>{deleteError}</p>}
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowDeleteModal(false); setDeletePassword(""); setDeleteConfirm(false); setDeleteError(""); }}>
+                {t("profile.cancel")}
+              </Button>
+              <button
+                disabled={deleteLoading || (providers.includes("email") ? !deletePassword : !deleteConfirm)}
+                onClick={async () => {
+                  setDeleteLoading(true); setDeleteError("");
+                  try {
+                    const body: Record<string, unknown> = providers.includes("email") ? { password: deletePassword } : { confirm: true };
+                    const res = await fetch("/api/v1/auth/account", { method: "DELETE", headers: authHeaders(), body: JSON.stringify(body) });
+                    const d = await res.json();
+                    if (!res.ok) { setDeleteError(d.detail || "Error"); return; }
+                    logout();
+                  } catch { setDeleteError("Error"); }
+                  finally { setDeleteLoading(false); }
+                }}
+                style={{ flex: 1, height: 38, borderRadius: 12, border: "1px solid rgba(196,84,84,.4)", background: "rgba(196,84,84,.15)", color: "#D98A8A", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                {deleteLoading ? "..." : t("profile.delete_forever")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast overlay */}
       {toast && (
