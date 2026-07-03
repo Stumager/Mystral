@@ -21,7 +21,7 @@ interface CompatResult {
   [key: string]: unknown;
 }
 
-type Step = "partners" | "types" | "result";
+type Step = "partners" | "types" | "result" | "composite";
 
 interface SynAspect { user_planet: string; partner_planet: string; aspect: string; symbol: string; orb: number; harmony: boolean; }
 function SynastryAspects({ aspects, lang }: { aspects: SynAspect[]; lang: string }) {
@@ -80,7 +80,6 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
-  const [showComposite, setShowComposite] = useState(false);
   const [compositePartnerId, setCompositePartnerId] = useState<string | null>(null);
   const [compositePartnerName, setCompositePartnerName] = useState("");
 
@@ -153,7 +152,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
       if (user?.tier !== "pro") { setShowPaywall(true); return; }
       setCompositePartnerId(selectedPartner.id);
       setCompositePartnerName(selectedPartner.name);
-      setShowComposite(true);
+      setStep("composite");
       return;
     }
     if (typeId === "synastry" && user?.tier !== "pro") { setShowPaywall(true); return; }
@@ -212,6 +211,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md lg:hidden" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
         <button className="text-text-muted text-lg w-8" onClick={() => {
           if (step === "result") { setStep("types"); setResult(null); }
+          else if (step === "composite") setStep("types");
           else if (step === "types") setStep("partners");
           else onNavigate("home");
         }}>‹</button>
@@ -420,6 +420,15 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
           </div>
         )}
 
+        {/* Step: Composite Chart */}
+        {step === "composite" && compositePartnerId && (
+          <CompositeChart
+            partnerId={compositePartnerId}
+            partnerName={compositePartnerName}
+            onClose={() => setStep("types")}
+          />
+        )}
+
       </main>
 
       <BottomNav active="home" onNavigate={onNavigate} />
@@ -433,15 +442,6 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
           scoreLabel={result.description}
           onClose={() => setShowShareCard(false)}
         />
-      )}
-      {showComposite && compositePartnerId && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(7,6,15,.95)" }}>
-          <CompositeChart
-            partnerId={compositePartnerId}
-            partnerName={compositePartnerName}
-            onClose={() => setShowComposite(false)}
-          />
-        </div>
       )}
     </div>
   );

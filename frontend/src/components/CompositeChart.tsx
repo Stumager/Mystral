@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Share2 } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
 import { ShareCard } from "./ShareCard";
@@ -155,16 +155,6 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px 32px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <span className="font-cinzel" style={{ fontSize: 13, letterSpacing: ".2em", color: "#E8CD7E", textTransform: "uppercase" }}>
-          Composite Chart
-        </span>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#A89E8B", padding: 4 }}>
-          <X size={20} />
-        </button>
-      </div>
-
       {/* Partner avatars */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, margin: "0 0 8px" }}>
         <div className="font-cormorant" style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg,#4B3C86,#C9A84C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#0C0A18", fontWeight: 600, zIndex: 2, position: "relative" }}>
