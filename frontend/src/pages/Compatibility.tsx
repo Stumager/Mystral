@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CompositeChart } from "../components/CompositeChart";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
@@ -57,6 +58,7 @@ const COMPAT_TYPES = [
   { id: "chinese", icon: "+", tier: "free" },
   { id: "moon", icon: ")", tier: "free" },
   { id: "synastry", icon: "*", tier: "pro" },
+  { id: "composite", icon: "∞", tier: "pro" },
   { id: "overall", icon: "=", tier: "free" },
 ];
 
@@ -78,6 +80,9 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
+  const [showComposite, setShowComposite] = useState(false);
+  const [compositePartnerId, setCompositePartnerId] = useState<string | null>(null);
+  const [compositePartnerName, setCompositePartnerName] = useState("");
 
   const loaded = useRef(false);
   useEffect(() => {
@@ -144,6 +149,13 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
 
   async function runCompat(typeId: string) {
     if (!selectedPartner) return;
+    if (typeId === "composite") {
+      if (user?.tier !== "pro") { setShowPaywall(true); return; }
+      setCompositePartnerId(selectedPartner.id);
+      setCompositePartnerName(selectedPartner.name);
+      setShowComposite(true);
+      return;
+    }
     if (typeId === "synastry" && user?.tier !== "pro") { setShowPaywall(true); return; }
 
     setLoading(true); setError("");
@@ -189,6 +201,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
     signs: ["По знакам", "By Signs"], elements: ["По стихиям", "By Elements"],
     numerology: ["Нумерология", "Numerology"], chinese: ["Китайский", "Chinese"],
     moon: ["Лунная", "Moon"], synastry: ["Синастрия", "Synastry"],
+    composite: ["Composite Chart", "Composite Chart"],
     overall: ["Полный анализ", "Full Analysis"],
   };
 
@@ -420,6 +433,15 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
           scoreLabel={result.description}
           onClose={() => setShowShareCard(false)}
         />
+      )}
+      {showComposite && compositePartnerId && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(7,6,15,.95)" }}>
+          <CompositeChart
+            partnerId={compositePartnerId}
+            partnerName={compositePartnerName}
+            onClose={() => setShowComposite(false)}
+          />
+        </div>
       )}
     </div>
   );

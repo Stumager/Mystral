@@ -431,6 +431,243 @@ class InterpretRequest(BaseModel):
     lang: str = "ru"
 
 
+# ---- Composite Chart ----
+
+COMPOSITE_PLANETS = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"]
+COMPOSITE_PLANET_NAMES = {
+    "sun": "Sun", "moon": "Moon", "mercury": "Mercury", "venus": "Venus", "mars": "Mars",
+    "jupiter": "Jupiter", "saturn": "Saturn", "uranus": "Uranus", "neptune": "Neptune", "pluto": "Pluto",
+}
+COMPOSITE_PLANET_NAMES_RU = {
+    "sun": "Солнце", "moon": "Луна", "mercury": "Меркурий", "venus": "Венера", "mars": "Марс",
+    "jupiter": "Юпитер", "saturn": "Сатурн", "uranus": "Уран", "neptune": "Нептун", "pluto": "Плутон",
+}
+COMPOSITE_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                   "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+COMPOSITE_SIGNS_RU = ["Овен", "Телец", "Близнецы", "Рак", "Лев", "Дева",
+                      "Весы", "Скорпион", "Стрелец", "Козерог", "Водолей", "Рыбы"]
+COMPOSITE_ELEMENTS = {
+    "Aries": "fire", "Leo": "fire", "Sagittarius": "fire",
+    "Taurus": "earth", "Virgo": "earth", "Capricorn": "earth",
+    "Gemini": "air", "Libra": "air", "Aquarius": "air",
+    "Cancer": "water", "Scorpio": "water", "Pisces": "water",
+}
+COMPOSITE_MODALITIES = {
+    "Aries": "cardinal", "Cancer": "cardinal", "Libra": "cardinal", "Capricorn": "cardinal",
+    "Taurus": "fixed", "Leo": "fixed", "Scorpio": "fixed", "Aquarius": "fixed",
+    "Gemini": "mutable", "Virgo": "mutable", "Sagittarius": "mutable", "Pisces": "mutable",
+}
+COMPOSITE_ASPECT_TYPES = [
+    (0, 8, "conjunction"), (60, 4, "sextile"), (90, 6, "square"),
+    (120, 6, "trine"), (180, 8, "opposition"),
+]
+
+
+def _midpoint(a1: float, a2: float) -> float:
+    diff = abs(a1 - a2)
+    if diff > 180:
+        lo, hi = min(a1, a2), max(a1, a2)
+        return ((hi + lo + 360) / 2) % 360
+    return (a1 + a2) / 2
+
+
+def _sign_from_pos(pos: float) -> tuple[str, str, float]:
+    idx = int(pos / 30) % 12
+    return COMPOSITE_SIGNS[idx], COMPOSITE_SIGNS_RU[idx], round(pos % 30, 1)
+
+
+def _composite_aspects(planets: list[dict]) -> list[dict]:
+    aspects = []
+    for i in range(len(planets)):
+        for j in range(i + 1, len(planets)):
+            p1, p2 = planets[i], planets[j]
+            diff = abs(p1["abs_pos"] - p2["abs_pos"])
+            if diff > 180:
+                diff = 360 - diff
+            for angle, orb_limit, atype in COMPOSITE_ASPECT_TYPES:
+                orb = abs(diff - angle)
+                if orb <= orb_limit:
+                    aspects.append({
+                        "planet1": p1["name"], "planet1_ru": p1["name_ru"],
+                        "planet2": p2["name"], "planet2_ru": p2["name_ru"],
+                        "type": atype, "orb": round(orb, 1),
+                    })
+                    break
+    aspects.sort(key=lambda a: a["orb"])
+    return aspects
+
+
+class CompositeRequest(BaseModel):
+    partner_id: str
+    lang: str = "ru"
+
+
+class CompositeInterpretRequest(BaseModel):
+    partner_id: str
+    section: str = "overview"
+    lang: str = "ru"
+
+
+@router.post("/compatibility/composite")
+async def compat_composite(
+    req: CompositeRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    from sqlmodel import select as sqlselect
+    profile_res = await session.exec(sqlselect(UserProfile).where(UserProfile.user_id == current_user.id))
+    prof = profile_res.first()
+    if not prof or not prof.birth_date:
+        return {"error": "incomplete_data", "message": "Заполните дату рождения в Профиле для composite chart."}
+
+    partner = await session.get(UserPartner, UUID(req.partner_id))
+    if not partner or partner.user_id != current_user.id:
+        raise HTTPException(404, "Partner not found")
+
+    if not partner.birth_date:
+        return {"error": "incomplete_data", "message": "Для composite chart нужна дата рождения партнёра."}
+
+    try:
+        from kerykeion import AstrologicalSubject
+        from app.api.v1.natal import _normalize_sign
+
+        lat1 = prof.birth_lat or 55.75
+        lon1 = prof.birth_lng or 37.62
+        lat2 = partner.birth_lat or 55.75
+        lon2 = partner.birth_lng or 37.62
+        h1 = prof.birth_time.hour if prof.birth_time else 12
+        m1 = prof.birth_time.minute if prof.birth_time else 0
+        h2 = partner.birth_time.hour if partner.birth_time else 12
+        m2 = partner.birth_time.minute if partner.birth_time else 0
+
+        s1 = AstrologicalSubject("P1", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
+                                 h1, m1, lng=lon1, lat=lat1, tz_str="UTC", online=False)
+        s2 = AstrologicalSubject("P2", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
+                                 h2, m2, lng=lon2, lat=lat2, tz_str="UTC", online=False)
+
+        planets_out = []
+        for key in COMPOSITE_PLANETS:
+            p1 = getattr(s1, key, None)
+            p2 = getattr(s2, key, None)
+            if p1 is None or p2 is None:
+                continue
+            a1 = float(getattr(p1, "abs_pos", 0))
+            a2 = float(getattr(p2, "abs_pos", 0))
+            comp_pos = _midpoint(a1, a2)
+            sign_en, sign_ru, degree = _sign_from_pos(comp_pos)
+            planets_out.append({
+                "name": COMPOSITE_PLANET_NAMES.get(key, key),
+                "name_ru": COMPOSITE_PLANET_NAMES_RU.get(key, key),
+                "sign": sign_en, "sign_ru": sign_ru,
+                "degree": degree, "abs_pos": round(comp_pos, 1),
+            })
+
+        aspects = _composite_aspects(planets_out)
+
+        el = {"fire": 0, "earth": 0, "air": 0, "water": 0}
+        mod = {"cardinal": 0, "fixed": 0, "mutable": 0}
+        for p in planets_out:
+            e = COMPOSITE_ELEMENTS.get(p["sign"], "")
+            m = COMPOSITE_MODALITIES.get(p["sign"], "")
+            if e: el[e] += 1
+            if m: mod[m] += 1
+
+        return {
+            "planets": planets_out,
+            "aspects": aspects[:10],
+            "summary": {"element_balance": el, "modality_balance": mod},
+            "partner_name": partner.label,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Composite calculation failed: {e}")
+
+
+@router.post("/compatibility/composite/interpret")
+async def composite_interpret(
+    req: CompositeInterpretRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    from sqlmodel import select as sqlselect
+    profile_res = await session.exec(sqlselect(UserProfile).where(UserProfile.user_id == current_user.id))
+    prof = profile_res.first()
+    if not prof or not prof.birth_date:
+        raise HTTPException(400, "No birth data")
+
+    partner = await session.get(UserPartner, req.partner_id)
+    if not partner or partner.user_id != current_user.id:
+        raise HTTPException(404, "Partner not found")
+
+    try:
+        from kerykeion import AstrologicalSubject
+
+        lat1 = prof.birth_lat or 55.75; lon1 = prof.birth_lng or 37.62
+        lat2 = partner.birth_lat or 55.75; lon2 = partner.birth_lng or 37.62
+        h1 = prof.birth_time.hour if prof.birth_time else 12; m1 = prof.birth_time.minute if prof.birth_time else 0
+        h2 = partner.birth_time.hour if partner.birth_time else 12; m2 = partner.birth_time.minute if partner.birth_time else 0
+
+        s1 = AstrologicalSubject("P1", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
+                                 h1, m1, lng=lon1, lat=lat1, tz_str="UTC", online=False)
+        s2 = AstrologicalSubject("P2", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
+                                 h2, m2, lng=lon2, lat=lat2, tz_str="UTC", online=False)
+
+        planets_out = []
+        for key in COMPOSITE_PLANETS:
+            p1 = getattr(s1, key, None); p2 = getattr(s2, key, None)
+            if not p1 or not p2: continue
+            comp_pos = _midpoint(float(getattr(p1, "abs_pos", 0)), float(getattr(p2, "abs_pos", 0)))
+            sign_en, sign_ru, degree = _sign_from_pos(comp_pos)
+            planets_out.append({"key": key, "name": COMPOSITE_PLANET_NAMES.get(key, key),
+                                 "name_ru": COMPOSITE_PLANET_NAMES_RU.get(key, key),
+                                 "sign": sign_en, "sign_ru": sign_ru, "degree": degree, "abs_pos": round(comp_pos, 1)})
+
+        aspects = _composite_aspects(planets_out)[:5]
+        user_name = prof.full_name or current_user.display_name or "Партнёр 1"
+        partner_name = partner.label
+        sru = req.lang == "ru"
+
+        key_planets = {p["key"]: p for p in planets_out}
+        sun_s = (key_planets["sun"]["sign_ru"] if sru else key_planets["sun"]["sign"]) if "sun" in key_planets else "?"
+        moon_s = (key_planets["moon"]["sign_ru"] if sru else key_planets["moon"]["sign"]) if "moon" in key_planets else "?"
+        venus_s = (key_planets["venus"]["sign_ru"] if sru else key_planets["venus"]["sign"]) if "venus" in key_planets else "?"
+        mars_s = (key_planets["mars"]["sign_ru"] if sru else key_planets["mars"]["sign"]) if "mars" in key_planets else "?"
+
+        planets_text = ", ".join(f"{p['name_ru' if sru else 'name']} в {p['sign_ru' if sru else 'sign']} {p['degree']}°" for p in planets_out)
+        aspects_text = ", ".join(f"{a['planet1_ru' if sru else 'planet1']} {a['type']} {a['planet2_ru' if sru else 'planet2']} ({a['orb']}°)" for a in aspects)
+
+        PROMPTS = {
+            "ru": {
+                "overview": f"Composite chart пары {user_name} и {partner_name}.\nСолнце в {sun_s}, Луна в {moon_s}.\nВсе планеты: {planets_text}.\nОпиши характер этих отношений целиком: их суть, атмосферу, главный вызов. 110-130 слов.",
+                "planets": f"Composite chart: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}, Марс в {mars_s}.\nОбъясни что каждая из этих 4 планет говорит об этой паре. Практично, конкретно. 110-130 слов.",
+                "aspects": f"Ключевые аспекты composite chart: {aspects_text}.\nОбъясни влияние каждого аспекта на отношения. Какой самый мощный? 110-130 слов.",
+                "advice": f"Composite: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}.\nАспекты: {aspects_text}.\nДай 3 конкретных практических совета для этой пары как укрепить отношения. 110-130 слов.",
+            },
+            "en": {
+                "overview": f"Composite chart for {user_name} and {partner_name}.\nSun in {sun_s}, Moon in {moon_s}.\nAll planets: {planets_text}.\nDescribe the nature of this relationship: its essence, atmosphere, main challenge. 110-130 words.",
+                "planets": f"Composite chart: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}, Mars in {mars_s}.\nExplain what each of these 4 planets says about this couple. Practical, specific. 110-130 words.",
+                "aspects": f"Key composite aspects: {aspects_text}.\nExplain each aspect's impact on the relationship. Which is the most powerful? 110-130 words.",
+                "advice": f"Composite: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}.\nAspects: {aspects_text}.\nGive 3 specific practical tips for this couple to strengthen their bond. 110-130 words.",
+            },
+        }
+        lang_prompts = PROMPTS.get(req.lang, PROMPTS["en"])
+        prompt = lang_prompts.get(req.section, lang_prompts["overview"])
+
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "composite_interpret", 5, 50)
+        sys = system_prompt(req.lang) + lang_enforce(req.lang)
+        msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
+        return StreamingResponse(safe_groq_stream(msgs, max_tokens=400, lang=req.lang),
+                                 media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    except Exception as e:
+        raise HTTPException(500, f"Composite interpret failed: {e}")
+
+
 @router.post("/compatibility/interpret")
 async def interpret(req: InterpretRequest, current_user: User = Depends(get_current_user),
                     session: AsyncSession = Depends(get_session)):
