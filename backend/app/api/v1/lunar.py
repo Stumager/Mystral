@@ -171,9 +171,28 @@ def get_lunar_today_data(lang: str = "ru") -> dict:
     }
 
 
+VALID_LANGS = {"ru", "en", "es", "pt", "tr", "uk"}
+
+
 @router.get("/lunar/today")
 async def lunar_today(lang: str = "ru"):
-    return get_lunar_today_data(lang)
+    if lang not in VALID_LANGS:
+        lang = "en"
+    # get_upcoming_events runs up to ~60 kerykeion chart builds — cache aggressively
+    import redis.asyncio as aioredis
+    cache_key = f"lunar_today:{lang}:{datetime.utcnow().strftime('%Y-%m-%d_%H')}"
+    r = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+    try:
+        cached = await r.get(cache_key)
+        if cached:
+            return json.loads(cached)
+        data = get_lunar_today_data(lang)
+        await r.setex(cache_key, 3900, json.dumps(data, ensure_ascii=False))
+        return data
+    except Exception:
+        return get_lunar_today_data(lang)
+    finally:
+        await r.close()
 
 
 @router.get("/lunar/month")

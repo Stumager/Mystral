@@ -21,8 +21,7 @@ TODAY = lambda: date.today().isoformat()
 
 @router.get("/zodiac", response_class=HTMLResponse)
 async def zodiac_hub(request: Request):
-    return templates.TemplateResponse("seo/zodiac_hub.html", {
-        "request": request, "signs": ZODIAC_SIGNS,
+    return templates.TemplateResponse(request, "seo/zodiac_hub.html", { "signs": ZODIAC_SIGNS,
         "title": "Знаки зодиака — характеристика и совместимость | Mystral",
         "description": "Все 12 знаков зодиака с подробной характеристикой, совместимостью и персональным гороскопом. Узнайте свой знак на Mystral.",
         "canonical": "https://mystral.space/zodiac",
@@ -36,8 +35,7 @@ async def zodiac_sign(slug: str, request: Request, session: AsyncSession = Depen
     if not sign:
         raise HTTPException(404)
     content = await get_seo_content("zodiac", slug, sign, session)
-    return templates.TemplateResponse("seo/zodiac_sign.html", {
-        "request": request, "sign": sign, "content": content, "all_signs": ZODIAC_SIGNS,
+    return templates.TemplateResponse(request, "seo/zodiac_sign.html", { "sign": sign, "content": content, "all_signs": ZODIAC_SIGNS,
         "h1": f"{sign['name']} — знак зодиака: характер и гороскоп",
         "title": f"{sign['name']} — характеристика, гороскоп и совместимость | Mystral",
         "description": f"{sign['name']} — знак {sign['element']} ({sign['dates']}). Характер, совместимость, карьера и любовь. Персональный гороскоп, натальная карта и расклады Таро бесплатно на Mystral — эзотерической платформе.",
@@ -55,8 +53,7 @@ async def tarot_hub(request: Request):
     for si, suit in enumerate(SUITS):
         cards = [c for c in TAROT_CARDS if c["suit"] == suit]
         suits_data.append((suit, SUITS_RU[si], cards))
-    return templates.TemplateResponse("seo/tarot_hub.html", {
-        "request": request, "major": major, "suits": suits_data,
+    return templates.TemplateResponse(request, "seo/tarot_hub.html", { "major": major, "suits": suits_data,
         "title": "Карты Таро — значение всех 78 карт | Mystral",
         "description": "Полный справочник карт Таро: 22 Старших Аркана и 56 Младших Арканов с подробным значением.",
         "canonical": "https://mystral.space/tarot",
@@ -77,8 +74,7 @@ async def tarot_card(slug: str, request: Request, session: AsyncSession = Depend
         related = [c for c in TAROT_CARDS if c["arcana"] == "major" and c["slug"] != slug]
     else:
         related = [c for c in TAROT_CARDS if c["suit"] == card["suit"] and c["slug"] != slug]
-    return templates.TemplateResponse("seo/tarot_card.html", {
-        "request": request, "card": card, "content": content,
+    return templates.TemplateResponse(request, "seo/tarot_card.html", { "card": card, "content": content,
         "prev": prev_card, "next": next_card, "related": related[:14],
         "h1": f"{card['name_ru']} — значение в Таро",
         "title": f"{card['name_ru']} — значение карты Таро | Mystral",
@@ -91,8 +87,7 @@ async def tarot_card(slug: str, request: Request, session: AsyncSession = Depend
 
 @router.get("/runes", response_class=HTMLResponse)
 async def runes_hub(request: Request):
-    return templates.TemplateResponse("seo/runes_hub.html", {
-        "request": request, "runes": RUNE_SEO,
+    return templates.TemplateResponse(request, "seo/runes_hub.html", { "runes": RUNE_SEO,
         "title": "Руны Старшего Футарка — значение и толкование | Mystral",
         "description": "24 руны Старшего Футарка с подробным значением, толкованием и применением в магических ставах.",
         "canonical": "https://mystral.space/runes",
@@ -106,8 +101,7 @@ async def rune_page(slug: str, request: Request, session: AsyncSession = Depends
     if not rune:
         raise HTTPException(404)
     content = await get_seo_content("rune", slug, rune, session)
-    return templates.TemplateResponse("seo/rune.html", {
-        "request": request, "rune": rune, "content": content, "all_runes": RUNE_SEO,
+    return templates.TemplateResponse(request, "seo/rune.html", { "rune": rune, "content": content, "all_runes": RUNE_SEO,
         "h1": f"Руна {rune['name']} — значение и толкование",
         "title": f"Руна {rune['name']} — значение и толкование | Mystral",
         "description": f"Руна {rune['name']} ({rune['symbol']}) — подробное значение в гадании, магическое применение и использование в ставах.",
@@ -123,8 +117,7 @@ async def numerology_page(slug: str, request: Request, session: AsyncSession = D
     if not num:
         raise HTTPException(404)
     content = await get_seo_content("numerology", slug, num, session)
-    return templates.TemplateResponse("seo/numerology.html", {
-        "request": request, "num": num, "content": content, "all_nums": NUMEROLOGY_SEO,
+    return templates.TemplateResponse(request, "seo/numerology.html", { "num": num, "content": content, "all_nums": NUMEROLOGY_SEO,
         "h1": f"Число жизненного пути {num['number']} — {num['name']}",
         "title": f"Число жизненного пути {num['number']} — значение | Mystral",
         "description": f"Число жизненного пути {num['number']} «{num['name']}» — характер, предназначение, карьера и отношения в нумерологии.",

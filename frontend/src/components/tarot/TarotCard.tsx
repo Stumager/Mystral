@@ -30,7 +30,7 @@ export function TarotCard({ cardId, name, revealed, reversed, delay = 0 }: Tarot
         border: reversed ? "2px solid rgba(217,138,138,.5)" : "2px solid rgba(201,168,76,.35)",
         boxShadow: "0 8px 32px rgba(0,0,0,.7)",
       }}>
-        <img src={`/tarot/${cardId}.jpg?v=2`} alt={name}
+        <img src={`/tarot/${cardId}.jpg?v=2`} alt={name} loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover", transform: reversed ? "rotate(180deg)" : "none" }}
           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
         {reversed && (
@@ -83,7 +83,7 @@ export function TarotCard({ cardId, name, revealed, reversed, delay = 0 }: Tarot
           transform: "rotateY(180deg)", position: "absolute", inset: 0, borderRadius: 16,
           overflow: "hidden", border: "2px solid rgba(201,168,76,.35)", background: "#0A0818",
         }}>
-          <img src={`/tarot/${cardId}.jpg?v=2`} alt={name}
+          <img src={`/tarot/${cardId}.jpg?v=2`} alt={name} loading="lazy"
             style={{ width: "100%", height: "100%", objectFit: "cover", transform: reversed ? "rotate(180deg)" : "none" }}
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
         </div>

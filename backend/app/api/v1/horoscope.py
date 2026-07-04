@@ -4,15 +4,21 @@ import os
 from datetime import date
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.prompts import lang_enforce, system_prompt
+from app.models.user import User
 
 router = APIRouter()
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+
+VALID_SIGNS = {"aries", "taurus", "gemini", "cancer", "leo", "virgo",
+               "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces"}
+VALID_LANGS = {"ru", "en", "es", "pt", "tr", "uk"}
 
 SIGNS_RU = {
     "aries": "Овен",
@@ -52,7 +58,14 @@ class HoroscopeRequest(BaseModel):
 
 
 @router.post("/horoscope/stream")
-async def horoscope_stream(req: HoroscopeRequest):
+async def horoscope_stream(req: HoroscopeRequest, current_user: User = Depends(get_current_user)):
+    # Whitelist both params: they form the Redis cache key and each unique
+    # combination triggers a fresh (paid) Groq generation.
+    if req.sign not in VALID_SIGNS:
+        raise HTTPException(status_code=422, detail="Invalid sign")
+    if req.lang not in VALID_LANGS:
+        req.lang = "en"
+
     sname = _sign_name(req.sign, req.lang)
     today = date.today().isoformat()
     cache_key = f"horoscope:{req.sign}:{req.lang}:{today}"
@@ -110,6 +123,8 @@ async def horoscope_stream(req: HoroscopeRequest):
 
 @router.get("/horoscope/scores")
 async def horoscope_scores(sign: str = "aries", date: str = ""):
+    if sign not in VALID_SIGNS:
+        raise HTTPException(status_code=422, detail="Invalid sign")
     today = date or __import__("datetime").date.today().isoformat()
     cache_key = f"scores:{sign}:{today}"
 

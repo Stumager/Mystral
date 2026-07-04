@@ -1,12 +1,15 @@
 import hashlib
 import hmac
 import urllib.parse
+import uuid
 from datetime import datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
+JWT_TTL_DAYS = 30
 
 
 def hash_password(password: str) -> str:
@@ -18,9 +21,9 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_jwt(user_id: str) -> str:
-    expire = datetime.utcnow() + timedelta(days=30)
+    expire = datetime.utcnow() + timedelta(days=JWT_TTL_DAYS)
     return jwt.encode(
-        {"sub": user_id, "exp": expire},
+        {"sub": user_id, "exp": expire, "jti": uuid.uuid4().hex},
         settings.secret_key,
         algorithm="HS256",
     )

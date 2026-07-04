@@ -1,4 +1,5 @@
 import base64
+import hmac as hmac_mod
 import json
 import logging
 from datetime import datetime, timedelta
@@ -6,7 +7,8 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -21,9 +23,37 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
 
 PRODUCTS = {
-    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 199,  "rub": "199.00", "days": 30},
-    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 1599, "rub": "1599.00", "days": 365},
+    "pro_month": {"title": "Mystral Pro — Месяц", "stars": 199,  "rub": "399.00", "days": 30},
+    "pro_year":  {"title": "Mystral Pro — Год",   "stars": 1599, "rub": "2999.00", "days": 365},
 }
+
+PAID_MARKER_TTL = 3600  # payload marker set by the bot after successful_payment
+
+
+def _parse_payload(payload: str) -> tuple[str, str]:
+    """'pro_year_<id>' -> ('pro_year', '<id>'). Product validated against PRODUCTS."""
+    parts = payload.rsplit("_", 1)
+    if len(parts) != 2 or parts[0] not in PRODUCTS:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    return parts[0], parts[1]
+
+
+async def _find_user_by_payload_id(user_id_str: str, session: AsyncSession) -> Optional[User]:
+    """Payload id is either our UUID (Mini App flow) or a numeric Telegram id (bot deep-link flow)."""
+    try:
+        return await session.get(User, UUID(user_id_str))
+    except (ValueError, TypeError):
+        pass
+    result = await session.exec(
+        select(AuthProvider).where(
+            AuthProvider.provider == "telegram",
+            AuthProvider.provider_id == user_id_str,
+        )
+    )
+    provider = result.first()
+    if provider:
+        return await session.get(User, provider.user_id)
+    return None
 
 
 def _activate_pro(user: User, product_key: str) -> None:
@@ -90,37 +120,62 @@ async def stars_confirm(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    product_key = req.payload.split("_")[0] if "_" in req.payload else "pro_month"
+    """Frontend calls this after openInvoice reports 'paid'. The client event is
+    spoofable, so activation only happens if the bot (successful_payment) already
+    marked this payload as paid in Redis — or already activated the subscription."""
+    product_key, payload_uid = _parse_payload(req.payload)
+    if payload_uid != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Payload does not match user")
+
+    if current_user.subscription_tier == "pro":
+        return {"status": "ok", "tier": "pro"}
+
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        paid = await r.get(f"stars_paid:{req.payload}")
+    finally:
+        await r.close()
+
+    if not paid:
+        # Bot confirmation hasn't arrived yet — client should retry shortly
+        return {"status": "pending", "tier": current_user.subscription_tier}
+
     _activate_pro(current_user, product_key)
     session.add(current_user)
     await session.commit()
     await session.refresh(current_user)
-    logger.info("Stars confirm: user %s activated %s via frontend", current_user.id, product_key)
+    logger.info("Stars confirm: user %s activated %s (verified via bot marker)", current_user.id, product_key)
     return {"status": "ok", "tier": "pro"}
 
 
-@router.post("/stars/activate")
+async def _require_internal_token(x_internal_token: str = Header("")):
+    """Server-to-server auth for the bot. Uses ADMIN_TOKEN from env."""
+    if not settings.admin_token or not hmac_mod.compare_digest(x_internal_token, settings.admin_token):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@router.post("/stars/activate", dependencies=[Depends(_require_internal_token)])
 async def stars_activate(
     req: StarsActivateRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    parts = req.payload.rsplit("_", 1)
-    if len(parts) != 2:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    """Called by the bot after Telegram sends successful_payment — the authoritative signal."""
+    product_key, user_id_str = _parse_payload(req.payload)
 
-    product_key, user_id_str = parts[0], parts[1]
-
-    try:
-        user = await session.get(User, UUID(user_id_str))
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-
+    user = await _find_user_by_payload_id(user_id_str, session)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     _activate_pro(user, product_key)
     session.add(user)
     await session.commit()
+
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        await r.setex(f"stars_paid:{req.payload}", PAID_MARKER_TTL, "1")
+    finally:
+        await r.close()
+
     logger.info("Stars activate: user %s activated %s via bot", user.id, product_key)
     return {"status": "ok"}
 
@@ -143,6 +198,15 @@ async def refund_request(
     cutoff = datetime.utcnow() - timedelta(hours=24)
     if current_user.subscription_created_at < cutoff:
         return {"status": "expired", "message": "Refund period has expired (24 hours)"}
+
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        dup_key = f"refund_req:{current_user.id}"
+        if await r.exists(dup_key):
+            raise HTTPException(status_code=400, detail="Refund request already submitted")
+        await r.setex(dup_key, 86400, "1")
+    finally:
+        await r.close()
 
     await send_refund_email(
         to_admin="sasha.nechunaev1234@gmail.com",
@@ -207,6 +271,8 @@ async def yukassa_webhook(
     request: Request,
     session: AsyncSession = Depends(get_session),
 ):
+    """YuKassa webhooks are unsigned — re-fetch the payment from the YuKassa API
+    and only trust status/metadata returned by YuKassa itself."""
     try:
         body = await request.json()
     except Exception:
@@ -215,17 +281,43 @@ async def yukassa_webhook(
     if body.get("event") != "payment.succeeded":
         return {"status": "ignored"}
 
-    metadata = body.get("object", {}).get("metadata", {})
+    payment_id = body.get("object", {}).get("id")
+    if not payment_id:
+        return {"status": "no_payment_id"}
+
+    if not settings.yukassa_shop_id or not settings.yukassa_secret_key:
+        raise HTTPException(status_code=503, detail="YuKassa not configured")
+
+    creds = base64.b64encode(
+        f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
+    ).decode()
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        resp = await http.get(
+            f"https://api.yookassa.ru/v3/payments/{payment_id}",
+            headers={"Authorization": f"Basic {creds}"},
+        )
+    if resp.status_code != 200:
+        logger.warning("YuKassa webhook: verify failed for %s (%s)", payment_id, resp.status_code)
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+
+    payment = resp.json()
+    if payment.get("status") != "succeeded":
+        return {"status": "not_succeeded"}
+
+    metadata = payment.get("metadata", {})
     user_id = metadata.get("user_id")
     product_key = metadata.get("product", "pro_month")
     if not user_id:
         return {"status": "no_user_id"}
 
-    user = await session.get(User, UUID(user_id))
+    try:
+        user = await session.get(User, UUID(user_id))
+    except (ValueError, TypeError):
+        return {"status": "bad_user_id"}
     if user:
         _activate_pro(user, product_key)
         session.add(user)
         await session.commit()
-        logger.info("YuKassa webhook: user %s activated %s", user_id, product_key)
+        logger.info("YuKassa webhook: user %s activated %s (verified)", user_id, product_key)
 
     return {"status": "ok"}

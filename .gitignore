@@ -18,6 +18,12 @@ node_modules/
 dist/
 .cache/
 
+# Test artifacts
+.pytest_cache/
+playwright-report/
+test-results/
+mystral_test.db
+
 # Env
 .env
 .env.prod

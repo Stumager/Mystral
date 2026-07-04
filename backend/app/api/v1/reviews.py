@@ -78,21 +78,21 @@ async def public_reviews(
     )
     total = count_result.one()
 
+    # Single joined query instead of 2 extra queries per review (N+1)
     rows = (await session.exec(
-        select(Review).where(Review.is_published == True)
+        select(Review, User, UserProfile)
+        .join(User, User.id == Review.user_id)
+        .outerjoin(UserProfile, UserProfile.user_id == Review.user_id)
+        .where(Review.is_published == True)
         .order_by(Review.created_at.desc()).offset(offset).limit(limit)
     )).all()
 
+    from app.services.horoscope import zodiac_from_date
     reviews = []
-    for r in rows:
-        user = await session.get(User, r.user_id)
-        profile_q = await session.exec(select(UserProfile).where(UserProfile.user_id == r.user_id))
-        profile = profile_q.first()
+    for r, user, profile in rows:
         zodiac = None
         if profile and profile.birth_date:
-            from app.services.horoscope import zodiac_from_date
             zodiac = zodiac_from_date(profile.birth_date)
-
         reviews.append({
             "id": str(r.id),
             "user_name": user.display_name if user else "Anonymous",

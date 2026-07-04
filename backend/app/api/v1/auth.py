@@ -13,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
-from app.core.deps import get_current_user
+from app.core.deps import bearer, get_current_user
 from app.core.email import send_reset_email, send_verification_email
 from app.core.security import (
     create_jwt,
@@ -101,9 +101,11 @@ def _validate_password(password: str) -> str | None:
 
 
 def _get_ip(request: Request) -> str:
+    # nginx appends the real client IP as the LAST entry of X-Forwarded-For;
+    # taking the first entry would let clients spoof rate-limit keys.
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 
@@ -118,6 +120,14 @@ async def _check_ip_rate(ip: str, key_prefix: str, limit: int, window: int) -> N
             raise HTTPException(429, "Слишком много попыток. Подождите.")
     finally:
         await r.close()
+
+
+def _reactivate_if_needed(user: User, session: AsyncSession) -> None:
+    """Logging in during the 30-day grace period cancels scheduled deletion."""
+    if not user.is_active:
+        user.is_active = True
+        user.deletion_scheduled_at = None
+        session.add(user)
 
 
 class MergeRequest(BaseModel):
@@ -185,6 +195,10 @@ async def auth_telegram(
 
     if provider:
         user = await session.get(User, provider.user_id)
+        if user:
+            _reactivate_if_needed(user, session)
+            await session.commit()
+            await session.refresh(user)
     else:
         user = User(
             display_name=tg_user.get("first_name", ""),
@@ -278,6 +292,8 @@ async def login(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    _reactivate_if_needed(user, session)
+
     if user.email and not user.email_verified:
         code = str(random.randint(100000, 999999))
         user.verification_code = code
@@ -287,14 +303,19 @@ async def login(
         bg.add_task(send_verification_email, user.email, code)
         return {"status": "verification_required", "email": user.email}
 
+    await session.commit()
+    await session.refresh(user)
     return await _user_response(user, create_jwt(str(user.id)), session)
 
 
 @router.post("/verify-email")
 async def verify_email(
     req: VerifyEmailRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ):
+    await _check_ip_rate(_get_ip(request), "verify_email", 15, 3600)
+
     result = await session.exec(select(User).where(User.email == req.email))
     user = result.first()
     if not user:
@@ -305,8 +326,25 @@ async def verify_email(
         raise HTTPException(400, "Код не запрошен")
     if user.verification_code_expires_at and user.verification_code_expires_at < datetime.utcnow():
         raise HTTPException(400, "Код истёк, запросите новый")
-    if user.verification_code != req.code:
-        raise HTTPException(400, "Неверный код")
+
+    # 6-digit codes are brute-forceable: cap wrong attempts per email
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        attempts_key = f"verify_attempts:{req.email}"
+        if user.verification_code != req.code:
+            attempts = await r.incr(attempts_key)
+            if attempts == 1:
+                await r.expire(attempts_key, 900)
+            if attempts >= 5:
+                user.verification_code = None
+                user.verification_code_expires_at = None
+                session.add(user)
+                await session.commit()
+                raise HTTPException(400, "Код истёк, запросите новый")
+            raise HTTPException(400, "Неверный код")
+        await r.delete(attempts_key)
+    finally:
+        await r.close()
 
     user.email_verified = True
     user.verification_code = None
@@ -523,6 +561,33 @@ async def delete_account(
     }
 
 
+@router.post("/logout")
+async def logout(
+    current_user: User = Depends(get_current_user),
+    credentials=Depends(bearer),
+):
+    """Blacklist the current token's jti until its natural expiry."""
+    from app.core.security import decode_jwt
+
+    try:
+        payload = decode_jwt(credentials.credentials)
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+    except Exception:
+        return {"status": "ok"}
+
+    if jti:
+        ttl = 30 * 86400
+        if exp:
+            ttl = max(int(exp - datetime.utcnow().timestamp()), 60)
+        r = aioredis.from_url(settings.redis_url)
+        try:
+            await r.setex(f"blacklist:{jti}", ttl, "1")
+        finally:
+            await r.close()
+    return {"status": "ok"}
+
+
 @router.get("/me")
 async def me(
     current_user: User = Depends(get_current_user),
@@ -552,6 +617,16 @@ async def link_email(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    pwd_err = _validate_password(req.password)
+    if pwd_err:
+        raise HTTPException(400, pwd_err)
+
+    from email_validator import validate_email, EmailNotValidError
+    try:
+        validate_email(req.email, check_deliverability=False)
+    except EmailNotValidError:
+        raise HTTPException(status_code=400, detail="Некорректный email")
+
     result = await session.exec(
         select(AuthProvider).where(
             AuthProvider.provider == "email",
@@ -603,8 +678,12 @@ async def link_telegram(
 @router.post("/merge")
 async def merge_accounts(
     req: MergeRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ):
+    # Same limit as /login — this endpoint also verifies email+password
+    await _check_ip_rate(_get_ip(request), "login_attempts", 10, 900)
+
     tg_id, _ = _resolve_tg_id(req.init_data, req.widget_data)
 
     # Validate email credentials

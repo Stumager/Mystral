@@ -84,3 +84,38 @@ async def create_db_and_tables() -> None:
             await conn.execute(text(
                 f"ALTER TABLE user_partners ADD COLUMN IF NOT EXISTS {col} {coltype}"
             ))
+        # Account deletion / refund fields (previously applied manually on VPS)
+        for col, coltype in [
+            ("is_active", "BOOLEAN DEFAULT TRUE"),
+            ("deletion_scheduled_at", "TIMESTAMP"),
+            ("subscription_created_at", "TIMESTAMP"),
+        ]:
+            await conn.execute(text(
+                f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {coltype}"
+            ))
+        # Indexes for hot lookups
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_auth_providers_lookup ON auth_providers(provider, provider_id)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_seo_content_lookup ON seo_content(page_type, slug, lang)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_users_ref_code ON users(ref_code)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_users_deletion ON users(is_active, deletion_scheduled_at)"
+        ))
+
+    # Unique email index in its own transaction: if legacy duplicates exist,
+    # startup must not crash — we log and continue (app-level check still applies).
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users(email) WHERE email IS NOT NULL"
+            ))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Could not create unique email index (duplicate emails in DB?): %s", e
+        )

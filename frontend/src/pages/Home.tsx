@@ -90,6 +90,7 @@ export function Home({ onNavigate }: HomeProps) {
 
       streamRequest("/horoscope/stream", { sign, lang, date: today },
         (chunk) => setHoroscope(prev => prev + chunk), () => setHoroscopeLoading(false),
+        token ?? undefined,
       ).catch(() => { setHoroscope(t("home.stars_unavailable")); setHoroscopeLoading(false); });
     }
     load();

@@ -1,7 +1,9 @@
 import { RefObject, useState } from "react";
-import html2canvas from "html2canvas";
 
 async function captureToFile(el: HTMLElement): Promise<File> {
+  // Dynamic import keeps html2canvas (~200KB) out of the main bundle —
+  // it loads only when the user actually opens a share card.
+  const html2canvas = (await import("html2canvas")).default;
   await document.fonts.ready;
   const canvas = await html2canvas(el, {
     scale: 2,

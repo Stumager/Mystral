@@ -83,8 +83,9 @@ async def send_daily_horoscopes():
     try:
         async with get_session_context() as session:
             stmt = (
-                select(UserProfile, AuthProvider)
+                select(UserProfile, AuthProvider, User)
                 .join(AuthProvider, AuthProvider.user_id == UserProfile.user_id)
+                .join(User, User.id == UserProfile.user_id)
                 .where(
                     UserProfile.notifications_enabled == True,  # noqa: E712
                     UserProfile.timezone.is_not(None),
@@ -97,7 +98,7 @@ async def send_daily_horoscopes():
         logger.info("Scheduler: found %d eligible users", len(results))
 
         async with httpx.AsyncClient(timeout=15) as http:
-            for profile, provider in results:
+            for profile, provider, user in results:
                 try:
                     tz = ZoneInfo(profile.timezone)
                     local_time = now_utc.astimezone(tz)
@@ -113,7 +114,7 @@ async def send_daily_horoscopes():
                         continue
 
                     sign = zodiac_from_date(profile.birth_date)
-                    lang = "ru"
+                    lang = user.lang or "ru"
                     text = await generate_horoscope(sign, lang)
                     msg = _format_message(text, sign, lang)
 

@@ -25,6 +25,7 @@ WEBAPP_URL = os.getenv("TELEGRAM_WEBAPP_URL", "")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 SUPPORT_TG_ID = os.getenv("SUPPORT_TELEGRAM_ID", "")
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -118,6 +119,7 @@ async def cmd_notifications(message: Message) -> None:
             res = await client.post(
                 f"{BACKEND_URL}/api/v1/profile/toggle-notifications",
                 json={"telegram_id": tg_id},
+                headers={"X-Internal-Token": ADMIN_TOKEN},
             )
             if res.status_code == 404:
                 await message.answer(
@@ -158,22 +160,6 @@ async def handle_support_message(message: Message, state: FSMContext) -> None:
 
     user = message.from_user
     username = f"@{user.username}" if user.username else "нет"
-
-    tier = "?"
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            res = await client.post(
-                f"{BACKEND_URL}/api/v1/profile/toggle-notifications",
-                json={"telegram_id": str(user.id)},
-            )
-            if res.status_code == 200:
-                # toggle back — we just wanted to check existence
-                await client.post(
-                    f"{BACKEND_URL}/api/v1/profile/toggle-notifications",
-                    json={"telegram_id": str(user.id)},
-                )
-    except Exception:
-        pass
 
     support_text = (
         f"🆘 <b>Обращение в поддержку</b>\n\n"
@@ -250,18 +236,32 @@ async def on_successful_payment(message: Message) -> None:
     logger.info("Successful payment: payload=%s, amount=%s %s",
                 payload, payment.total_amount, payment.currency)
 
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.post(
-                f"{BACKEND_URL}/api/v1/payments/stars/activate",
-                json={"payload": payload},
+    activated = False
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    f"{BACKEND_URL}/api/v1/payments/stars/activate",
+                    json={"payload": payload},
+                    headers={"X-Internal-Token": ADMIN_TOKEN},
+                )
+                if res.status_code == 200:
+                    logger.info("Pro activated via bot for payload=%s", payload)
+                    activated = True
+                    break
+                logger.error("Activate failed (try %d): %s %s", attempt + 1, res.status_code, res.text)
+        except Exception as e:
+            logger.error("Failed to activate after payment (try %d): %s", attempt + 1, e)
+        await asyncio.sleep(2)
+
+    if not activated and SUPPORT_TG_ID:
+        try:
+            await bot.send_message(
+                chat_id=int(SUPPORT_TG_ID),
+                text=f"⚠️ ОПЛАТА НЕ АКТИВИРОВАНА: payload={payload}. Активируй вручную.",
             )
-            if res.status_code == 200:
-                logger.info("Pro activated via bot for payload=%s", payload)
-            else:
-                logger.error("Activate failed: %s %s", res.status_code, res.text)
-    except Exception as e:
-        logger.error("Failed to activate after payment: %s", e)
+        except Exception:
+            pass
 
     if message.from_user:
         await message.answer(

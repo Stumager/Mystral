@@ -1,19 +1,26 @@
+import hmac
 import os
 from datetime import date, datetime, time
 from typing import Optional
 from zoneinfo import available_timezones
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.models.user import AuthProvider, User, UserProfile
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+
+async def _require_internal_token(x_internal_token: str = Header("")):
+    if not settings.admin_token or not hmac.compare_digest(x_internal_token, settings.admin_token):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 VALID_TIMEZONES = available_timezones()
 
@@ -142,7 +149,7 @@ async def update_profile(
     return _serialize(profile, current_user)
 
 
-@router.post("/toggle-notifications")
+@router.post("/toggle-notifications", dependencies=[Depends(_require_internal_token)])
 async def toggle_notifications(
     req: ToggleNotifRequest,
     session: AsyncSession = Depends(get_session),

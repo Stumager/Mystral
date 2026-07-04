@@ -67,10 +67,23 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
       if (!webApp?.openInvoice) { showToast(t("paywall.open_tg")); setLoading(null); return; }
       webApp.openInvoice(data.invoice_link, async (status: string) => {
         if (status === "paid") {
-          await apiRequest("/payments/stars/confirm", { payload: data.payload }, token ?? undefined);
-          updateUser({ tier: "pro" });
-          showToast(t("paywall.activated"));
-          setTimeout(() => { onClose(); onSuccess?.(); }, 1500);
+          // Backend activates only after the bot verifies the payment —
+          // poll a few times while that confirmation lands.
+          let confirmed = false;
+          for (let i = 0; i < 5; i++) {
+            const res = await apiRequest<{ status: string; tier: string }>(
+              "/payments/stars/confirm", { payload: data.payload }, token ?? undefined,
+            ).catch(() => null);
+            if (res?.status === "ok") { confirmed = true; break; }
+            await new Promise(r => setTimeout(r, 2000));
+          }
+          if (confirmed) {
+            updateUser({ tier: "pro" });
+            showToast(t("paywall.activated"));
+            setTimeout(() => { onClose(); onSuccess?.(); }, 1500);
+          } else {
+            showToast(ru ? "Оплата получена, активация в процессе — обнови страницу через минуту" : "Payment received, activation in progress — refresh in a minute");
+          }
         }
         setLoading(null);
       });

@@ -42,6 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (window as any).Telegram?.WebApp?.close();
       return;
     }
+    // Revoke the token server-side (jti blacklist); local cleanup regardless
+    if (token) {
+      fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
     setToken(null);
     setUser(null);
     setPendingMerge(false);

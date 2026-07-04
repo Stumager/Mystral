@@ -1,8 +1,10 @@
+import hmac
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, text
 from sqlmodel import select
@@ -15,8 +17,22 @@ from app.models.user import AuthProvider, ReferralLog, Review, User
 router = APIRouter()
 
 
-async def is_admin(x_admin_token: str = Header("")):
-    if not settings.admin_token or x_admin_token != settings.admin_token:
+async def is_admin(request: Request, x_admin_token: str = Header("")):
+    # 30 req/min per IP across all admin endpoints, and constant-time token compare
+    forwarded = request.headers.get("x-forwarded-for")
+    ip = forwarded.split(",")[-1].strip() if forwarded else (request.client.host if request.client else "unknown")
+    r = aioredis.from_url(settings.redis_url)
+    try:
+        key = f"admin_rl:{ip}"
+        count = await r.incr(key)
+        if count == 1:
+            await r.expire(key, 60)
+        if count > 30:
+            raise HTTPException(429, "Too many requests")
+    finally:
+        await r.close()
+
+    if not settings.admin_token or not hmac.compare_digest(x_admin_token, settings.admin_token):
         raise HTTPException(403, "Forbidden")
 
 

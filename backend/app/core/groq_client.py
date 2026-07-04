@@ -7,6 +7,7 @@ from typing import AsyncIterator
 logger = logging.getLogger(__name__)
 
 _client = None
+_async_client = None
 _CLEAN_RE = re.compile(r'[^\x20-\x7EÀ-ɏĞğİıŞşЀ-ӿ\n\r\t«»„“”‘’–—…°%№♈-♓☽✦★]')
 
 
@@ -22,20 +23,28 @@ def _get_client():
     return _client
 
 
+def _get_async_client():
+    global _async_client
+    if _async_client is None:
+        from groq import AsyncGroq
+        _async_client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"), timeout=30)
+    return _async_client
+
+
 async def safe_groq_stream(
     messages: list[dict],
     max_tokens: int = 400,
     lang: str = "ru",
 ) -> AsyncIterator[str]:
     try:
-        client = _get_client()
-        stream = client.chat.completions.create(
+        client = _get_async_client()
+        stream = await client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
             stream=True,
             max_tokens=max_tokens,
         )
-        for chunk in stream:
+        async for chunk in stream:
             text = chunk.choices[0].delta.content
             if text:
                 text = _clean_chunk(text)

@@ -7,6 +7,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Shared connection pool — a new TCP connection per rate-limit check does not scale
+_redis = aioredis.from_url(settings.redis_url, max_connections=20)
+
 
 async def check_rate_limit(
     user_id: str,
@@ -19,23 +22,19 @@ async def check_rate_limit(
     limit = pro_limit if tier == "pro" else free_limit
     key = f"rl:{endpoint}:{user_id}"
     try:
-        r = aioredis.from_url(settings.redis_url)
-        try:
-            count = await r.incr(key)
-            if count == 1:
-                await r.expire(key, window)
-            ttl = await r.ttl(key)
-            if count > limit:
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "error": "rate_limit",
-                        "message": "Слишком много запросов. Подожди немного.",
-                        "retry_after": max(ttl, 1),
-                    },
-                )
-        finally:
-            await r.close()
+        count = await _redis.incr(key)
+        if count == 1:
+            await _redis.expire(key, window)
+        ttl = await _redis.ttl(key)
+        if count > limit:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "rate_limit",
+                    "message": "Слишком много запросов. Подожди немного.",
+                    "retry_after": max(ttl, 1),
+                },
+            )
     except HTTPException:
         raise
     except Exception as e:

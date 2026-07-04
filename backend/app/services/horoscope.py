@@ -1,11 +1,7 @@
-import os
 from datetime import date
 
-from groq import Groq
-
+from app.core.groq_client import _get_async_client
 from app.core.prompts import lang_enforce, system_prompt
-
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SIGNS_DATA = [
     (1, 1, 1, 19, "capricorn"), (1, 20, 2, 18, "aquarius"), (2, 19, 3, 20, "pisces"),
@@ -60,7 +56,8 @@ async def generate_horoscope(sign: str, lang: str) -> str:
             f"60-70 words. No greetings like 'Dear Scorpio'."
         )
 
-    response = client.chat.completions.create(
+    client = _get_async_client()
+    response = await client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": sys},
