@@ -643,16 +643,16 @@ async def composite_interpret(
 
         PROMPTS = {
             "ru": {
-                "overview": f"Composite chart пары {user_name} и {partner_name}.\nСолнце в {sun_s}, Луна в {moon_s}.\nВсе планеты: {planets_text}.\nОпиши характер этих отношений целиком: их суть, атмосферу, главный вызов. Называй конкретные планеты и знаки, не используй общие фразы. Минимум 200 слов.",
-                "planets": f"Composite chart: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}, Марс в {mars_s}.\nОбъясни что каждая из этих 4 планет говорит об этой паре. Практично, конкретно, без общих фраз. Минимум 200 слов.",
-                "aspects": f"Ключевые аспекты composite chart: {aspects_text}.\nОбъясни влияние каждого аспекта на отношения. Какой самый мощный? Конкретно, без общих фраз. Минимум 200 слов.",
-                "advice": f"Composite: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}.\nАспекты: {aspects_text}.\nДай 3 конкретных практических совета для этой пары как укрепить отношения. Минимум 200 слов.",
+                "overview": f"Composite chart пары {user_name} и {partner_name}.\nСолнце в {sun_s}, Луна в {moon_s}.\nВсе планеты: {planets_text}.\nОпиши эти отношения: ключевые планеты — по одному абзацу на каждую, главный аспект пары, основной вызов, практическая рекомендация. Без лирики. 150-250 слов, без воды.",
+                "planets": f"Composite chart: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}, Марс в {mars_s}.\nРаскрой каждую из этих 4 планет отдельным абзацем: что она говорит об этой паре. Без лирики. 150-250 слов, без воды.",
+                "aspects": f"Ключевые аспекты composite chart: {aspects_text}.\nОпредели главный аспект и разбери его влияние на отношения, затем остальные по значимости. Укажи вызов, который создаёт главный аспект. Без лирики. 150-250 слов, без воды.",
+                "advice": f"Composite: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}.\nАспекты: {aspects_text}.\nОпредели главный вызов пары и дай практическую рекомендацию, как его преодолеть. Без лирики. 150-250 слов, без воды.",
             },
             "en": {
-                "overview": f"Composite chart for {user_name} and {partner_name}.\nSun in {sun_s}, Moon in {moon_s}.\nAll planets: {planets_text}.\nDescribe the nature of this relationship: its essence, atmosphere, main challenge. Name concrete planets and signs, avoid vague phrases. Minimum 200 words.",
-                "planets": f"Composite chart: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}, Mars in {mars_s}.\nExplain what each of these 4 planets says about this couple. Practical, specific, avoid vague phrases. Minimum 200 words.",
-                "aspects": f"Key composite aspects: {aspects_text}.\nExplain each aspect's impact on the relationship. Which is the most powerful? Be specific, avoid vague phrases. Minimum 200 words.",
-                "advice": f"Composite: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}.\nAspects: {aspects_text}.\nGive 3 specific practical tips for this couple to strengthen their bond. Minimum 200 words.",
+                "overview": f"Composite chart for {user_name} and {partner_name}.\nSun in {sun_s}, Moon in {moon_s}.\nAll planets: {planets_text}.\nDescribe this relationship: key planets — one paragraph each, the couple's main aspect, core challenge, practical recommendation. No lyricism. 150-250 words, no filler.",
+                "planets": f"Composite chart: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}, Mars in {mars_s}.\nCover each of these 4 planets in its own paragraph: what it says about this couple. No lyricism. 150-250 words, no filler.",
+                "aspects": f"Key composite aspects: {aspects_text}.\nIdentify the main aspect and explain its impact on the relationship first, then the rest by significance. State the challenge the main aspect creates. No lyricism. 150-250 words, no filler.",
+                "advice": f"Composite: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}.\nAspects: {aspects_text}.\nIdentify the couple's main challenge and give a practical recommendation to work through it. No lyricism. 150-250 words, no filler.",
             },
         }
         lang_prompts = PROMPTS.get(req.lang, PROMPTS["en"])
@@ -684,17 +684,17 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
     if req.lang == "ru":
         prompt = (
             f"Совместимость ({req.compat_type}): {SIGNS_RU[i1]} и {SIGNS_RU[i2]}. Скор: {req.score}%.\n"
-            f"Опиши совместимость. Обязательно:\n"
+            f"Опиши совместимость:\n"
             f"1. В чём сила этой пары\n2. Главный источник конфликтов\n"
             f"3. Практический совет\n"
-            f"Называй конкретные ситуации, не используй общие фразы. Минимум 200 слов."
+            f"Называй конкретные ситуации. 150-250 слов, без воды."
         )
     else:
         prompt = (
             f"Compatibility ({req.compat_type}): {s1} and {s2}. Score: {req.score}%.\n"
             f"Describe compatibility:\n1. Pair's strength\n2. Main conflict source\n"
             f"3. Practical tip\n"
-            f"Name concrete situations, avoid vague phrases. Minimum 200 words."
+            f"Name concrete situations. 150-250 words, no filler."
         )
     prompt += lang_enforce(req.lang)
 

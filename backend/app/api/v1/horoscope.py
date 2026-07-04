@@ -73,25 +73,23 @@ async def horoscope_stream(req: HoroscopeRequest, current_user: User = Depends(g
 
     if req.lang == "ru":
         prompt = (
-            f"Ты — профессиональный астролог. Составь подробный персональный гороскоп "
-            f"для знака {sname} на {req.date or today}.\n"
-            f"Структура ответа (3 абзаца):\n"
-            f"1. Общая энергетика дня — планетарные влияния, конкретные аспекты\n"
-            f"2. Практические рекомендации — что делать и чего избегать, с конкретным временем если возможно\n"
-            f"3. Совет дня — короткая, но ёмкая мысль\n"
-            f"Минимум 180 слов. Называй конкретные ситуации и время, не используй общие фразы. "
-            f"Без вступлений типа 'Дорогой {sname}'."
+            f"Составь персональный гороскоп для знака {sname} на {req.date or today}.\n"
+            f"Структура ответа — три чётких абзаца:\n"
+            f"1. Энергетика дня — планетарные влияния, конкретные аспекты\n"
+            f"2. Практика — что делать и чего избегать, с конкретным временем если уместно\n"
+            f"3. Итог — одна ёмкая практическая рекомендация\n"
+            f"Без философии и лирики. Называй конкретные ситуации и время. "
+            f"150-250 слов, без воды. Без вступлений типа 'Дорогой {sname}'."
         )
     else:
         prompt = (
-            f"You are a professional astrologer. Write a detailed personal horoscope "
-            f"for {sname} on {req.date or today}.\n"
-            f"Response structure (3 paragraphs):\n"
-            f"1. Overall energy of the day — planetary influences, specific aspects\n"
-            f"2. Practical recommendations — what to do and avoid, with specific timing if relevant\n"
-            f"3. Tip of the day — a short but powerful thought\n"
-            f"Minimum 180 words. Name concrete situations and times, avoid vague phrases. "
-            f"No greetings like 'Dear {sname}'."
+            f"Write a personal horoscope for {sname} on {req.date or today}.\n"
+            f"Response structure — three clear paragraphs:\n"
+            f"1. Energy of the day — planetary influences, specific aspects\n"
+            f"2. Practice — what to do and avoid, with specific timing if relevant\n"
+            f"3. Takeaway — one concise practical recommendation\n"
+            f"No philosophy, no lyricism. Name concrete situations and times. "
+            f"150-250 words, no filler. No greetings like 'Dear {sname}'."
         )
     prompt += lang_enforce(req.lang)
 

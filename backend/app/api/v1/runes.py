@@ -144,83 +144,73 @@ async def interpret(
         answer_en = "YES" if positive >= 2 else "NO"
         if ru:
             prompt = (
-                f"Ты — рунолог с глубоким знанием Elder Futhark.\n"
                 f"Расклад Да/Нет. Руны: {'; '.join(runes_desc)}.{question_part}\n"
                 f"Прямых рун: {positive} из 3. Ответ: {answer}.\n"
-                f"Начни ответ с крупного «{answer}». Объясни исконное значение ключевых рун "
-                f"и почему они дали такой ответ. Конкретно, без общих фраз.\n"
-                f"Минимум 150 слов. Стиль: мудрый северный наставник."
+                f"Начни ответ с «{answer}». Для каждой ключевой руны: исконное значение → применение "
+                f"к ситуации. Без мифологических отступлений.\n"
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
-                f"You are a rune master with deep knowledge of the Elder Futhark.\n"
                 f"Yes/No spread. Runes: {'; '.join(runes_desc)}.{question_part}\n"
                 f"Upright runes: {positive} of 3. Answer: {answer_en}.\n"
-                f"Start with a big «{answer_en}». Explain the original meaning of the key runes "
-                f"and why the runes answered this way. Be specific, avoid vague phrases.\n"
-                f"Minimum 150 words. Style: wise Norse mentor."
+                f"Start with «{answer_en}». For each key rune: original meaning → application to the "
+                f"situation. No mythological digressions.\n"
+                f"150-250 words, no filler."
             )
     elif req.spread_type == "yggdrasil":
         if ru:
             prompt = (
-                f"Ты — рунолог с глубоким знанием Elder Futhark.\n"
                 f"Расклад Иггдрасиль (9 миров). Руны:\n" +
                 "\n".join(runes_desc) + f"{question_part}\n"
                 f"Разбери по мирам: Асгард (духовное), Мидгард (реальность), Хельхейм (скрытое), "
-                f"затем Разум, Сердце, Тело, и временная линия. Для ключевых рун — исконное значение.\n"
-                f"Минимум 280 слов. Разбей на смысловые абзацы по мирам. Стиль: мудрый северный наставник."
+                f"затем Разум, Сердце, Тело, и временная линия. Для каждой руны: исконное значение → "
+                f"применение к ситуации. Без мифологических отступлений.\n"
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
-                f"You are a rune master with deep knowledge of the Elder Futhark.\n"
                 f"Yggdrasil spread (9 worlds). Runes:\n" +
                 "\n".join(runes_desc) + f"{question_part}\n"
                 f"Break down by worlds: Asgard (spiritual), Midgard (reality), Helheim (hidden), "
-                f"then Mind, Heart, Body, and timeline. For key runes — their original meaning.\n"
-                f"Minimum 280 words. Break into meaningful paragraphs by world. Style: wise Norse mentor."
+                f"then Mind, Heart, Body, and timeline. For each rune: original meaning → application "
+                f"to the situation. No mythological digressions.\n"
+                f"150-250 words, no filler."
             )
     elif req.spread_type == "year_spread":
         if ru:
             prompt = (
-                f"Ты — рунолог с глубоким знанием Elder Futhark.\n"
                 f"Расклад на год. Руны по месяцам:\n" +
                 "\n".join(runes_desc) + f"{question_part}\n"
-                f"Дай развёрнутый прогноз по каждому месяцу (2-3 предложения с конкретикой) "
-                f"и общую тему года.\n"
-                f"Минимум 350 слов. Стиль: мудрый северный наставник."
+                f"Для каждого месяца: исконное значение руны → применение к ситуации. "
+                f"Без мифологических отступлений. В конце — общая тема года.\n"
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
-                f"You are a rune master with deep knowledge of the Elder Futhark.\n"
                 f"Year spread. Runes by month:\n" +
                 "\n".join(runes_desc) + f"{question_part}\n"
-                f"Give a detailed forecast for each month (2-3 specific sentences) "
-                f"and the overall year theme.\n"
-                f"Minimum 350 words. Style: wise Norse mentor."
+                f"For each month: the rune's original meaning → application to the situation. "
+                f"No mythological digressions. End with the overall year theme.\n"
+                f"150-250 words, no filler."
             )
     else:
         spread_name = spread.get("name_ru" if ru else "name_en", req.spread_type)
         if ru:
             prompt = (
-                f"Ты — рунолог с глубоким знанием Elder Futhark.\n"
                 f"Расклад «{spread_name}». Руны: {'; '.join(runes_desc)}.{question_part}\n"
-                f"Для каждой руны:\n"
-                f"- Этимология и исконное значение\n"
-                f"- Значение в данной позиции расклада\n"
-                f"- Практическое послание\n"
-                f"Синтез расклада: общее послание и конкретная рекомендация.\n"
-                f"Минимум 250 слов. Стиль: мудрый северный наставник."
+                f"Для каждой руны: исконное значение → применение к ситуации. "
+                f"Без мифологических отступлений.\n"
+                f"Синтез расклада: общее послание и одна конкретная рекомендация.\n"
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
-                f"You are a rune master with deep knowledge of the Elder Futhark.\n"
                 f"Spread «{spread_name}». Runes: {'; '.join(runes_desc)}.{question_part}\n"
-                f"For each rune:\n"
-                f"- Etymology and original meaning\n"
-                f"- Meaning in this position of the spread\n"
-                f"- Practical message\n"
-                f"Spread synthesis: overall message and a specific recommendation.\n"
-                f"Minimum 250 words. Style: wise Norse mentor."
+                f"For each rune: original meaning → application to the situation. "
+                f"No mythological digressions.\n"
+                f"Spread synthesis: overall message and one specific recommendation.\n"
+                f"150-250 words, no filler."
             )
     prompt += get_lang_enforce(req.lang)
 

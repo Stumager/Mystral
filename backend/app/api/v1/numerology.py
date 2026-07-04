@@ -167,22 +167,22 @@ async def interpret(
         if ru:
             prompt = (
                 f"Число Жизненного Пути: {lp}. Число дня рождения: {bd_num}.{name_part}\n"
-                f"Дай глубокий нумерологический анализ:\n"
+                f"Дай нумерологический анализ по схеме число → качества → проявление в реальной жизни:\n"
                 f"1. Главная жизненная миссия\n"
                 f"2. Ключевые сильные стороны\n"
                 f"3. Скрытые вызовы и как с ними работать\n"
                 f"4. Лучшая сфера для реализации\n"
-                f"Минимум 200 слов. Называй конкретные числа, качества и ситуации, не используй общие фразы."
+                f"Называй конкретные числа, качества и ситуации. 150-250 слов, без воды."
             )
         else:
             prompt = (
                 f"Life Path: {lp}. Birthday Number: {bd_num}.{name_part}\n"
-                f"Give a deep numerological analysis:\n"
+                f"Give a numerological analysis following number → qualities → real-life manifestation:\n"
                 f"1. Core life mission\n"
                 f"2. Key strengths\n"
                 f"3. Hidden challenges and how to work with them\n"
                 f"4. Best area for fulfillment\n"
-                f"Minimum 200 words. Name concrete numbers, traits and situations, avoid vague phrases."
+                f"Name concrete numbers, traits and situations. 150-250 words, no filler."
             )
 
     elif req.section == "square":
@@ -196,8 +196,9 @@ async def interpret(
                 f"Ячейки: {cells_str}\n"
                 f"Сильные: {', '.join(c['name'] for c in strong) or 'нет'}.\n"
                 f"Пустые: {', '.join(c['name'] for c in weak) or 'нет'}.\n"
-                f"Дай анализ характера по квадрату. Что является опорой, что нужно развивать. "
-                f"Называй конкретные числа и качества, не используй общие фразы. Минимум 200 слов."
+                f"Дай анализ по схеме число → качество → проявление в реальной жизни. "
+                f"Что является опорой, что нужно развивать. Называй конкретные числа и качества. "
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
@@ -205,8 +206,9 @@ async def interpret(
                 f"Cells: {cells_str}\n"
                 f"Strong: {', '.join(c['name'] for c in strong) or 'none'}.\n"
                 f"Empty: {', '.join(c['name'] for c in weak) or 'none'}.\n"
-                f"Analyze character based on the square. What is the foundation, what needs development. "
-                f"Name concrete numbers and traits, avoid vague phrases. Minimum 200 words."
+                f"Give an analysis following number → quality → real-life manifestation. "
+                f"What is the foundation, what needs development. Name concrete numbers and traits. "
+                f"150-250 words, no filler."
             )
 
     elif req.section == "forecast":
@@ -216,18 +218,18 @@ async def interpret(
         if ru:
             prompt = (
                 f"Персональный год: {py}, месяц: {pm}, день: {pd}.\n"
-                f"Дай прогноз. Для каждого периода — конкретная рекомендация. "
-                f"Что делать сегодня, на что обратить внимание в этом месяце, "
-                f"главная тема года. Называй конкретные числа и ситуации, не используй общие фразы. "
-                f"Минимум 200 слов."
+                f"Дай прогноз по схеме число → качество → проявление в реальной жизни для каждого "
+                f"периода. Что делать сегодня, на что обратить внимание в этом месяце, "
+                f"главная тема года. Называй конкретные числа и ситуации. "
+                f"150-250 слов, без воды."
             )
         else:
             prompt = (
                 f"Personal year: {py}, month: {pm}, day: {pd}.\n"
-                f"Give a forecast. For each period — specific recommendation. "
-                f"What to do today, what to focus on this month, "
-                f"the main theme of the year. Name concrete numbers and situations, avoid vague phrases. "
-                f"Minimum 200 words."
+                f"Give a forecast following number → quality → real-life manifestation for each "
+                f"period. What to do today, what to focus on this month, "
+                f"the main theme of the year. Name concrete numbers and situations. "
+                f"150-250 words, no filler."
             )
 
     elif req.section == "karmic":
@@ -238,18 +240,16 @@ async def interpret(
             mn_str = ", ".join(str(m) for m in mn) if mn else "нет"
             prompt = (
                 f"Кармические числа: {kn_str}. Отсутствующие числа: {mn_str}.\n"
-                f"Объясни кармические уроки и что нужно развивать. "
-                f"Конкретные действия для проработки каждого аспекта, без общих фраз. "
-                f"Минимум 200 слов."
+                f"Дай анализ по схеме число → урок → конкретное проявление и действия для проработки "
+                f"каждого аспекта. 150-250 слов, без воды."
             )
         else:
             kn_str = ", ".join(str(k["number"]) for k in kn) if kn else "none"
             mn_str = ", ".join(str(m) for m in mn) if mn else "none"
             prompt = (
                 f"Karmic numbers: {kn_str}. Missing numbers: {mn_str}.\n"
-                f"Explain karmic lessons and what needs development. "
-                f"Specific actions for working through each aspect, avoid vague phrases. "
-                f"Minimum 200 words."
+                f"Give an analysis following number → lesson → concrete manifestation and actions to "
+                f"work through each aspect. 150-250 words, no filler."
             )
     else:
         raise HTTPException(400, "Invalid section")

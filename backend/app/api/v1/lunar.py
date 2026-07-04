@@ -237,9 +237,9 @@ async def lunar_ai_recommend(
             f"{data['lunar_day']}-й лунный день «{data['day_symbol']}» — {data['day_title']}.\n"
             f"Фаза: {data['phase_name']}. Луна в {data['moon_sign']}.\n"
             f"Энергия дня: {data['energy']}.\n"
-            f"Дай персональную рекомендацию на сегодня. "
-            f"Учитывай лунный день, знак Луны и фазу. Конкретно, практично.{question_part}\n"
-            f"Называй конкретные ситуации и действия, не используй общие фразы. Минимум 200 слов."
+            f"Дай рекомендацию на сегодня: что делать и чего избегать. "
+            f"Учитывай лунный день, знак Луны и фазу. Только практика.{question_part}\n"
+            f"Называй конкретные ситуации и действия. 150-250 слов, без воды."
         )
     else:
         question_en = f'\nQuestion: "{req.question}". Answer specifically.' if req.question else ""
@@ -247,9 +247,9 @@ async def lunar_ai_recommend(
             f"Lunar day {data['lunar_day']} «{data['day_symbol']}» — {data['day_title']}.\n"
             f"Phase: {data['phase_name']}. Moon in {data['moon_sign']}.\n"
             f"Day energy: {data['energy']}.\n"
-            f"Give a personal recommendation for today. "
-            f"Consider lunar day, moon sign and phase. Be specific and practical.{question_en}\n"
-            f"Name concrete situations and actions, avoid vague phrases. Minimum 200 words."
+            f"Give a recommendation for today: what to do and what to avoid. "
+            f"Consider lunar day, moon sign and phase. Practice only.{question_en}\n"
+            f"Name concrete situations and actions. 150-250 words, no filler."
         )
     prompt += get_lang_enforce(req.lang)
 

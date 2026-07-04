@@ -165,15 +165,12 @@ async def tarot_interpret(
 
     if req.lang == "ru":
         prompt = (
-            f"Ты — опытный таролог. Сделай глубокое толкование расклада.\n"
-            f"Расклад Таро ({req.spread_id}):\n{cards_text}\n"
+            f"Сделай толкование расклада Таро ({req.spread_id}):\n{cards_text}\n"
             f"Для каждой карты учитывай: позицию в раскладе, прямая/перевёрнутая, масть. "
             f"Перевёрнутая карта = ослабленное/заблокированное/теневое значение.{question_part}{yes_no_part}\n"
-            f"Для каждой карты:\n"
-            f"- Значение в данной позиции (2-3 предложения)\n"
-            f"- Связь с другими картами расклада\n"
-            f"Общий вывод расклада: конкретный совет или прогноз, без общих слов.\n"
-            f"Минимум 250 слов. Называй конкретные ситуации, не используй общие фразы."
+            f"Для каждой карты: позиция → значение → связь с вопросом.\n"
+            f"Общий вывод — одно предложение, конкретный совет или прогноз, без общих слов.\n"
+            f"150-250 слов, без воды. Называй конкретные ситуации."
         )
     else:
         question_part_en = f'\nClient question: "{req.question}". Build your answer around this question.' if req.question else ""
@@ -182,15 +179,12 @@ async def tarot_interpret(
             ans = "Yes" if upright_count >= 3 else "No"
             yes_no_en = f"\nThis is a Yes/No spread. Upright: {upright_count}/{len(req.cards)}. Answer: {ans}. Start with clear '{ans}'."
         prompt = (
-            f"You are an experienced tarot reader. Give a deep interpretation of this spread.\n"
-            f"Tarot spread ({req.spread_id}):\n{cards_text}\n"
+            f"Give an interpretation of this tarot spread ({req.spread_id}):\n{cards_text}\n"
             f"For each card consider: position, upright/reversed, suit. "
             f"Reversed = weakened/blocked/shadow meaning.{question_part_en}{yes_no_en}\n"
-            f"For each card:\n"
-            f"- Its meaning in this position (2-3 sentences)\n"
-            f"- Connection to other cards in the spread\n"
-            f"Overall takeaway: a specific piece of advice or forecast, no vague words.\n"
-            f"Minimum 250 words. Name concrete situations, avoid vague phrases."
+            f"For each card: position → meaning → connection to the question.\n"
+            f"Overall takeaway: one sentence, a specific piece of advice or forecast, no vague words.\n"
+            f"150-250 words, no filler. Name concrete situations."
         )
     prompt += get_lang_enforce(req.lang)
 

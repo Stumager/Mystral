@@ -373,74 +373,78 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
 
 SECTION_PROMPTS_RU = {
     "personality": (
-        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дай интерпретацию натальной карты.\n"
         "Проанализируй Солнце в {sun}, Луну в {moon}, Асцендент в {asc} как единую систему.\n"
         "Как эти три энергии взаимодействуют? Где конфликт, где гармония?\n"
-        "Интерпретируй через призму психологии и реальной жизни. Упоминай конкретные планеты и знаки.\n"
-        "Обращайся на 'ты'. Разбей ответ на смысловые абзацы. Минимум 300 слов."
+        "Интерпретируй через призму психологии и реальной жизни, называя конкретные планеты и знаки "
+        "из карты пользователя — не абстрактные описания знаков, а разбор реальных позиций.\n"
+        "150-250 слов, без воды."
     ),
     "planets": (
-        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дай интерпретацию натальной карты.\n"
         "Планеты: {planets_text}.\nДополнительно: {extra_text}.\n"
         "Какая планета самая сильная и почему? Ретроградные — на что обратить внимание?\n"
-        "Упоминай конкретные планеты и аспекты из карты. Разбей на смысловые абзацы.\n"
-        "Минимум 300 слов. Конкретно."
+        "Называй конкретные планеты, знаки и градусы из карты пользователя, не абстрактные описания.\n"
+        "150-250 слов, без воды."
     ),
     "houses": (
-        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дай интерпретацию натальной карты.\n"
         "Дома: {houses_text}.\nСтеллиумы: {stellium_text}.\n"
         "Какие дома наполнены? Где акцент жизни? Пустые дома — что значит?\n"
-        "Интерпретируй через призму реальной жизни. Разбей на смысловые абзацы.\n"
-        "Минимум 300 слов."
+        "Интерпретируй через призму реальной жизни, называя конкретные дома и планеты из карты пользователя.\n"
+        "150-250 слов, без воды."
     ),
     "aspects": (
-        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дай интерпретацию натальной карты.\n"
         "Топ аспекты: {aspects_text}.\n"
         "Объясни влияние каждого на жизнь конкретно. Какой аспект самый мощный?\n"
-        "Упоминай конкретные планеты и аспекты из карты. Разбей на смысловые абзацы.\n"
-        "Минимум 300 слов."
+        "Называй конкретные планеты и аспекты из карты пользователя, не абстрактные описания.\n"
+        "150-250 слов, без воды."
     ),
     "transits": (
-        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дай интерпретацию натальной карты.\n"
         "Активные транзиты на сегодня: {transits_text}.\n"
         "Что это значит прямо сейчас? Практический совет.\n"
-        "Упоминай конкретные планеты и аспекты. Минимум 250 слов."
+        "Называй конкретные планеты и аспекты из карты пользователя.\n"
+        "150-250 слов, без воды."
     ),
 }
 SECTION_PROMPTS_EN = {
     "personality": (
-        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Give an interpretation of the natal chart.\n"
         "Analyze Sun in {sun}, Moon in {moon}, Ascendant in {asc} as a unified system.\n"
         "How do these three energies interact? Where's conflict, where's harmony?\n"
-        "Interpret through the lens of psychology and real life. Mention specific planets and signs.\n"
-        "Use 'you'. Break the answer into meaningful paragraphs. Minimum 300 words."
+        "Interpret through the lens of psychology and real life, naming specific planets and signs "
+        "from the user's own chart — not abstract sign descriptions, but the actual positions.\n"
+        "150-250 words, no filler."
     ),
     "planets": (
-        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Give an interpretation of the natal chart.\n"
         "Planets: {planets_text}.\nExtra: {extra_text}.\n"
         "Which planet is strongest and why? Retrograde — what to watch for?\n"
-        "Mention specific planets and aspects from the chart. Break into paragraphs.\n"
-        "Minimum 300 words. Be specific."
+        "Name specific planets, signs and degrees from the user's chart, not abstract descriptions.\n"
+        "150-250 words, no filler."
     ),
     "houses": (
-        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Give an interpretation of the natal chart.\n"
         "Houses: {houses_text}.\nStelliums: {stellium_text}.\n"
         "Which houses are packed? Life focus? Empty houses — meaning?\n"
-        "Interpret through the lens of real life. Break into meaningful paragraphs.\n"
-        "Minimum 300 words."
+        "Interpret through the lens of real life, naming specific houses and planets from the chart.\n"
+        "150-250 words, no filler."
     ),
     "aspects": (
-        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Give an interpretation of the natal chart.\n"
         "Top aspects: {aspects_text}.\n"
         "Explain each aspect's impact on life specifically. Which is most powerful?\n"
-        "Mention specific planets and aspects from the chart. Break into paragraphs.\n"
-        "Minimum 300 words."
+        "Name specific planets and aspects from the user's chart, not abstract descriptions.\n"
+        "150-250 words, no filler."
     ),
     "transits": (
-        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Give an interpretation of the natal chart.\n"
         "Active transits today: {transits_text}.\n"
         "What does this mean right now? Practical advice.\n"
-        "Mention specific planets and aspects. Minimum 250 words."
+        "Name specific planets and aspects from the user's chart.\n"
+        "150-250 words, no filler."
     ),
 }
 
