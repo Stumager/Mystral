@@ -74,6 +74,7 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
   const [showShare, setShowShare] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const loaded = useRef(false);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (loaded.current || !token) return;
@@ -107,18 +108,30 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
     if (!d) return;
     setActiveTab(section);
     if (loadedTabs.has(section)) return;
+
+    // Guards against a still-running stream from a previously selected tab
+    // appending its late chunks into this tab's text (visible as duplicated
+    // / mixed-up content when switching tabs before a stream finishes).
+    const requestId = ++requestIdRef.current;
+    const isStale = () => requestIdRef.current !== requestId;
+
     setInterpretLoading(true);
     setInterpretation("");
     try {
       await streamRequest(
         "/compatibility/composite/interpret",
         { partner_id: partnerId, section, lang },
-        (chunk) => setInterpretation(prev => prev + chunk),
-        () => { setInterpretLoading(false); setLoadedTabs(prev => new Set([...prev, section])); },
+        (chunk) => { if (!isStale()) setInterpretation(prev => prev + chunk); },
+        () => {
+          if (isStale()) return;
+          setInterpretLoading(false);
+          setLoadedTabs(prev => new Set([...prev, section]));
+        },
         token ?? undefined,
-        (msg) => { setInterpretation(msg); setInterpretLoading(false); },
+        (msg) => { if (!isStale()) { setInterpretation(msg); setInterpretLoading(false); } },
       );
     } catch (e: unknown) {
+      if (isStale()) return;
       const err = e as { code?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
       setInterpretLoading(false);
