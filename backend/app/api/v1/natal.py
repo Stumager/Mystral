@@ -372,18 +372,76 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
 
 
 SECTION_PROMPTS_RU = {
-    "personality": "Проанализируй Солнце в {sun}, Луну в {moon}, Асцендент в {asc} как единую систему.\nКак эти три энергии взаимодействуют? Где конфликт, где гармония?\nОбращайся на 'ты'. 120-150 слов.",
-    "planets": "Планеты: {planets_text}.\nДополнительно: {extra_text}.\nКакая планета самая сильная и почему? Ретроградные — на что обратить внимание?\n120-150 слов. Конкретно.",
-    "houses": "Дома: {houses_text}.\nСтеллиумы: {stellium_text}.\nКакие дома наполнены? Где акцент жизни? Пустые — что значит?\n120-150 слов.",
-    "aspects": "Топ аспекты: {aspects_text}.\nОбъясни влияние каждого на жизнь конкретно. Какой аспект самый мощный?\n120-150 слов.",
-    "transits": "Активные транзиты на сегодня: {transits_text}.\nЧто это значит прямо сейчас? Практический совет.\n100-120 слов.",
+    "personality": (
+        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Проанализируй Солнце в {sun}, Луну в {moon}, Асцендент в {asc} как единую систему.\n"
+        "Как эти три энергии взаимодействуют? Где конфликт, где гармония?\n"
+        "Интерпретируй через призму психологии и реальной жизни. Упоминай конкретные планеты и знаки.\n"
+        "Обращайся на 'ты'. Разбей ответ на смысловые абзацы. Минимум 300 слов."
+    ),
+    "planets": (
+        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Планеты: {planets_text}.\nДополнительно: {extra_text}.\n"
+        "Какая планета самая сильная и почему? Ретроградные — на что обратить внимание?\n"
+        "Упоминай конкретные планеты и аспекты из карты. Разбей на смысловые абзацы.\n"
+        "Минимум 300 слов. Конкретно."
+    ),
+    "houses": (
+        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Дома: {houses_text}.\nСтеллиумы: {stellium_text}.\n"
+        "Какие дома наполнены? Где акцент жизни? Пустые дома — что значит?\n"
+        "Интерпретируй через призму реальной жизни. Разбей на смысловые абзацы.\n"
+        "Минимум 300 слов."
+    ),
+    "aspects": (
+        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Топ аспекты: {aspects_text}.\n"
+        "Объясни влияние каждого на жизнь конкретно. Какой аспект самый мощный?\n"
+        "Упоминай конкретные планеты и аспекты из карты. Разбей на смысловые абзацы.\n"
+        "Минимум 300 слов."
+    ),
+    "transits": (
+        "Ты — астролог-психолог. Дай глубокую интерпретацию натальной карты.\n"
+        "Активные транзиты на сегодня: {transits_text}.\n"
+        "Что это значит прямо сейчас? Практический совет.\n"
+        "Упоминай конкретные планеты и аспекты. Минимум 250 слов."
+    ),
 }
 SECTION_PROMPTS_EN = {
-    "personality": "Analyze Sun in {sun}, Moon in {moon}, Ascendant in {asc} as a unified system.\nHow do these three energies interact? Where's conflict, where's harmony?\nUse 'you'. 120-150 words.",
-    "planets": "Planets: {planets_text}.\nExtra: {extra_text}.\nWhich planet is strongest and why? Retrograde — what to watch for?\n120-150 words. Be specific.",
-    "houses": "Houses: {houses_text}.\nStelliums: {stellium_text}.\nWhich houses are packed? Life focus? Empty houses — meaning?\n120-150 words.",
-    "aspects": "Top aspects: {aspects_text}.\nExplain each aspect's impact on life specifically. Which is most powerful?\n120-150 words.",
-    "transits": "Active transits today: {transits_text}.\nWhat does this mean right now? Practical advice.\n100-120 words.",
+    "personality": (
+        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Analyze Sun in {sun}, Moon in {moon}, Ascendant in {asc} as a unified system.\n"
+        "How do these three energies interact? Where's conflict, where's harmony?\n"
+        "Interpret through the lens of psychology and real life. Mention specific planets and signs.\n"
+        "Use 'you'. Break the answer into meaningful paragraphs. Minimum 300 words."
+    ),
+    "planets": (
+        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Planets: {planets_text}.\nExtra: {extra_text}.\n"
+        "Which planet is strongest and why? Retrograde — what to watch for?\n"
+        "Mention specific planets and aspects from the chart. Break into paragraphs.\n"
+        "Minimum 300 words. Be specific."
+    ),
+    "houses": (
+        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Houses: {houses_text}.\nStelliums: {stellium_text}.\n"
+        "Which houses are packed? Life focus? Empty houses — meaning?\n"
+        "Interpret through the lens of real life. Break into meaningful paragraphs.\n"
+        "Minimum 300 words."
+    ),
+    "aspects": (
+        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Top aspects: {aspects_text}.\n"
+        "Explain each aspect's impact on life specifically. Which is most powerful?\n"
+        "Mention specific planets and aspects from the chart. Break into paragraphs.\n"
+        "Minimum 300 words."
+    ),
+    "transits": (
+        "You are an astrologer-psychologist. Give a deep interpretation of the natal chart.\n"
+        "Active transits today: {transits_text}.\n"
+        "What does this mean right now? Practical advice.\n"
+        "Mention specific planets and aspects. Minimum 250 words."
+    ),
 }
 
 
@@ -445,11 +503,12 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
     prompt = template.format(sun=sun_s, moon=moon_s, asc=asc_s, planets_text=planets_text,
                              extra_text=extra_text or "нет", houses_text=houses_text,
                              aspects_text=aspects_text, transits_text=transits_text, stellium_text=stellium_text)
+    prompt += lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_interpret", 2, 20)
     sys = system_prompt(req.lang) + lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=400, lang=req.lang),
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=1400, lang=req.lang),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

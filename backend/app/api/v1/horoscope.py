@@ -73,22 +73,27 @@ async def horoscope_stream(req: HoroscopeRequest, current_user: User = Depends(g
 
     if req.lang == "ru":
         prompt = (
-            f"Знак: {sname}. Дата: {req.date or today}.\n"
-            f"Напиши гороскоп на день. Обязательно укажи:\n"
-            f"1. Одну конкретную сферу жизни (работа/отношения/финансы/здоровье)\n"
-            f"2. Один конкретный совет что сделать или избежать\n"
-            f"3. Благоприятное время дня если уместно\n"
-            f"Объём: 60-70 слов. Без вступлений типа 'Дорогой Скорпион'."
+            f"Ты — профессиональный астролог. Составь подробный персональный гороскоп "
+            f"для знака {sname} на {req.date or today}.\n"
+            f"Структура ответа (3 абзаца):\n"
+            f"1. Общая энергетика дня — планетарные влияния, конкретные аспекты\n"
+            f"2. Практические рекомендации — что делать и чего избегать, с конкретным временем если возможно\n"
+            f"3. Совет дня — короткая, но ёмкая мысль\n"
+            f"Минимум 180 слов. Называй конкретные ситуации и время, не используй общие фразы. "
+            f"Без вступлений типа 'Дорогой {sname}'."
         )
     else:
         prompt = (
-            f"Sign: {sname}. Date: {req.date or today}.\n"
-            f"Write a daily horoscope. Must include:\n"
-            f"1. One specific life area (work/relationships/finances/health)\n"
-            f"2. One concrete tip — what to do or avoid\n"
-            f"3. Best time of day if relevant\n"
-            f"60-70 words. No greetings like 'Dear {sname}'."
+            f"You are a professional astrologer. Write a detailed personal horoscope "
+            f"for {sname} on {req.date or today}.\n"
+            f"Response structure (3 paragraphs):\n"
+            f"1. Overall energy of the day — planetary influences, specific aspects\n"
+            f"2. Practical recommendations — what to do and avoid, with specific timing if relevant\n"
+            f"3. Tip of the day — a short but powerful thought\n"
+            f"Minimum 180 words. Name concrete situations and times, avoid vague phrases. "
+            f"No greetings like 'Dear {sname}'."
         )
+    prompt += lang_enforce(req.lang)
 
     async def generate():
         cached = await redis_client.get(cache_key)
@@ -101,7 +106,7 @@ async def horoscope_stream(req: HoroscopeRequest, current_user: User = Depends(g
 
         full_text = ""
         msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
-        async for chunk_data in safe_groq_stream(msgs, max_tokens=200, lang=req.lang):
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=700, lang=req.lang):
             yield chunk_data
             if chunk_data.startswith("data: {"):
                 try:

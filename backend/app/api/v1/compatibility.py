@@ -643,25 +643,25 @@ async def composite_interpret(
 
         PROMPTS = {
             "ru": {
-                "overview": f"Composite chart пары {user_name} и {partner_name}.\nСолнце в {sun_s}, Луна в {moon_s}.\nВсе планеты: {planets_text}.\nОпиши характер этих отношений целиком: их суть, атмосферу, главный вызов. 110-130 слов.",
-                "planets": f"Composite chart: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}, Марс в {mars_s}.\nОбъясни что каждая из этих 4 планет говорит об этой паре. Практично, конкретно. 110-130 слов.",
-                "aspects": f"Ключевые аспекты composite chart: {aspects_text}.\nОбъясни влияние каждого аспекта на отношения. Какой самый мощный? 110-130 слов.",
-                "advice": f"Composite: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}.\nАспекты: {aspects_text}.\nДай 3 конкретных практических совета для этой пары как укрепить отношения. 110-130 слов.",
+                "overview": f"Composite chart пары {user_name} и {partner_name}.\nСолнце в {sun_s}, Луна в {moon_s}.\nВсе планеты: {planets_text}.\nОпиши характер этих отношений целиком: их суть, атмосферу, главный вызов. Называй конкретные планеты и знаки, не используй общие фразы. Минимум 200 слов.",
+                "planets": f"Composite chart: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}, Марс в {mars_s}.\nОбъясни что каждая из этих 4 планет говорит об этой паре. Практично, конкретно, без общих фраз. Минимум 200 слов.",
+                "aspects": f"Ключевые аспекты composite chart: {aspects_text}.\nОбъясни влияние каждого аспекта на отношения. Какой самый мощный? Конкретно, без общих фраз. Минимум 200 слов.",
+                "advice": f"Composite: Солнце в {sun_s}, Луна в {moon_s}, Венера в {venus_s}.\nАспекты: {aspects_text}.\nДай 3 конкретных практических совета для этой пары как укрепить отношения. Минимум 200 слов.",
             },
             "en": {
-                "overview": f"Composite chart for {user_name} and {partner_name}.\nSun in {sun_s}, Moon in {moon_s}.\nAll planets: {planets_text}.\nDescribe the nature of this relationship: its essence, atmosphere, main challenge. 110-130 words.",
-                "planets": f"Composite chart: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}, Mars in {mars_s}.\nExplain what each of these 4 planets says about this couple. Practical, specific. 110-130 words.",
-                "aspects": f"Key composite aspects: {aspects_text}.\nExplain each aspect's impact on the relationship. Which is the most powerful? 110-130 words.",
-                "advice": f"Composite: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}.\nAspects: {aspects_text}.\nGive 3 specific practical tips for this couple to strengthen their bond. 110-130 words.",
+                "overview": f"Composite chart for {user_name} and {partner_name}.\nSun in {sun_s}, Moon in {moon_s}.\nAll planets: {planets_text}.\nDescribe the nature of this relationship: its essence, atmosphere, main challenge. Name concrete planets and signs, avoid vague phrases. Minimum 200 words.",
+                "planets": f"Composite chart: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}, Mars in {mars_s}.\nExplain what each of these 4 planets says about this couple. Practical, specific, avoid vague phrases. Minimum 200 words.",
+                "aspects": f"Key composite aspects: {aspects_text}.\nExplain each aspect's impact on the relationship. Which is the most powerful? Be specific, avoid vague phrases. Minimum 200 words.",
+                "advice": f"Composite: Sun in {sun_s}, Moon in {moon_s}, Venus in {venus_s}.\nAspects: {aspects_text}.\nGive 3 specific practical tips for this couple to strengthen their bond. Minimum 200 words.",
             },
         }
         lang_prompts = PROMPTS.get(req.lang, PROMPTS["en"])
-        prompt = lang_prompts.get(req.section, lang_prompts["overview"])
+        prompt = lang_prompts.get(req.section, lang_prompts["overview"]) + lang_enforce(req.lang)
 
         await check_rate_limit(str(current_user.id), current_user.subscription_tier, "composite_interpret", 5, 50)
         sys = system_prompt(req.lang) + lang_enforce(req.lang)
         msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
-        return StreamingResponse(safe_groq_stream(msgs, max_tokens=400, lang=req.lang),
+        return StreamingResponse(safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
                                  media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
     except Exception as e:
@@ -686,18 +686,21 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
             f"Совместимость ({req.compat_type}): {SIGNS_RU[i1]} и {SIGNS_RU[i2]}. Скор: {req.score}%.\n"
             f"Опиши совместимость. Обязательно:\n"
             f"1. В чём сила этой пары\n2. Главный источник конфликтов\n"
-            f"3. Практический совет\nОбъём: 90-110 слов."
+            f"3. Практический совет\n"
+            f"Называй конкретные ситуации, не используй общие фразы. Минимум 200 слов."
         )
     else:
         prompt = (
             f"Compatibility ({req.compat_type}): {s1} and {s2}. Score: {req.score}%.\n"
             f"Describe compatibility:\n1. Pair's strength\n2. Main conflict source\n"
-            f"3. Practical tip\n90-110 words."
+            f"3. Practical tip\n"
+            f"Name concrete situations, avoid vague phrases. Minimum 200 words."
         )
+    prompt += lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "compat_interpret", 5, 50)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=300, lang=req.lang),
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=700, lang=req.lang),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

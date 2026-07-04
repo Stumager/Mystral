@@ -239,7 +239,7 @@ async def lunar_ai_recommend(
             f"Энергия дня: {data['energy']}.\n"
             f"Дай персональную рекомендацию на сегодня. "
             f"Учитывай лунный день, знак Луны и фазу. Конкретно, практично.{question_part}\n"
-            f"100-130 слов."
+            f"Называй конкретные ситуации и действия, не используй общие фразы. Минимум 200 слов."
         )
     else:
         question_en = f'\nQuestion: "{req.question}". Answer specifically.' if req.question else ""
@@ -249,13 +249,14 @@ async def lunar_ai_recommend(
             f"Day energy: {data['energy']}.\n"
             f"Give a personal recommendation for today. "
             f"Consider lunar day, moon sign and phase. Be specific and practical.{question_en}\n"
-            f"100-130 words."
+            f"Name concrete situations and actions, avoid vague phrases. Minimum 200 words."
         )
+    prompt += get_lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "lunar_ai", 10, 10)
     sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=350, lang=req.lang),
+    return StreamingResponse(safe_groq_stream(msgs, max_tokens=700, lang=req.lang),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

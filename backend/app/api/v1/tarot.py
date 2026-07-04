@@ -163,18 +163,17 @@ async def tarot_interpret(
         answer = "Да" if upright_count >= 3 else "Нет"
         yes_no_part = f"\nЭто расклад Да/Нет. Прямых карт: {upright_count} из {len(req.cards)}. Ответ: {answer}. Начни с чёткого '{answer}'."
 
-    word_count = "90-120" if len(req.cards) <= 5 else "140-180"
-
     if req.lang == "ru":
         prompt = (
+            f"Ты — опытный таролог. Сделай глубокое толкование расклада.\n"
             f"Расклад Таро ({req.spread_id}):\n{cards_text}\n"
             f"Для каждой карты учитывай: позицию в раскладе, прямая/перевёрнутая, масть. "
             f"Перевёрнутая карта = ослабленное/заблокированное/теневое значение.{question_part}{yes_no_part}\n"
-            f"Дай толкование. Обязательно:\n"
-            f"1. Значение каждой карты в её позиции\n"
-            f"2. Связи между картами\n"
-            f"3. Практический вывод\n"
-            f"Объём: {word_count} слов."
+            f"Для каждой карты:\n"
+            f"- Значение в данной позиции (2-3 предложения)\n"
+            f"- Связь с другими картами расклада\n"
+            f"Общий вывод расклада: конкретный совет или прогноз, без общих слов.\n"
+            f"Минимум 250 слов. Называй конкретные ситуации, не используй общие фразы."
         )
     else:
         question_part_en = f'\nClient question: "{req.question}". Build your answer around this question.' if req.question else ""
@@ -183,18 +182,20 @@ async def tarot_interpret(
             ans = "Yes" if upright_count >= 3 else "No"
             yes_no_en = f"\nThis is a Yes/No spread. Upright: {upright_count}/{len(req.cards)}. Answer: {ans}. Start with clear '{ans}'."
         prompt = (
+            f"You are an experienced tarot reader. Give a deep interpretation of this spread.\n"
             f"Tarot spread ({req.spread_id}):\n{cards_text}\n"
             f"For each card consider: position, upright/reversed, suit. "
             f"Reversed = weakened/blocked/shadow meaning.{question_part_en}{yes_no_en}\n"
-            f"Interpret. Must include:\n"
-            f"1. Each card's meaning in its position\n"
-            f"2. Connections between cards\n"
-            f"3. Practical takeaway\n"
-            f"{word_count} words."
+            f"For each card:\n"
+            f"- Its meaning in this position (2-3 sentences)\n"
+            f"- Connection to other cards in the spread\n"
+            f"Overall takeaway: a specific piece of advice or forecast, no vague words.\n"
+            f"Minimum 250 words. Name concrete situations, avoid vague phrases."
         )
+    prompt += get_lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "tarot_interpret", 3, 30)
-    max_tokens = 400 if len(req.cards) <= 5 else 600
+    max_tokens = 1000 if len(req.cards) <= 5 else 1700
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
     return StreamingResponse(safe_groq_stream(msgs, max_tokens=max_tokens, lang=req.lang),
