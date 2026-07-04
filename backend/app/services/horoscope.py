@@ -58,7 +58,7 @@ async def generate_horoscope(sign: str, lang: str) -> str:
 
     client = _get_async_client()
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="deepseek/deepseek-v4-flash",
         messages=[
             {"role": "system", "content": sys},
             {"role": "user", "content": prompt},

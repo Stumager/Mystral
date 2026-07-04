@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     secret_key: str = "changeme"
     groq_api_key: str = ""
+    openrouter_api_key: str = ""
     telegram_bot_token: str = ""
     telegram_webapp_url: str = ""
     yukassa_shop_id: str = ""

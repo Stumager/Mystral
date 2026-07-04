@@ -88,7 +88,7 @@ async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncS
         from app.core.groq_client import _get_async_client
         client = _get_async_client()
         resp = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="deepseek/deepseek-v4-flash",
             messages=[
                 {"role": "system", "content": "Ты SEO-копирайтер для эзотерического сайта Mystral. Пиши на русском. Отвечай строго JSON. Никаких иероглифов или символов других алфавитов."},
                 {"role": "user", "content": prompt},

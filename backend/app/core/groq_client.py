@@ -15,19 +15,33 @@ def _clean_chunk(text: str) -> str:
     return _CLEAN_RE.sub('', text)
 
 
+_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+_OPENROUTER_HEADERS = {"HTTP-Referer": "https://mystral.space", "X-Title": "Mystral"}
+
+
 def _get_client():
     global _client
     if _client is None:
-        from groq import Groq
-        _client = Groq(api_key=os.getenv("GROQ_API_KEY"), timeout=30)
+        from openai import OpenAI
+        _client = OpenAI(
+            base_url=_OPENROUTER_BASE_URL,
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            timeout=30,
+            default_headers=_OPENROUTER_HEADERS,
+        )
     return _client
 
 
 def _get_async_client():
     global _async_client
     if _async_client is None:
-        from groq import AsyncGroq
-        _async_client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"), timeout=30)
+        from openai import AsyncOpenAI
+        _async_client = AsyncOpenAI(
+            base_url=_OPENROUTER_BASE_URL,
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            timeout=30,
+            default_headers=_OPENROUTER_HEADERS,
+        )
     return _async_client
 
 
@@ -39,7 +53,7 @@ async def safe_groq_stream(
     try:
         client = _get_async_client()
         stream = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="deepseek/deepseek-v4-flash",
             messages=messages,
             stream=True,
             max_tokens=max_tokens,
