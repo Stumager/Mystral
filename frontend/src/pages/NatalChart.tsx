@@ -247,70 +247,13 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         ) : chart ? (
           <div className="flex flex-col gap-4">
 
-            {/* Natal Wheel + AI Interpretation */}
-            <div className="grid grid-cols-1 md:grid-cols-[480px_1fr] gap-8 items-start">
-              <div style={{
-                position: "relative", width: "100%", display: "flex", justifyContent: "center",
-                padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
-                borderRadius: 24,
-              }}>
-                <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
-              </div>
-
-              <Card>
-                <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                  {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
-                </p>
-                <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
-                  {SECTIONS.map(s => (
-                    <button key={s} onClick={() => selectSection(s)}
-                      className="flex items-center gap-1 text-[11px] whitespace-nowrap transition-colors shrink-0"
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: 99,
-                        background: activeSection === s ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.04)",
-                        color: activeSection === s ? "#E8CD7E" : "#A89E8B",
-                        border: activeSection === s ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
-                      }}>
-                      <span>{sectionLabels[s]}</span>
-                      {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
-                    </button>
-                  ))}
-                </div>
-
-                {errorSection === activeSection ? (
-                  <div className="flex flex-col items-center gap-3 py-2">
-                    <p className="text-red-400 text-xs text-center">
-                      {lang === "ru" ? "Не удалось сгенерировать интерпретацию, попробуйте снова" : "Failed to generate interpretation, try again"}
-                    </p>
-                    <button onClick={() => fetchInterpretation(activeSection)}
-                      style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                      {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
-                    </button>
-                  </div>
-                ) : loadingSection === activeSection ? (
-                  <div className="flex items-center justify-center gap-2 py-3">
-                    <span style={{ width: 14, height: 14, border: "2px solid rgba(201,168,76,.3)", borderTopColor: "#C9A84C", borderRadius: "50%", display: "inline-block" }}
-                      className="animate-spin" />
-                    <span className="text-text-muted text-xs">
-                      {lang === "ru" ? "Генерируем интерпретацию…" : "Generating interpretation…"}
-                    </span>
-                  </div>
-                ) : interpretations[activeSection] !== undefined ? (
-                  <>
-                    <p className="text-text-muted text-xs leading-relaxed">{interpretations[activeSection]}</p>
-                    <button onClick={() => setShowShareCard(true)}
-                      style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                      {t("share.share_btn")}
-                    </button>
-                  </>
-                ) : (
-                  <button onClick={() => fetchInterpretation(activeSection)}
-                    style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
-                  </button>
-                )}
-              </Card>
+            {/* Natal Wheel */}
+            <div style={{
+              position: "relative", width: "100%", display: "flex", justifyContent: "center",
+              padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
+              borderRadius: 24,
+            }}>
+              <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
             </div>
 
             {/* Stelliums */}
@@ -451,6 +394,62 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 </div>
               </Card>
             )}
+
+            {/* AI Interpretation */}
+            <Card>
+              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
+                {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
+              </p>
+              <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
+                {SECTIONS.map(s => (
+                  <button key={s} onClick={() => selectSection(s)}
+                    className="flex items-center gap-1 text-[11px] whitespace-nowrap transition-colors shrink-0"
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 99,
+                      background: activeSection === s ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.04)",
+                      color: activeSection === s ? "#E8CD7E" : "#A89E8B",
+                      border: activeSection === s ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
+                    }}>
+                    <span>{sectionLabels[s]}</span>
+                    {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
+                  </button>
+                ))}
+              </div>
+
+              {errorSection === activeSection ? (
+                <div className="flex flex-col items-center gap-3 py-2">
+                  <p className="text-red-400 text-xs text-center">
+                    {lang === "ru" ? "Не удалось сгенерировать интерпретацию, попробуйте снова" : "Failed to generate interpretation, try again"}
+                  </p>
+                  <button onClick={() => fetchInterpretation(activeSection)}
+                    style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
+                  </button>
+                </div>
+              ) : loadingSection === activeSection ? (
+                <div className="flex items-center justify-center gap-2 py-3">
+                  <span style={{ width: 14, height: 14, border: "2px solid rgba(201,168,76,.3)", borderTopColor: "#C9A84C", borderRadius: "50%", display: "inline-block" }}
+                    className="animate-spin" />
+                  <span className="text-text-muted text-xs">
+                    {lang === "ru" ? "Генерируем интерпретацию…" : "Generating interpretation…"}
+                  </span>
+                </div>
+              ) : interpretations[activeSection] !== undefined ? (
+                <>
+                  <p className="text-text-muted text-xs leading-relaxed">{interpretations[activeSection]}</p>
+                  <button onClick={() => setShowShareCard(true)}
+                    style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                    {t("share.share_btn")}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => fetchInterpretation(activeSection)}
+                  style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
+                </button>
+              )}
+            </Card>
 
           </div>
         ) : null}
