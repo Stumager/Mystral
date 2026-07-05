@@ -7,6 +7,7 @@ import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { SPREADS, SpreadType } from "../data/spreads";
 import { apiRequest, streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 
 interface TarotProps {
   onNavigate: (page: string) => void;
@@ -311,7 +312,7 @@ export function Tarot({ onNavigate }: TarotProps) {
                   <p className="text-text-faint text-[10px] italic mb-2">"{question}"</p>
                 )}
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}
+                  {stripMarkdown(interpretation)}
                   {isReading && <span className="animate-pulse">{"▍"}</span>}
                 </p>
               </div>

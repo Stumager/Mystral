@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Share2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 import { ShareCard } from "./ShareCard";
 import { PaywallSheet } from "./PaywallSheet";
 
@@ -176,7 +177,10 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
     ? `${ru ? mainAspect.planet1_ru : mainAspect.planet1} ${aspectLabel(mainAspect.type)} ${ru ? mainAspect.planet2_ru : mainAspect.planet2}`
     : undefined;
   const shareDescription = interpretation
-    ? (interpretation.length > 140 ? `${interpretation.slice(0, 140)}…` : interpretation)
+    ? (() => {
+        const clean = stripMarkdown(interpretation);
+        return clean.length > 140 ? `${clean.slice(0, 140)}…` : clean;
+      })()
     : undefined;
 
   const TABS: { id: Section; label: string }[] = [
@@ -266,7 +270,7 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
             <div style={{ borderRadius: 14, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "14px 16px", marginBottom: 16 }}>
               <p style={{ fontSize: 9, letterSpacing: ".18em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 8 }}>AI</p>
               <p style={{ fontSize: 13, color: "#BEB5A6", lineHeight: 1.6 }}>
-                {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
+                {stripMarkdown(interpretation)}{interpretLoading && <span className="animate-pulse">▍</span>}
               </p>
             </div>
           )}

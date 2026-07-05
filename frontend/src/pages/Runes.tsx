@@ -5,6 +5,7 @@ import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest, streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 
 const RUNE_SPREAD_ICONS: Record<string, string> = {
   rune_of_day: "☀", three_norns: "△", runic_cross: "+",
@@ -316,7 +317,7 @@ export function Runes({ onNavigate }: RunesProps) {
               <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("runes.interpretation_label")}</p>
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}{interpretLoading && <span className="animate-pulse">|</span>}
+                  {stripMarkdown(interpretation)}{interpretLoading && <span className="animate-pulse">|</span>}
                 </p>
               </div>
             ) : (

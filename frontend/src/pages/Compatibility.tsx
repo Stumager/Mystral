@@ -6,6 +6,7 @@ import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest, streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
 
 interface CompatibilityProps { onNavigate: (page: string) => void; }
@@ -400,7 +401,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               <Card>
                 <p className="text-text-faint text-[9px] uppercase tracking-widest mb-2">AI</p>
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
+                  {stripMarkdown(interpretation)}{interpretLoading && <span className="animate-pulse">▍</span>}
                 </p>
               </Card>
             ) : (

@@ -6,6 +6,7 @@ import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 import { validateDay, validateMonth, validateYear, validateDateExists, validateName, validateCity } from "../utils/validate";
 
 interface NatalChartProps { onNavigate: (page: string) => void; }
@@ -443,7 +444,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 </div>
               ) : interpretations[activeSection] !== undefined ? (
                 <>
-                  <p className="text-text-muted text-xs leading-relaxed">{interpretations[activeSection]}</p>
+                  <p className="text-text-muted text-xs leading-relaxed">{stripMarkdown(interpretations[activeSection]!)}</p>
                   <button onClick={() => setShowShareCard(true)}
                     style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
                     {t("share.share_btn")}

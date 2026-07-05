@@ -5,6 +5,7 @@ import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
+import { stripMarkdown } from "../utils/markdown";
 
 interface NumerologyProps { onNavigate: (page: string) => void; }
 
@@ -366,7 +367,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
               </div>
               {aiText && (
                 <p className="text-text-muted text-xs leading-relaxed">
-                  {aiText}{aiLoading && <span className="animate-pulse">|</span>}
+                  {stripMarkdown(aiText)}{aiLoading && <span className="animate-pulse">|</span>}
                 </p>
               )}
               {aiText && !aiLoading && (
