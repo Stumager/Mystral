@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from kerykeion import AstrologicalSubject
 from pydantic import BaseModel
+from timezonefinder import TimezoneFinder
 
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
@@ -105,11 +106,26 @@ async def geocode_city(city: str) -> tuple[float, float]:
     return float(data[0]["lat"]), float(data[0]["lon"])
 
 
+# Loads the tz-boundary dataset once; instantiating per-request is expensive.
+_TZ_FINDER = TimezoneFinder()
+
+
+def resolve_timezone(lat: float, lon: float) -> str:
+    """IANA tz name for a coordinate, e.g. 'Europe/Moscow'.
+
+    kerykeion localizes the given wall-clock birth time via pytz using this
+    string (historical DST transitions included) before converting to UTC —
+    passing "UTC" here (the old bug) skips that conversion entirely and
+    treats local time as if it were already UTC.
+    """
+    return _TZ_FINDER.timezone_at(lat=lat, lng=lon) or "UTC"
+
+
 def _build_subject(name: str, year: int, month: int, day: int,
                    hour: int, minute: int, lat: float, lon: float) -> AstrologicalSubject:
     return AstrologicalSubject(
         name, year, month, day, hour, minute,
-        lng=lon, lat=lat, tz_str="UTC", online=False,
+        lng=lon, lat=lat, tz_str=resolve_timezone(lat, lon), online=False,
     )
 
 

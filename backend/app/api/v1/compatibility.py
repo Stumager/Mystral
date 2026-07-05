@@ -318,14 +318,14 @@ async def compat_moon(req: CompatTypeRequest, current_user: User = Depends(get_c
 
     try:
         from kerykeion import AstrologicalSubject
-        from app.api.v1.natal import geocode_city, _normalize_sign
+        from app.api.v1.natal import geocode_city, _normalize_sign, resolve_timezone
         lat1, lon1 = (prof.birth_lat or 55.75), (prof.birth_lng or 37.62)
         s1 = AstrologicalSubject("User", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
-                                 prof.birth_time.hour, prof.birth_time.minute, lng=lon1, lat=lat1, tz_str="UTC", online=False)
+                                 prof.birth_time.hour, prof.birth_time.minute, lng=lon1, lat=lat1, tz_str=resolve_timezone(lat1, lon1), online=False)
         lat2, lon2 = (partner.birth_lat or 55.75), (partner.birth_lng or 37.62)
         h2, m2 = partner.birth_time.hour, partner.birth_time.minute
         s2 = AstrologicalSubject("Partner", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
-                                 h2, m2, lng=lon2, lat=lat2, tz_str="UTC", online=False)
+                                 h2, m2, lng=lon2, lat=lat2, tz_str=resolve_timezone(lat2, lon2), online=False)
         mi1 = SIGNS.index(_normalize_sign(s1.moon.sign)) if _normalize_sign(s1.moon.sign) in SIGNS else 0
         mi2 = SIGNS.index(_normalize_sign(s2.moon.sign)) if _normalize_sign(s2.moon.sign) in SIGNS else 0
         score = _sign_compat(mi1, mi2)
@@ -350,16 +350,16 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
 
     try:
         from kerykeion import AstrologicalSubject
-        from app.api.v1.natal import _normalize_sign, ASPECT_TYPES as NATAL_ASPECTS
+        from app.api.v1.natal import _normalize_sign, ASPECT_TYPES as NATAL_ASPECTS, resolve_timezone
 
         lat1, lon1 = (prof.birth_lat or 55.75), (prof.birth_lng or 37.62)
         s1 = AstrologicalSubject("User", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
                                  prof.birth_time.hour if prof.birth_time else 12, prof.birth_time.minute if prof.birth_time else 0,
-                                 lng=lon1, lat=lat1, tz_str="UTC", online=False)
+                                 lng=lon1, lat=lat1, tz_str=resolve_timezone(lat1, lon1), online=False)
         lat2, lon2 = (partner.birth_lat or 55.75), (partner.birth_lng or 37.62)
         s2 = AstrologicalSubject("Partner", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
                                  partner.birth_time.hour if partner.birth_time else 12, partner.birth_time.minute if partner.birth_time else 0,
-                                 lng=lon2, lat=lat2, tz_str="UTC", online=False)
+                                 lng=lon2, lat=lat2, tz_str=resolve_timezone(lat2, lon2), online=False)
 
         pkeys = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
         pnames_ru = {"sun": "Солнце", "moon": "Луна", "mercury": "Меркурий", "venus": "Венера",
@@ -532,7 +532,7 @@ async def compat_composite(
 
     try:
         from kerykeion import AstrologicalSubject
-        from app.api.v1.natal import _normalize_sign
+        from app.api.v1.natal import _normalize_sign, resolve_timezone
 
         lat1 = prof.birth_lat or 55.75
         lon1 = prof.birth_lng or 37.62
@@ -544,9 +544,9 @@ async def compat_composite(
         m2 = partner.birth_time.minute if partner.birth_time else 0
 
         s1 = AstrologicalSubject("P1", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
-                                 h1, m1, lng=lon1, lat=lat1, tz_str="UTC", online=False)
+                                 h1, m1, lng=lon1, lat=lat1, tz_str=resolve_timezone(lat1, lon1), online=False)
         s2 = AstrologicalSubject("P2", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
-                                 h2, m2, lng=lon2, lat=lat2, tz_str="UTC", online=False)
+                                 h2, m2, lng=lon2, lat=lat2, tz_str=resolve_timezone(lat2, lon2), online=False)
 
         planets_out = []
         for key in COMPOSITE_PLANETS:
@@ -606,6 +606,7 @@ async def composite_interpret(
 
     try:
         from kerykeion import AstrologicalSubject
+        from app.api.v1.natal import resolve_timezone
 
         lat1 = prof.birth_lat or 55.75; lon1 = prof.birth_lng or 37.62
         lat2 = partner.birth_lat or 55.75; lon2 = partner.birth_lng or 37.62
@@ -613,9 +614,9 @@ async def composite_interpret(
         h2 = partner.birth_time.hour if partner.birth_time else 12; m2 = partner.birth_time.minute if partner.birth_time else 0
 
         s1 = AstrologicalSubject("P1", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
-                                 h1, m1, lng=lon1, lat=lat1, tz_str="UTC", online=False)
+                                 h1, m1, lng=lon1, lat=lat1, tz_str=resolve_timezone(lat1, lon1), online=False)
         s2 = AstrologicalSubject("P2", partner.birth_date.year, partner.birth_date.month, partner.birth_date.day,
-                                 h2, m2, lng=lon2, lat=lat2, tz_str="UTC", online=False)
+                                 h2, m2, lng=lon2, lat=lat2, tz_str=resolve_timezone(lat2, lon2), online=False)
 
         planets_out = []
         for key in COMPOSITE_PLANETS:
