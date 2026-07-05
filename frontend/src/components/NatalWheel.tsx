@@ -55,6 +55,11 @@ const ASPECT_STYLE: Record<string, { color: string; width: number }> = {
   opposition: { color: "rgba(196,84,84,.35)", width: 0.8 },
 };
 
+// Planets closer than this (ecliptic degrees) get radially separated so their
+// glyphs don't merge into an unreadable blob.
+const COLLISION_THRESHOLD_DEG = 4;
+const RADIAL_STEP_PX = 15;
+
 // Astrological 0° (Aries) sits at 9 o'clock, increasing counterclockwise.
 function degToXY(degree: number, radius: number, cx: number, cy: number) {
   const rad = ((180 - degree) * Math.PI) / 180;
@@ -76,11 +81,6 @@ function sectorPath(startDeg: number, endDeg: number, rOuter: number, rInner: nu
   ].join(" ");
 }
 
-function angularDiff(a: number, b: number) {
-  const diff = Math.abs(a - b);
-  return diff > 180 ? 360 - diff : diff;
-}
-
 function houseMidAngle(startDeg: number, endDeg: number) {
   const end = endDeg < startDeg ? endDeg + 360 : endDeg;
   return ((startDeg + end) / 2) % 360;
@@ -98,18 +98,38 @@ function findHouseForDegree(degree: number, houses: WheelHouse[]): number | null
   return sorted[0].number;
 }
 
-// Pairwise pass: planets within 7° of an already-placed planet at the same
-// radius get nudged to an alternate radius so their symbols don't overlap.
-function resolveCollisions(planets: WheelPlanet[], baseRadius: number, shift: number) {
-  const placed = planets.map(p => ({ ...p, radius: baseRadius }));
-  for (let i = 0; i < placed.length; i++) {
-    for (let j = 0; j < i; j++) {
-      if (angularDiff(placed[i].degree, placed[j].degree) < 7 && placed[i].radius === placed[j].radius) {
-        placed[i].radius = placed[j].radius === baseRadius ? baseRadius + shift : baseRadius;
-      }
-    }
+// Sorts planets by degree, groups consecutive ones within COLLISION_THRESHOLD_DEG
+// of each other (wrapping across the 0°/360° seam), and stacks each group
+// inward in RADIAL_STEP_PX steps so close conjunctions stay legible.
+function resolveCollisions(planets: WheelPlanet[], baseRadius: number) {
+  const sorted = [...planets].sort((a, b) => a.degree - b.degree);
+  const n = sorted.length;
+  if (n === 0) return [];
+
+  const groupOf = new Array(n).fill(0);
+  for (let i = 1; i < n; i++) {
+    const gap = sorted[i].degree - sorted[i - 1].degree;
+    groupOf[i] = gap < COLLISION_THRESHOLD_DEG ? groupOf[i - 1] : groupOf[i - 1] + 1;
   }
-  return placed;
+  // A cluster straddling the 0°/360° seam ends up split between the first and
+  // last groups — merge them when the wrap-around gap is also tight.
+  const wrapGap = 360 - sorted[n - 1].degree + sorted[0].degree;
+  if (n > 1 && wrapGap < COLLISION_THRESHOLD_DEG) {
+    const lastGroup = groupOf[n - 1];
+    for (let i = 0; i < n; i++) if (groupOf[i] === lastGroup) groupOf[i] = groupOf[0];
+  }
+
+  const groupSizes = new Map<number, number>();
+  groupOf.forEach((g: number) => groupSizes.set(g, (groupSizes.get(g) ?? 0) + 1));
+
+  const seen = new Map<number, number>();
+  return sorted.map((p, i) => {
+    const g = groupOf[i];
+    const k = seen.get(g) ?? 0;
+    seen.set(g, k + 1);
+    const size = groupSizes.get(g)!;
+    return { ...p, radius: size > 1 ? baseRadius - k * RADIAL_STEP_PX : baseRadius, collided: size > 1 };
+  });
 }
 
 export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelProps) {
@@ -128,8 +148,8 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
   const sortedHouses = useMemo(() => [...houses].sort((a, b) => a.number - b.number), [houses]);
 
   const positionedPlanets = useMemo(
-    () => resolveCollisions(planets, R_planet, size * 0.07),
-    [planets, R_planet, size],
+    () => resolveCollisions(planets, R_planet),
+    [planets, R_planet],
   );
 
   const planetByName = useMemo(() => {
@@ -212,6 +232,7 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
           {positionedPlanets.map((p, i) => {
             const pos = degToXY(p.degree, p.radius, cx, cy);
             const houseEdge = degToXY(p.degree, R_house, cx, cy);
+            const outerEdge = degToXY(p.degree, R_outer, cx, cy);
             const key = p.name.toLowerCase();
             const color = PLANET_COLORS[key] ?? "#C9A84C";
             const symbol = PLANET_SYMBOLS[key] ?? p.name.slice(0, 2);
@@ -221,12 +242,15 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}>
                 <line x1={pos.x} y1={pos.y} x2={houseEdge.x} y2={houseEdge.y} stroke="rgba(255,255,255,.1)" />
+                {p.collided && (
+                  <line x1={pos.x} y1={pos.y} x2={outerEdge.x} y2={outerEdge.y} stroke="#6E6757" strokeWidth={0.5} />
+                )}
                 <circle cx={pos.x} cy={pos.y} r={size * 0.022} fill="rgba(7,6,15,.9)" stroke={color} />
                 <text x={pos.x} y={pos.y} fontSize={size * 0.028} fill={color}
                   textAnchor="middle" dominantBaseline="central">{symbol}</text>
                 {p.retrograde && (
                   <text x={pos.x + size * 0.02} y={pos.y - size * 0.02} fontSize={size * 0.016}
-                    fill="rgba(196,84,84,.8)">R</text>
+                    fill="#A89E8B">℞</text>
                 )}
               </g>
             );
@@ -262,7 +286,7 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
           whiteSpace: "nowrap", pointerEvents: "none", zIndex: 10,
         }}>
           {hoveredPlanet.name} в {hoveredPlanet.sign} {Math.round((hoveredPlanet.degree % 30) * 10) / 10}°
-          {" · "}{hoveredHouse ?? "?"} дом{hoveredPlanet.retrograde ? " (R)" : ""}
+          {" · "}{hoveredHouse ?? "?"} дом{hoveredPlanet.retrograde ? " (℞)" : ""}
         </div>
       )}
     </div>

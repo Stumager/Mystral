@@ -55,10 +55,11 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [form, setForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [chart, setChart] = useState<ChartResult | null>(null);
-  const [svgContent, setSvgContent] = useState("");
   const [activeSection, setActiveSection] = useState<Section>("personality");
-  const [interpretation, setInterpretation] = useState("");
-  const [interpretLoading, setInterpretLoading] = useState(false);
+  const [interpretations, setInterpretations] = useState<Partial<Record<Section, string>>>({});
+  const [loadingSection, setLoadingSection] = useState<Section | null>(null);
+  const [errorSection, setErrorSection] = useState<Section | null>(null);
+  const interpretRequestId = useRef(0);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [wheelSize, setWheelSize] = useState(() => computeWheelSize());
@@ -121,13 +122,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
       const data = await res.json();
       setChart(data);
       setStep("result");
-      setInterpretation(""); setActiveSection("personality"); setSvgContent("");
-
-      // Load SVG in background
-      fetch("/api/v1/natal/svg", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildBody()),
-      }).then(r => r.ok ? r.text() : "").then(setSvgContent).catch(() => {});
+      setInterpretations({}); setActiveSection("personality"); setErrorSection(null); setLoadingSection(null);
 
       if (saveToProfile && token) {
         const b = buildBody();
@@ -142,22 +137,39 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     finally { setLoading(false); }
   }
 
-  async function handleInterpret(section: Section) {
+  function selectSection(section: Section) {
     if (section !== "personality" && user?.tier !== "pro") { setShowPaywall(true); return; }
     setActiveSection(section);
-    setInterpretLoading(true); setInterpretation("");
+  }
+
+  async function fetchInterpretation(section: Section) {
+    setErrorSection(null);
+    setLoadingSection(section);
+    // Guards against a still-running stream from a previously requested
+    // section appending its late chunks into this section's cached text.
+    const requestId = ++interpretRequestId.current;
+    const isStale = () => interpretRequestId.current !== requestId;
+
+    setInterpretations(prev => ({ ...prev, [section]: "" }));
     try {
       await streamRequest("/natal/interpret", { ...buildBody(), section },
-        (c) => setInterpretation(prev => prev + c),
-        () => setInterpretLoading(false),
+        (c) => { if (!isStale()) setInterpretations(prev => ({ ...prev, [section]: (prev[section] ?? "") + c })); },
+        () => { if (!isStale()) setLoadingSection(null); },
         token ?? undefined,
-        (msg) => { setInterpretation(msg); setInterpretLoading(false); },
+        () => {
+          if (isStale()) return;
+          setErrorSection(section);
+          setLoadingSection(null);
+          setInterpretations(prev => { const next = { ...prev }; delete next[section]; return next; });
+        },
       );
     } catch (e: unknown) {
-      const err = e as { code?: string; message?: string };
+      if (isStale()) return;
+      const err = e as { code?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setInterpretation(err.message || t("natal.connection_error"));
-      setInterpretLoading(false);
+      else setErrorSection(section);
+      setLoadingSection(null);
+      setInterpretations(prev => { const next = { ...prev }; delete next[section]; return next; });
     }
   }
 
@@ -235,15 +247,71 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
         ) : chart ? (
           <div className="flex flex-col gap-4">
 
-            {/* SVG Chart Wheel */}
-            {svgContent && (
-              <Card className="overflow-hidden">
-                <div
-                  dangerouslySetInnerHTML={{ __html: svgContent }}
-                  className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[300px]"
-                />
+            {/* Natal Wheel + AI Interpretation */}
+            <div className="grid grid-cols-1 md:grid-cols-[480px_1fr] gap-8 items-start">
+              <div style={{
+                position: "relative", width: "100%", display: "flex", justifyContent: "center",
+                padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
+                borderRadius: 24,
+              }}>
+                <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
+              </div>
+
+              <Card>
+                <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
+                  {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
+                </p>
+                <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
+                  {SECTIONS.map(s => (
+                    <button key={s} onClick={() => selectSection(s)}
+                      className="flex items-center gap-1 text-[11px] whitespace-nowrap transition-colors shrink-0"
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: 99,
+                        background: activeSection === s ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.04)",
+                        color: activeSection === s ? "#E8CD7E" : "#A89E8B",
+                        border: activeSection === s ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
+                      }}>
+                      <span>{sectionLabels[s]}</span>
+                      {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {errorSection === activeSection ? (
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    <p className="text-red-400 text-xs text-center">
+                      {lang === "ru" ? "Не удалось сгенерировать интерпретацию, попробуйте снова" : "Failed to generate interpretation, try again"}
+                    </p>
+                    <button onClick={() => fetchInterpretation(activeSection)}
+                      style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
+                    </button>
+                  </div>
+                ) : loadingSection === activeSection ? (
+                  <div className="flex items-center justify-center gap-2 py-3">
+                    <span style={{ width: 14, height: 14, border: "2px solid rgba(201,168,76,.3)", borderTopColor: "#C9A84C", borderRadius: "50%", display: "inline-block" }}
+                      className="animate-spin" />
+                    <span className="text-text-muted text-xs">
+                      {lang === "ru" ? "Генерируем интерпретацию…" : "Generating interpretation…"}
+                    </span>
+                  </div>
+                ) : interpretations[activeSection] !== undefined ? (
+                  <>
+                    <p className="text-text-muted text-xs leading-relaxed">{interpretations[activeSection]}</p>
+                    <button onClick={() => setShowShareCard(true)}
+                      style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
+                      {t("share.share_btn")}
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => fetchInterpretation(activeSection)}
+                    style={{ width: "100%", height: 44, borderRadius: 14, border: "none", background: "#C9A84C", color: "#07060F", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    {lang === "ru" ? "Получить интерпретацию" : "Get interpretation"}
+                  </button>
+                )}
               </Card>
-            )}
+            </div>
 
             {/* Stelliums */}
             {chart.stelliums.length > 0 && chart.stelliums.map((s, i) => (
@@ -383,56 +451,6 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 </div>
               </Card>
             )}
-
-            {/* Natal Wheel + AI Interpretation */}
-            <div className="grid grid-cols-1 md:grid-cols-[480px_1fr] gap-8 items-start">
-              <div style={{
-                position: "relative", width: "100%", display: "flex", justifyContent: "center",
-                padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
-                borderRadius: 24, marginBottom: 20,
-              }}>
-                <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
-              </div>
-
-              <Card>
-              <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
-              </p>
-              <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
-                {SECTIONS.map(s => (
-                  <button key={s} onClick={() => handleInterpret(s)}
-                    className="flex items-center gap-1 text-[11px] whitespace-nowrap transition-colors shrink-0"
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 99,
-                      background: activeSection === s ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.04)",
-                      color: activeSection === s ? "#E8CD7E" : "#A89E8B",
-                      border: activeSection === s ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
-                    }}>
-                    <span>{sectionLabels[s]}</span>
-                    {s !== "personality" && user?.tier !== "pro" && <span className="text-[7px] ml-0.5" style={{ color: "#C9A84C" }}>Pro</span>}
-                  </button>
-                ))}
-              </div>
-              {interpretation ? (
-                <>
-                  <p className="text-text-muted text-xs leading-relaxed">
-                    {interpretation}{interpretLoading && <span className="animate-pulse">▍</span>}
-                  </p>
-                  {!interpretLoading && (
-                    <button onClick={() => setShowShareCard(true)}
-                      style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                      {t("share.share_btn")}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="text-text-faint text-xs text-center">
-                  {lang === "ru" ? "Выбери раздел для анализа" : "Select a section"}
-                </p>
-              )}
-            </Card>
-            </div>
 
           </div>
         ) : null}
