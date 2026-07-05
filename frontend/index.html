@@ -10,6 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+    <meta name="description" content="Mystral — эзотерическая платформа: гороскопы, расклады Таро, руны, нумерология и натальная карта. Бесплатно, на русском и других языках, в Telegram и на сайте.">
+    <link rel="canonical" href="https://mystral.space/">
     <meta property="og:title" content="Mystral — эзотерическая платформа">
     <meta property="og:description" content="Гороскопы, Таро, руны, нумерология и натальная карта">
     <meta property="og:image" content="https://mystral.space/og-image.svg">
@@ -21,9 +23,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Mystral","url":"https://mystral.space","description":"Эзотерическая платформа: гороскопы, Таро, руны, нумерология и натальная карта.","inLanguage":"ru"}</script>
+    <style>
+      /* Matches the app's dark/gold theme so the pre-hydration content
+         doesn't flash unstyled; replaced entirely once React mounts. */
+      #root{background:#07060F;color:#F0E9DA;font-family:'Inter',sans-serif;line-height:1.7}
+      #root .seo-shell{max-width:640px;margin:0 auto;padding:32px 24px}
+      #root .seo-shell h1{font-family:'Cormorant Garamond',serif;color:#E8CD7E;font-size:28px;margin-bottom:12px}
+      #root .seo-shell p{color:#B6AC98;margin-bottom:14px}
+      #root .seo-shell a{color:#C9A84C;text-decoration:none}
+      #root .seo-shell nav a{display:inline-block;margin:4px 12px 4px 0}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="seo-shell">
+      <h1>Mystral — эзотерическая платформа</h1>
+      <p>Гороскопы, расклады Таро, руны, нумерология и натальная карта с расчётом домов и аспектов. Бесплатные и Pro-разборы на русском и других языках — в Telegram Mini App и на сайте.</p>
+      <p>Разделы платформы: персональный гороскоп на день, расклады Таро на 78 картах, руны Elder Futhark, нумерологический разбор по дате и имени, интерактивная натальная карта с AI-интерпретацией и проверка совместимости пары.</p>
+      <nav>
+        <a href="/zodiac">Знаки зодиака</a>
+        <a href="/tarot">Таро</a>
+        <a href="/runes">Руны</a>
+      </nav>
+    </div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
