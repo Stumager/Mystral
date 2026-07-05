@@ -420,6 +420,8 @@
     "share_btn": "Compartilhar",
     "type_compat": "Compatibilidade",
     "type_lunar": "Dia lunar",
-    "try_free": "EXPERIMENTE GRÁTIS"
+    "try_free": "EXPERIMENTE GRÁTIS",
+    "type_composite": "Mapa composto",
+    "reversed_hint": "Runa invertida destacada em cor"
   }
 }

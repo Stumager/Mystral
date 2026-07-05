@@ -73,8 +73,19 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
   const [loadedTabs, setLoadedTabs] = useState<Set<Section>>(new Set());
   const [showShare, setShowShare] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [profileFullName, setProfileFullName] = useState<string | null>(null);
   const loaded = useRef(false);
+  const profileLoaded = useRef(false);
   const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (profileLoaded.current || !token) return;
+    profileLoaded.current = true;
+    fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(profileData => setProfileFullName(profileData.full_name || null))
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     if (loaded.current || !token) return;
@@ -153,9 +164,20 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
   const aspectLabel = (type: string) =>
     ru ? (ASPECT_LABELS[type] ?? type) : (ASPECT_LABELS_EN[type] ?? type);
 
-  const userName = user?.name ?? "?";
+  // Prefer the name entered for astrological calculations (profile.full_name)
+  // over the account's display_name, which can be a Telegram handle/login
+  // rather than a real name — same priority the backend uses for this chart.
+  const userName = profileFullName || user?.name || "?";
   const partnerInitial = partnerName[0]?.toUpperCase() ?? "?";
   const userInitial = userName[0]?.toUpperCase() ?? "?";
+
+  const mainAspect = data?.aspects?.[0];
+  const mainAspectText = mainAspect
+    ? `${ru ? mainAspect.planet1_ru : mainAspect.planet1} ${aspectLabel(mainAspect.type)} ${ru ? mainAspect.planet2_ru : mainAspect.planet2}`
+    : undefined;
+  const shareDescription = interpretation
+    ? (interpretation.length > 140 ? `${interpretation.slice(0, 140)}…` : interpretation)
+    : undefined;
 
   const TABS: { id: Section; label: string }[] = [
     { id: "overview", label: ru ? "Обзор" : "Overview" },
@@ -184,7 +206,7 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
 
       {loading && (
         <p className="text-text-muted text-xs text-center animate-pulse" style={{ marginTop: 40 }}>
-          {ru ? "Расчёт composite chart..." : "Calculating composite chart..."}
+          {ru ? "Расчёт композитной карты..." : "Calculating composite chart..."}
         </p>
       )}
 
@@ -196,7 +218,7 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
         <>
           {/* Planets table */}
           <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", margin: "0 0 12px" }}>
-            {ru ? "Планеты Composite" : "Composite Planets"}
+            {ru ? "Планеты композитной карты" : "Composite Planets"}
           </p>
           <div style={{ marginBottom: 20 }}>
             {data.planets.map(p => (
@@ -262,10 +284,11 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
 
       {showShare && data && (
         <ShareCard
-          type="natal"
+          type="composite"
           title={`${userName} & ${partnerName}`}
-          subtitle="Composite Chart"
-          sign="∞"
+          subtitle={ru ? "Композитная карта" : "Composite Chart"}
+          aspectLabel={mainAspectText}
+          description={shareDescription}
           onClose={() => setShowShare(false)}
         />
       )}

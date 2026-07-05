@@ -4,16 +4,19 @@ import { Logo } from "./Logo";
 import { useShareCard } from "../hooks/useShareCard";
 
 interface ShareCardProps {
-  type: "tarot" | "runes" | "numerology" | "natal" | "compat" | "lunar";
+  type: "tarot" | "runes" | "numerology" | "natal" | "compat" | "lunar" | "composite";
   title: string;
   subtitle?: string;
   cards?: { id: number; name: string; name_ru: string; reversed: boolean }[];
   runes?: { id: string; name: string; symbol: string; reversed: boolean }[];
   number?: number;
   numberLabel?: string;
-  sign?: string;
+  natalName?: string;
+  bigThree?: { label: string; sign: string; degree: number }[];
   score?: number;
   scoreLabel?: string;
+  aspectLabel?: string;
+  description?: string;
   lunarDay?: number;
   lunarPhase?: string;
   onClose: () => void;
@@ -29,7 +32,8 @@ function seededRandom(seed: number) {
 
 export function ShareCard({
   type, title, subtitle, cards, runes, number, numberLabel,
-  sign, score, scoreLabel, lunarDay, lunarPhase, onClose,
+  natalName, bigThree, score, scoreLabel, aspectLabel, description,
+  lunarDay, lunarPhase, onClose,
 }: ShareCardProps) {
   const { t, i18n } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -48,6 +52,7 @@ export function ShareCard({
     tarot: t("share.type_tarot"), runes: t("share.type_runes"),
     numerology: t("share.type_numerology"), natal: t("share.type_natal"),
     compat: t("share.type_compat"), lunar: t("share.type_lunar"),
+    composite: t("share.type_composite"),
   };
 
   const showCards = cards?.slice(0, 5) ?? [];
@@ -112,6 +117,11 @@ export function ShareCard({
               <div className="font-cinzel" style={{ fontSize: 8, color: rune.reversed ? "#D98A8A" : "#8A7FC0", marginTop: 3 }}>{rune.name}</div>
             </div>
           ))}
+          {type === "runes" && runes?.some(r => r.reversed) && (
+            <div style={{ flexBasis: "100%", textAlign: "center", fontSize: 9, color: "#6E6757", marginTop: 4 }}>
+              {t("share.reversed_hint")}
+            </div>
+          )}
 
           {type === "numerology" && (
             <div style={{ textAlign: "center", padding: "8px 0" }}>
@@ -120,9 +130,34 @@ export function ShareCard({
             </div>
           )}
 
-          {type === "natal" && sign && (
+          {type === "natal" && bigThree && bigThree.length > 0 && (
+            <div style={{ width: "100%", padding: "4px 0" }}>
+              {natalName && (
+                <div className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA", textAlign: "center", marginBottom: 10 }}>
+                  {natalName}
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {bigThree.map((b, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderBottom: i < bigThree.length - 1 ? "1px solid rgba(255,255,255,.06)" : "none" }}>
+                    <span style={{ fontSize: 13, color: "#A89E8B" }}>{b.label}</span>
+                    <span className="font-cormorant" style={{ fontSize: 16, color: "#C9A84C" }}>
+                      {b.sign} <span style={{ fontSize: 11, color: "#8A8170" }}>{b.degree}°</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {type === "composite" && (
             <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <div className="font-cormorant" style={{ fontSize: 48, color: "#F0E9DA" }}>{sign}</div>
+              {aspectLabel && (
+                <div className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{aspectLabel}</div>
+              )}
+              {description && (
+                <div style={{ fontSize: 12, color: "#8A8170", marginTop: 8, lineHeight: 1.5 }}>{description}</div>
+              )}
             </div>
           )}
 

@@ -420,6 +420,8 @@
     "share_btn": "Paylaş",
     "type_compat": "Uyumluluk",
     "type_lunar": "Ay günü",
-    "try_free": "ÜCRETSİZ DENE"
+    "try_free": "ÜCRETSİZ DENE",
+    "type_composite": "Kompozit harita",
+    "reversed_hint": "Ters rün renkle vurgulanmıştır"
   }
 }

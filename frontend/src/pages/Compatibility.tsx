@@ -200,7 +200,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
     signs: ["По знакам", "By Signs"], elements: ["По стихиям", "By Elements"],
     numerology: ["Нумерология", "Numerology"], chinese: ["Китайский", "Chinese"],
     moon: ["Лунная", "Moon"], synastry: ["Синастрия", "Synastry"],
-    composite: ["Composite Chart", "Composite Chart"],
+    composite: ["Композитная карта", "Composite Chart"],
     overall: ["Полный анализ", "Full Analysis"],
   };
 

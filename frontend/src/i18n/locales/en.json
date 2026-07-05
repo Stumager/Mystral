@@ -420,6 +420,8 @@
     "share_btn": "Share",
     "type_compat": "Compatibility",
     "type_lunar": "Lunar Day",
-    "try_free": "TRY FOR FREE"
+    "try_free": "TRY FOR FREE",
+    "type_composite": "Composite Chart",
+    "reversed_hint": "Reversed rune highlighted in color"
   }
 }

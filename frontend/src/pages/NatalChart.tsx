@@ -184,6 +184,12 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     ? { personality: "Личность", planets: "Планеты", houses: "Дома", aspects: "Аспекты", transits: "Транзиты" }
     : { personality: "Personality", planets: "Planets", houses: "Houses", aspects: "Aspects", transits: "Transits" };
 
+  const bigThreeForShare = chart ? [
+    { label: lang === "ru" ? "Солнце" : "Sun", sign: lang === "ru" ? chart.planets[0].sign_ru : chart.planets[0].sign, degree: chart.planets[0].degree },
+    { label: lang === "ru" ? "Луна" : "Moon", sign: lang === "ru" ? chart.planets[1].sign_ru : chart.planets[1].sign, degree: chart.planets[1].degree },
+    { label: lang === "ru" ? "Асцендент" : "Ascendant", sign: lang === "ru" ? chart.ascendant.sign_ru : chart.ascendant.sign, degree: chart.ascendant.degree },
+  ] : [];
+
   // NatalWheel matches aspects.planet1/planet2 (raw keys like "sun") against
   // planets[].name internally, so this must stay in the English key-space
   // rather than the localized display name.
@@ -457,10 +463,12 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
       <BottomNav active="natal" onNavigate={onNavigate} />
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
-      {showShareCard && (
+      {showShareCard && chart && (
         <ShareCard
           type="natal"
           title={lang === "ru" ? "Натальная карта" : "Natal Chart"}
+          natalName={form.name || undefined}
+          bigThree={bigThreeForShare}
           onClose={() => setShowShareCard(false)}
         />
       )}
