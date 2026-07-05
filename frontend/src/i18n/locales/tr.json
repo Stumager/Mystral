@@ -422,6 +422,8 @@
     "type_lunar": "Ay günü",
     "try_free": "ÜCRETSİZ DENE",
     "type_composite": "Kompozit harita",
-    "reversed_hint": "Ters rün renkle vurgulanmıştır"
+    "reversed_hint": "Ters rün renkle vurgulanmıştır",
+    "copied_hint": "Kopyalandı! Bir Telegram sohbeti aç ve resmi yapıştır (Ctrl+V veya uzun basış → Yapıştır).",
+    "download_hint": "Resim kaydedildi — Telegram'a manuel olarak ekle."
   }
 }

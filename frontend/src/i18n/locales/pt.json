@@ -422,6 +422,8 @@
     "type_lunar": "Dia lunar",
     "try_free": "EXPERIMENTE GRÁTIS",
     "type_composite": "Mapa composto",
-    "reversed_hint": "Runa invertida destacada em cor"
+    "reversed_hint": "Runa invertida destacada em cor",
+    "copied_hint": "Copiado! Abra um chat do Telegram e cole a imagem (Ctrl+V ou toque longo → Colar).",
+    "download_hint": "Imagem salva — anexe-a no Telegram manualmente."
   }
 }

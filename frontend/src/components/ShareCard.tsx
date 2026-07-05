@@ -37,7 +37,7 @@ export function ShareCard({
 }: ShareCardProps) {
   const { t, i18n } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
-  const { share, shareToTelegram, isLoading } = useShareCard(cardRef);
+  const { share, shareToTelegram, isLoading, feedback } = useShareCard(cardRef);
   const lang = i18n.language;
 
   const stars = useMemo(() => {
@@ -198,10 +198,13 @@ export function ShareCard({
           {isLoading ? "..." : t("share.download")}
         </button>
         <button onClick={() => shareToTelegram(t("share.tg_text"))} disabled={isLoading}
-          style={{ height: 46, padding: "0 24px", borderRadius: 14, border: "1px solid rgba(201,168,76,.3)", background: "rgba(201,168,76,.08)", color: "#C9A84C", fontWeight: 500, fontSize: 14, cursor: "pointer" }}>
+          style={{ height: 46, padding: "0 24px", borderRadius: 14, border: "1px solid rgba(201,168,76,.3)", background: "rgba(201,168,76,.08)", color: "#C9A84C", fontWeight: 500, fontSize: 14, cursor: isLoading ? "not-allowed" : "pointer", opacity: isLoading ? 0.7 : 1 }}>
           Telegram
         </button>
       </div>
+      {feedback && (
+        <p style={{ fontSize: 12, color: "#C9A84C", textAlign: "center", marginTop: 12, maxWidth: 320, lineHeight: 1.5 }}>{feedback}</p>
+      )}
       <p style={{ fontSize: 11, color: "#6E6757", textAlign: "center", marginTop: 10 }}>{t("share.promo")}</p>
     </div>
   );

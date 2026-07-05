@@ -422,6 +422,8 @@
     "type_lunar": "Día lunar",
     "try_free": "PRUEBA GRATIS",
     "type_composite": "Carta compuesta",
-    "reversed_hint": "Runa invertida resaltada en color"
+    "reversed_hint": "Runa invertida resaltada en color",
+    "copied_hint": "¡Copiado! Abre un chat de Telegram y pega la imagen (Ctrl+V o mantén pulsado → Pegar).",
+    "download_hint": "Imagen guardada — adjúntala en Telegram manualmente."
   }
 }
