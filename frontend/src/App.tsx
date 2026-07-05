@@ -16,6 +16,7 @@ import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { NatalChart } from "./pages/NatalChart";
 import { Numerology } from "./pages/Numerology";
+import { PaymentReturn } from "./pages/PaymentReturn";
 import { Profile } from "./pages/Profile";
 import { Runes } from "./pages/Runes";
 import { Tarot } from "./pages/Tarot";
@@ -69,6 +70,8 @@ function AppInner() {
   if (hash === "#forgot-password") return <ForgotPassword onBack={() => { window.location.hash = ""; window.location.reload(); }} />;
 
   if (!user) return <LoginScreen />;
+
+  if (window.location.search.includes("payment_id=")) return <PaymentReturn />;
 
   const showOnboarding = !onboardingDismissed && !user.has_birth_date;
 

@@ -36,7 +36,6 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [showYukassaStub, setShowYukassaStub] = useState(false);
 
   useEffect(() => {
     const h = () => setIsDesktop(window.innerWidth >= 1024);
@@ -53,12 +52,17 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   const isInTelegram = Boolean(twa()?.initData);
 
   async function handleBuy() {
-    if (!isInTelegram) {
-      setShowYukassaStub(true);
-      return;
-    }
     const product = plan === "year" ? "pro_year" : "pro_month";
     setLoading(product);
+    if (!isInTelegram) {
+      try {
+        const data = await apiRequest<{ payment_url: string; payment_id: string }>(
+          "/payments/yukassa/create", { product }, token ?? undefined,
+        );
+        window.location.href = data.payment_url;
+      } catch { showToast(t("paywall.error")); setLoading(null); }
+      return;
+    }
     try {
       const data = await apiRequest<{ invoice_link: string; payload: string }>(
         "/payments/stars/create", { product }, token ?? undefined,
@@ -99,7 +103,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
   function PlanCard({ type, label, priceVal, sub, badge, currencySymbol }: { type: "year" | "month"; label: string; priceVal: string; sub: string; badge?: string; currencySymbol?: string }) {
     const active = plan === type;
     return (
-      <button onClick={() => { setPlan(type); setShowYukassaStub(false); }} style={{
+      <button onClick={() => setPlan(type)} style={{
         position: "relative", flex: 1, padding: "20px 16px", borderRadius: 16, cursor: "pointer", textAlign: "left",
         background: active ? "linear-gradient(155deg,rgba(201,168,76,.12),rgba(201,168,76,.04))" : "rgba(255,255,255,.04)",
         border: `1.5px solid ${active ? "rgba(201,168,76,.5)" : "rgba(255,255,255,.1)"}`,
@@ -151,18 +155,6 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
             <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 6 }}>
               Visa · Mastercard · Мир
             </p>
-            {showYukassaStub && (
-              <div style={{ padding: 16, borderRadius: 14, textAlign: "center", marginTop: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)" }}>
-                <p style={{ fontSize: 14, color: "#A89E8B", lineHeight: 1.6 }}>
-                  {ru
-                    ? "Подключение карточной оплаты в процессе настройки. Для оформления подписки напишите нам:"
-                    : "Card payment integration is being set up. To subscribe, contact us:"}
-                </p>
-                <a href="mailto:sasha.nechunaev1234@gmail.com" style={{ fontSize: 14, color: "#C9A84C", marginTop: 8, display: "inline-block" }}>
-                  sasha.nechunaev1234@gmail.com
-                </a>
-              </div>
-            )}
           </>
         )}
         {toast && <p style={{ textAlign: "center", fontSize: 13, color: "#C9A84C", marginTop: 10 }}>{toast}</p>}

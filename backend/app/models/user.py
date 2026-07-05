@@ -132,3 +132,19 @@ class UserPartner(SQLModel, table=True):
     chinese_sign: Optional[str] = None
     life_path: Optional[int] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Payment(SQLModel, table=True):
+    __tablename__ = "payments"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    provider: str = Field(default="yukassa")
+    provider_payment_id: str = Field(index=True, unique=True)
+    product: str
+    amount: str
+    currency: str = Field(default="RUB")
+    status: str = Field(default="pending")  # pending | succeeded | canceled
+    metadata_json: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

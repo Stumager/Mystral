@@ -1,8 +1,45 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+from uuid import uuid4
 
+import httpx
+from sqlmodel import select
+
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
-from app.models.user import User
+from app.models.user import Payment, User
 from tests.conftest import make_user
+
+# The test client (conftest's `client` fixture) is itself an httpx.AsyncClient
+# (ASGITransport-based), so a blanket patch of AsyncClient.post/.get would
+# intercept our OWN test requests too. These wrappers only fake calls whose
+# URL targets YuKassa's real domain and fall through to the genuine method
+# (captured before patching) for everything else — i.e. the app's own ASGI calls.
+_REAL_POST = httpx.AsyncClient.post
+_REAL_GET = httpx.AsyncClient.get
+
+
+def _yk_response(status_code=200, json_data=None):
+    resp = Mock()
+    resp.status_code = status_code
+    resp.json = Mock(return_value=json_data or {})
+    return resp
+
+
+def _yk_post_mock(json_data, status_code=200):
+    async def _fake(self, url, *args, **kwargs):
+        if "api.yookassa.ru" in str(url):
+            return _yk_response(status_code, json_data)
+        return await _REAL_POST(self, url, *args, **kwargs)
+    return _fake
+
+
+def _yk_get_mock(json_data, status_code=200):
+    async def _fake(self, url, *args, **kwargs):
+        if "api.yookassa.ru" in str(url):
+            return _yk_response(status_code, json_data)
+        return await _REAL_GET(self, url, *args, **kwargs)
+    return _fake
 
 
 class TestStarsFlow:
@@ -131,3 +168,136 @@ class TestAdminGrant:
         assert res.status_code == 200
         async with AsyncSessionLocal() as s:
             assert (await s.get(User, user.id)).subscription_tier == "free"
+
+
+class TestYukassaFlow:
+    async def _make_pending_payment(self, user_id, provider_payment_id="yk-test-1", product="pro_month"):
+        async with AsyncSessionLocal() as s:
+            payment = Payment(user_id=user_id, provider_payment_id=provider_payment_id,
+                              product=product, amount="399.00")
+            s.add(payment)
+            await s.commit()
+            await s.refresh(payment)
+            return payment
+
+    async def test_yukassa_create_requires_config(self, client, auth_headers, monkeypatch):
+        monkeypatch.setattr(settings, "yukassa_shop_id", "")
+        res = await client.post("/v1/payments/yukassa/create",
+                                headers=auth_headers, json={"product": "pro_month"})
+        assert res.status_code == 503
+
+    async def test_yukassa_create_unknown_product(self, client, auth_headers):
+        res = await client.post("/v1/payments/yukassa/create",
+                                headers=auth_headers, json={"product": "pro_forever"})
+        assert res.status_code == 422
+
+    async def test_yukassa_create_persists_payment_row(self, client, auth_user):
+        user, headers = auth_user
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-create-1",
+            "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/test"},
+        })):
+            res = await client.post("/v1/payments/yukassa/create",
+                                    headers=headers, json={"product": "pro_month"})
+        assert res.status_code == 200
+        data = res.json()
+        assert data["payment_url"] == "https://yookassa.ru/checkout/test"
+        assert "payment_id" in data
+
+        async with AsyncSessionLocal() as s:
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "yk-create-1"))
+            payment = result.first()
+            assert payment is not None
+            assert payment.status == "pending"
+            assert payment.user_id == user.id
+            assert str(payment.id) == data["payment_id"]
+
+    async def test_yukassa_webhook_succeeded_activates_pro(self, client, auth_user):
+        user, _ = auth_user
+        await self._make_pending_payment(user.id, "yk-succ-1", "pro_year")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-succ-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_year"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "payment.succeeded", "object": {"id": "yk-succ-1"}})
+        assert res.status_code == 200
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "pro"
+            assert (u.subscription_expires_at - datetime.utcnow()).days >= 360
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "yk-succ-1"))
+            assert result.first().status == "succeeded"
+
+    async def test_yukassa_webhook_canceled_updates_row_no_pro(self, client, auth_user):
+        user, _ = auth_user
+        await self._make_pending_payment(user.id, "yk-cancel-1")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-cancel-1", "status": "canceled",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "payment.canceled", "object": {"id": "yk-cancel-1"}})
+        assert res.status_code == 200
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "yk-cancel-1"))
+            assert result.first().status == "canceled"
+
+    async def test_yukassa_webhook_ignores_other_events(self, client):
+        res = await client.post("/v1/payments/yukassa/webhook",
+                                json={"event": "payment.waiting_for_capture", "object": {"id": "whatever"}})
+        assert res.status_code == 200
+        assert res.json()["status"] == "ignored"
+
+    async def test_yukassa_webhook_no_double_activation_on_retry(self, client, auth_user):
+        """Repeated webhook delivery for an already-succeeded payment must not
+        push subscription_expires_at forward again — a real money-adjacent bug
+        (free extra days on every YuKassa retry) if the idempotency guard broke."""
+        user, _ = auth_user
+        await self._make_pending_payment(user.id, "yk-retry-1", "pro_month")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-retry-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res1 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "payment.succeeded", "object": {"id": "yk-retry-1"}})
+            assert res1.status_code == 200
+            async with AsyncSessionLocal() as s:
+                first_expiry = (await s.get(User, user.id)).subscription_expires_at
+
+            res2 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "payment.succeeded", "object": {"id": "yk-retry-1"}})
+            assert res2.status_code == 200
+            async with AsyncSessionLocal() as s:
+                assert (await s.get(User, user.id)).subscription_expires_at == first_expiry
+
+    async def test_yukassa_status_requires_auth(self, client):
+        res = await client.get(f"/v1/payments/yukassa/status/{uuid4()}")
+        assert res.status_code == 401
+
+    async def test_yukassa_status_404_unknown_id(self, client, auth_headers):
+        res = await client.get(f"/v1/payments/yukassa/status/{uuid4()}", headers=auth_headers)
+        assert res.status_code == 404
+
+    async def test_yukassa_status_forbidden_for_other_user(self, client, auth_user, pro_user):
+        user, _ = auth_user
+        _, other_headers = pro_user
+        payment = await self._make_pending_payment(user.id, "yk-forbidden-1")
+        res = await client.get(f"/v1/payments/yukassa/status/{payment.id}", headers=other_headers)
+        assert res.status_code == 403
+
+    async def test_yukassa_status_pending_triggers_live_reverify(self, client, auth_user):
+        user, headers = auth_user
+        payment = await self._make_pending_payment(user.id, "yk-live-1", "pro_month")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-live-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res = await client.get(f"/v1/payments/yukassa/status/{payment.id}", headers=headers)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "succeeded"
+        assert data["tier"] == "pro"

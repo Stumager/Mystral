@@ -12,6 +12,8 @@ os.environ["ADMIN_TOKEN"] = "test-admin-token"
 os.environ["GROQ_API_KEY"] = ""
 os.environ["RESEND_API_KEY"] = ""
 os.environ["TELEGRAM_BOT_TOKEN"] = ""
+os.environ["YUKASSA_SHOP_ID"] = "test-shop-id"
+os.environ["YUKASSA_SECRET_KEY"] = "test-secret-key"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

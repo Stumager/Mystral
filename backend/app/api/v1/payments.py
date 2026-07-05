@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.email import send_refund_email
-from app.models.user import AuthProvider, User
+from app.models.user import AuthProvider, Payment, User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
@@ -224,6 +224,7 @@ async def refund_request(
 async def yukassa_create(
     req: YukassaCreateRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
     product = PRODUCTS.get(req.product)
     if not product:
@@ -236,58 +237,64 @@ async def yukassa_create(
         f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
     ).decode()
 
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.post(
-            "https://api.yookassa.ru/v3/payments",
-            headers={
-                "Authorization": f"Basic {creds}",
-                "Idempotence-Key": str(uuid4()),
-            },
-            json={
-                "amount": {"value": product["rub"], "currency": "RUB"},
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": settings.telegram_webapp_url or "https://t.me",
+    # YuKassa's own payment id only exists in the *response*, but return_url
+    # must be in the request, so it can't reference YuKassa's id. Generate our
+    # own row id first and put that in return_url instead — the frontend's
+    # status/PaymentReturn flow looks payments up by this id, not YuKassa's.
+    payment = Payment(
+        user_id=current_user.id,
+        provider_payment_id="",
+        product=req.product,
+        amount=product["rub"],
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.post(
+                "https://api.yookassa.ru/v3/payments",
+                headers={
+                    "Authorization": f"Basic {creds}",
+                    "Idempotence-Key": str(uuid4()),
                 },
-                "capture": True,
-                "description": product["title"],
-                "metadata": {"user_id": str(current_user.id), "product": req.product},
-            },
-        )
+                json={
+                    "amount": {"value": product["rub"], "currency": "RUB"},
+                    "confirmation": {
+                        "type": "redirect",
+                        "return_url": f"{settings.frontend_url}/?payment_id={payment.id}",
+                    },
+                    "capture": True,
+                    "description": product["title"],
+                    "metadata": {"user_id": str(current_user.id), "product": req.product},
+                },
+            )
+    except httpx.HTTPError:
+        logger.error("YuKassa create: request failed (network)")
+        raise HTTPException(status_code=502, detail="YuKassa request failed")
 
     if resp.status_code not in (200, 201):
+        logger.error("YuKassa create: unexpected status %s", resp.status_code)
         raise HTTPException(status_code=502, detail="YuKassa request failed")
 
     data = resp.json()
+    yk_payment_id = data.get("id")
     payment_url = data.get("confirmation", {}).get("confirmation_url")
-    if not payment_url:
+    if not payment_url or not yk_payment_id:
         raise HTTPException(status_code=502, detail="No confirmation URL from YuKassa")
 
-    return {"payment_url": payment_url, "payment_id": data.get("id")}
+    payment.provider_payment_id = yk_payment_id
+    session.add(payment)
+    await session.commit()
+
+    return {"payment_url": payment_url, "payment_id": str(payment.id)}
 
 
-@router.post("/yukassa/webhook")
-async def yukassa_webhook(
-    request: Request,
-    session: AsyncSession = Depends(get_session),
-):
-    """YuKassa webhooks are unsigned — re-fetch the payment from the YuKassa API
-    and only trust status/metadata returned by YuKassa itself."""
-    try:
-        body = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
-
-    if body.get("event") != "payment.succeeded":
-        return {"status": "ignored"}
-
-    payment_id = body.get("object", {}).get("id")
-    if not payment_id:
-        return {"status": "no_payment_id"}
-
-    if not settings.yukassa_shop_id or not settings.yukassa_secret_key:
-        raise HTTPException(status_code=503, detail="YuKassa not configured")
-
+async def _verify_and_sync_payment(payment_id: str, session: AsyncSession) -> Optional[Payment]:
+    """Re-fetches the payment from YuKassa's API (authoritative source — never
+    trust a webhook body alone) and syncs the local row's status. Activates Pro
+    exactly once per payment: a payment already marked "succeeded" locally is
+    left alone even if this runs again (webhook retries, or the status
+    endpoint re-checking a pending payment), so repeated deliveries can't push
+    subscription_expires_at forward for free."""
     creds = base64.b64encode(
         f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
     ).decode()
@@ -297,27 +304,94 @@ async def yukassa_webhook(
             headers={"Authorization": f"Basic {creds}"},
         )
     if resp.status_code != 200:
-        logger.warning("YuKassa webhook: verify failed for %s (%s)", payment_id, resp.status_code)
+        logger.warning("YuKassa verify: failed for %s (%s)", payment_id, resp.status_code)
+        return None
+
+    yk_payment = resp.json()
+    result = await session.exec(select(Payment).where(Payment.provider_payment_id == payment_id))
+    payment = result.first()
+    if not payment:
+        logger.warning("YuKassa verify: no local row for %s", payment_id)
+        return None
+
+    yk_status = yk_payment.get("status")
+    was_succeeded = payment.status == "succeeded"
+    if yk_status in ("succeeded", "canceled"):
+        payment.status = yk_status
+    payment.updated_at = datetime.utcnow()
+    session.add(payment)
+    await session.commit()
+    await session.refresh(payment)
+
+    if payment.status == "succeeded" and not was_succeeded:
+        metadata = yk_payment.get("metadata", {})
+        user_id = metadata.get("user_id")
+        product_key = metadata.get("product", "pro_month")
+        if user_id:
+            try:
+                user = await session.get(User, UUID(user_id))
+            except (ValueError, TypeError):
+                user = None
+            if user:
+                _activate_pro(user, product_key)
+                session.add(user)
+                await session.commit()
+                logger.info("YuKassa: user %s activated %s (payment %s)", user_id, product_key, payment_id)
+
+    return payment
+
+
+@router.post("/yukassa/webhook")
+async def yukassa_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    """YuKassa webhooks are unsigned — _verify_and_sync_payment re-fetches the
+    payment from the YuKassa API and only trusts status/metadata YuKassa
+    itself returns, never the webhook body directly."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    if body.get("event") not in ("payment.succeeded", "payment.canceled"):
+        return {"status": "ignored"}
+
+    payment_id = body.get("object", {}).get("id")
+    if not payment_id:
+        return {"status": "no_payment_id"}
+
+    if not settings.yukassa_shop_id or not settings.yukassa_secret_key:
+        raise HTTPException(status_code=503, detail="YuKassa not configured")
+
+    payment = await _verify_and_sync_payment(payment_id, session)
+    if not payment:
         raise HTTPException(status_code=400, detail="Payment verification failed")
 
-    payment = resp.json()
-    if payment.get("status") != "succeeded":
-        return {"status": "not_succeeded"}
-
-    metadata = payment.get("metadata", {})
-    user_id = metadata.get("user_id")
-    product_key = metadata.get("product", "pro_month")
-    if not user_id:
-        return {"status": "no_user_id"}
-
-    try:
-        user = await session.get(User, UUID(user_id))
-    except (ValueError, TypeError):
-        return {"status": "bad_user_id"}
-    if user:
-        _activate_pro(user, product_key)
-        session.add(user)
-        await session.commit()
-        logger.info("YuKassa webhook: user %s activated %s (verified)", user_id, product_key)
-
     return {"status": "ok"}
+
+
+@router.get("/yukassa/status/{payment_id}")
+async def yukassa_status(
+    payment_id: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """payment_id here is OUR row id (embedded in return_url at create time),
+    not YuKassa's own payment id — see yukassa_create's comment."""
+    try:
+        payment = await session.get(Payment, UUID(payment_id))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if payment.status == "pending" and settings.yukassa_shop_id and settings.yukassa_secret_key:
+        synced = await _verify_and_sync_payment(payment.provider_payment_id, session)
+        if synced:
+            payment = synced
+            await session.refresh(current_user)
+
+    return {"status": payment.status, "tier": current_user.subscription_tier}

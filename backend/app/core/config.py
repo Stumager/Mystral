@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     telegram_bot_token: str = ""
     telegram_webapp_url: str = ""
+    frontend_url: str = "https://mystral.space"
     yukassa_shop_id: str = ""
     yukassa_secret_key: str = ""
     support_telegram_id: str = ""
