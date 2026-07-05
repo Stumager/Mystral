@@ -105,6 +105,10 @@ html, body {
   from { opacity:0; transform:translateY(16px) }
   to { opacity:1; transform:translateY(0) }
 }
+@keyframes mystral-fadein {
+  from { opacity:0 }
+  to { opacity:1 }
+}
 @keyframes mystral-breathe {
   0%,100% { opacity:.5 }
   50% { opacity:.9 }

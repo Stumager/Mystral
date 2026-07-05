@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NatalWheel } from "../components/NatalWheel";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { ShareCard } from "../components/ShareCard";
 import { BottomNav, Button, Card } from "../components/ui";
@@ -11,12 +12,12 @@ interface NatalChartProps { onNavigate: (page: string) => void; }
 
 interface PlanetData {
   name: string; name_ru: string; name_en: string; symbol: string;
-  sign: string; sign_ru: string; degree: number;
+  sign: string; sign_ru: string; degree: number; abs_pos: number;
   house: number | null; retrograde: boolean; type?: string;
 }
-interface HouseData { number: number; sign: string; sign_ru: string; degree: number; }
+interface HouseData { number: number; sign: string; sign_ru: string; degree: number; abs_pos: number; }
 interface AspectData {
-  planet1_ru: string; planet2_ru: string;
+  planet1: string; planet2: string; planet1_ru: string; planet2_ru: string;
   type: string; name_ru: string; symbol: string; orb: number; harmony: boolean;
 }
 interface Stellium {
@@ -38,6 +39,11 @@ interface ChartResult {
 const SECTIONS = ["personality", "planets", "houses", "aspects", "transits"] as const;
 type Section = typeof SECTIONS[number];
 
+function computeWheelSize() {
+  if (typeof window === "undefined") return 480;
+  return window.innerWidth >= 768 ? 480 : Math.min(window.innerWidth - 48, 520);
+}
+
 export function NatalChart({ onNavigate }: NatalChartProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
@@ -55,6 +61,13 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [interpretLoading, setInterpretLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [wheelSize, setWheelSize] = useState(() => computeWheelSize());
+
+  useEffect(() => {
+    const onResize = () => setWheelSize(computeWheelSize());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const profileLoaded = useRef(false);
   useEffect(() => {
@@ -158,6 +171,22 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const sectionLabels: Record<Section, string> = lang === "ru"
     ? { personality: "Личность", planets: "Планеты", houses: "Дома", aspects: "Аспекты", transits: "Транзиты" }
     : { personality: "Personality", planets: "Planets", houses: "Houses", aspects: "Aspects", transits: "Transits" };
+
+  // NatalWheel matches aspects.planet1/planet2 (raw keys like "sun") against
+  // planets[].name internally, so this must stay in the English key-space
+  // rather than the localized display name.
+  const wheelPlanets = useMemo(() => (chart?.planets ?? []).map(p => ({
+    name: p.name_en,
+    sign: p.sign,
+    degree: p.abs_pos,
+    retrograde: p.retrograde,
+  })), [chart]);
+  const wheelHouses = useMemo(() => (chart?.houses ?? []).map(h => ({
+    number: h.number, degree: h.abs_pos,
+  })), [chart]);
+  const wheelAspects = useMemo(() => (chart?.aspects ?? []).map(a => ({
+    planet1: a.planet1, planet2: a.planet2, type: a.type, orb: a.orb,
+  })), [chart]);
 
   return (
     <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
@@ -355,8 +384,17 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               </Card>
             )}
 
-            {/* AI Interpretation */}
-            <Card>
+            {/* Natal Wheel + AI Interpretation */}
+            <div className="grid grid-cols-1 md:grid-cols-[480px_1fr] gap-8 items-start">
+              <div style={{
+                position: "relative", width: "100%", display: "flex", justifyContent: "center",
+                padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
+                borderRadius: 24, marginBottom: 20,
+              }}>
+                <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
+              </div>
+
+              <Card>
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
               </p>
@@ -394,6 +432,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 </p>
               )}
             </Card>
+            </div>
 
           </div>
         ) : null}

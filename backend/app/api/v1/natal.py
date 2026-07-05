@@ -214,9 +214,10 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
             houses.append({
                 "number": i, "sign": _normalize_sign(h.sign),
                 "sign_ru": _ru(h.sign), "degree": round(float(getattr(h, "position", 0)), 1),
+                "abs_pos": round(_get_abs_pos(h), 1),
             })
         except Exception:
-            houses.append({"number": i, "sign": "Aries", "sign_ru": "Овен", "degree": 0})
+            houses.append({"number": i, "sign": "Aries", "sign_ru": "Овен", "degree": 0, "abs_pos": (i - 1) * 30})
 
     # Part of Fortune: ASC + Moon - Sun (mod 360)
     part_of_fortune = None
