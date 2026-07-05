@@ -1,5 +1,4 @@
 """Shared fixtures. Env + Redis are patched BEFORE app modules are imported."""
-import asyncio
 import os
 import sys
 import tempfile
@@ -64,13 +63,6 @@ from app.models.user import AuthProvider, User, UserProfile
 from app.core.security import hash_password
 
 app_redis.redis_client = _fake_from_url(decode_responses=True)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture(autouse=True)

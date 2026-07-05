@@ -741,3 +741,45 @@
     этот фикс, но стоит поймать до следующего CI на Linux)
   - Alembic миграции (вместо create_all)
   - Тестирование уведомлений на VPS
+
+## 2026-07-05 — TZ-056: Утечка event loop в тестах на Linux
+
+- **Причина (подтверждено чтением исходников pytest-asyncio 1.4.0):**
+  `tests/conftest.py` держал старую `@pytest.fixture(scope="session") def
+  event_loop(): ...` — механизм переопределения event loop из старых версий
+  pytest-asyncio. В установленной версии (1.4.0) этот механизм полностью
+  убран: плагин больше даже не ищет фикстуру с именем `event_loop`, только
+  `event_loop_policy`. Реально использовавшееся значение —
+  `asyncio_default_test_loop_scope=function` (дефолт библиотеки), то есть
+  **каждый тест получал собственный новый event loop**, а старая
+  session-фикстура была мёртвым кодом, молча проглоченным
+  `filterwarnings = ignore::DeprecationWarning` в `pytest.ini`.
+  Модульные singleton-клиенты Redis (`app_redis.redis_client` в
+  `app/core/redis.py`, отдельный `redis_client` в `horoscope.py` и т.д.)
+  создаются один раз при импорте и живут на весь прогон. Внутреннее
+  соединение/очередь fakeredis при первом реальном использовании
+  привязывается к тому event loop, что активен в этот момент. В полном
+  прогоне более ранние тесты успевали "закрепить" соединение за своим
+  (уже закрытым к этому моменту) loop, и следующий тест, попадающий на то
+  же соединение под новым loop, падал с `RuntimeError: ... is bound to a
+  different event loop`. В изоляции первый же вызов создавал соединение
+  под "правильным" (текущим) loop — поэтому тесты проходили по отдельности.
+- **Сделано:**
+  - `backend/pytest.ini` — добавлены `asyncio_default_fixture_loop_scope
+    = session` и `asyncio_default_test_loop_scope = session`: теперь все
+    тесты и async-фикстуры в рамках прогона используют один и тот же
+    event loop, как и предполагала (но больше не реализовывала) старая
+    фикстура.
+  - `backend/tests/conftest.py` — убрана мёртвая фикстура `event_loop` и
+    ставший неиспользуемым `import asyncio`.
+- **Проверено:**
+  - Docker/Linux, полный прогон `pytest` (86 старых + 2 из ТЗ-055) —
+    **88 passed, 0 failed**, повторено 3 раза подряд (без этого фикса
+    было стабильно 86 passed + 2 failed в каждом полном прогоне).
+  - Прогон с `-W error::DeprecationWarning` — 88 passed, других
+    предупреждений, которые мог маскировать `ignore::DeprecationWarning`,
+    не всплыло.
+  - Windows локально: 86 passed, 2 skipped — без регрессий.
+- **Следующий шаг:**
+  - Alembic миграции (вместо create_all)
+  - Тестирование уведомлений на VPS
