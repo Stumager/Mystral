@@ -23,7 +23,11 @@ _QUALITY = (
     "Используй ТОЛЬКО кириллицу, стандартные знаки препинания и цифры. "
     "В значениях JSON-строк никогда не используй символ прямой двойной кавычки \" — "
     "для выделения слов используй «ёлочки» или одинарные кавычки. "
-    "Пример корректного значения: \"Овен часто называют «первопроходцем» зодиака.\""
+    "Пример корректного значения: \"Овен часто называют «первопроходцем» зодиака.\" "
+    "Пиши уверенно и окончательно — никогда не исправляй себя вслух в тексте "
+    "(никаких фраз вида «нет, на самом деле» или «поправка», «хотя нет»). "
+    "В пункте про известных людей приведи ровно 3–4 реальных имени с одной короткой "
+    "фразой о каждом, не обсуждая и не подвергая сомнению точность дат рождения."
 )
 
 # TZ-060: response_format=json_object (see _generate_and_store) already forces
@@ -83,7 +87,11 @@ _QUALITY_I18N = (
     "Inside JSON string values, never use a literal straight double-quote character; "
     "for emphasis or quoting a word use single quotes or « » instead. "
     "Apostrophes in contractions (it's, don't, Aries's) are fine as-is — do not escape or remove them. "
-    "Example of a correctly formatted value: {{\"intro\": \"Aries is often called the zodiac's 'trailblazer'.\"}}"
+    "Example of a correctly formatted value: {{\"intro\": \"Aries is often called the zodiac's 'trailblazer'.\"}} "
+    "Write with confidence and finality — never think out loud or self-correct inside the "
+    "text (no phrases like 'wait, actually' or 'let me correct that' or 'hold on'). "
+    "For any section about famous or notable people, name exactly 3-4 real people with one "
+    "short sentence each, without discussing or second-guessing their birth dates or signs."
 )
 
 _JSON_SCHEMA = (
@@ -180,6 +188,13 @@ def _build_prompt(page_type: str, data: dict, lang: str) -> str | None:
     return tpl.format(language=_LANG_NAME[lang], **data)
 
 
+# TZ-060 follow-up: 3000 was too tight — a real production response got
+# truncated mid-JSON (before faq/cta_text) because the model burned budget
+# rambling with self-corrections inside the "famous people" section. All of
+# this model's OpenRouter provider endpoints support >=16k output tokens, so
+# there is ample headroom; 4096 covers even a bloated response with margin.
+GENERATION_MAX_TOKENS = 4096
+
 _REQUIRED_KEYS = ("intro", "sections", "faq", "cta_text")
 
 
@@ -238,7 +253,7 @@ async def _generate_and_store(page_type: str, slug: str, data: dict, session: As
                 {"role": "system", "content": SYSTEM_GEN.get(lang, SYSTEM_GEN["en"]) + LANG_ENFORCE.get(lang, "")},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=3000,
+            max_tokens=GENERATION_MAX_TOKENS,
             temperature=0.7,
             # TZ-060: forces syntactically valid JSON at the API level
             # (confirmed supported by deepseek-v4-flash's OpenRouter provider
