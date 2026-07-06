@@ -188,12 +188,14 @@ def _build_prompt(page_type: str, data: dict, lang: str) -> str | None:
     return tpl.format(language=_LANG_NAME[lang], **data)
 
 
-# TZ-060 follow-up: 3000 was too tight — a real production response got
-# truncated mid-JSON (before faq/cta_text) because the model burned budget
-# rambling with self-corrections inside the "famous people" section. All of
+# TZ-060 follow-up #2: 4096 was STILL too tight for a clean, non-rambling
+# response — a production page came back with intro + all 10 sections + all
+# 5 faq (no self-correction artifacts, the anti-rambling prompt fix worked)
+# and still got cut off right before cta_text, the very last field. All of
 # this model's OpenRouter provider endpoints support >=16k output tokens, so
-# there is ample headroom; 4096 covers even a bloated response with margin.
-GENERATION_MAX_TOKENS = 4096
+# there's no reason to stay this close to the edge; 6144 gives real margin
+# over content that is long purely because it's thorough, not bloated.
+GENERATION_MAX_TOKENS = 6144
 
 _REQUIRED_KEYS = ("intro", "sections", "faq", "cta_text")
 
@@ -261,6 +263,16 @@ async def _generate_and_store(page_type: str, slug: str, data: dict, session: As
             # root fix for the "Expecting ',' delimiter" parse failures.
             response_format={"type": "json_object"},
         )
+        finish_reason = getattr(resp.choices[0], "finish_reason", None)
+        if finish_reason == "length":
+            # Definitive signal (not a guess from char offsets): the model
+            # hit max_tokens mid-response, so the JSON is genuinely
+            # incomplete — no amount of json_repair fixes a response that
+            # was never finished. Surfacing this distinctly from other
+            # parse failures says whether GENERATION_MAX_TOKENS needs to go
+            # up again, vs. an unrelated model formatting slip.
+            logger.warning("SEO gen for %s/%s/%s: response truncated by max_tokens (finish_reason=length)",
+                           page_type, slug, lang)
         raw = _CLEAN_RE.sub('', resp.choices[0].message.content or "")
         parsed = _parse_content_json(raw, page_type, slug, lang)
         if parsed is None:

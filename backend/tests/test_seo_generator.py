@@ -5,11 +5,14 @@ production failures were "Expecting ',' delimiter" JSON errors from the
 model, which response_format=json_object + a json_repair fallback are
 meant to eliminate or recover from without silently losing content.
 """
+from unittest.mock import AsyncMock, patch
+
 from app.core.seo_generator import (
     GENERATION_MAX_TOKENS,
     PROMPTS,
     PROMPTS_I18N,
     _build_prompt,
+    _generate_and_store,
     _parse_content_json,
     localize_data,
 )
@@ -130,12 +133,32 @@ class TestTruncationFollowUp:
         assert result is None
 
     def test_max_tokens_has_real_headroom_over_old_value(self):
-        # Regression guard: the old 3000 was the direct cause of the
-        # truncation above. Must stay comfortably higher.
-        assert GENERATION_MAX_TOKENS >= 4096
+        # Regression guard: 3000 then 4096 both caused real truncation in
+        # production (the second time on a clean, non-rambling response
+        # that was simply thorough). Must stay comfortably higher.
+        assert GENERATION_MAX_TOKENS >= 6144
 
     def test_quality_directives_forbid_rambling_and_cap_famous_people(self):
         from app.core.seo_generator import _QUALITY, _QUALITY_I18N
         assert "3" in _QUALITY and "4" in _QUALITY  # "3–4 реальных имени"
         assert "self-correct" in _QUALITY_I18N or "wait, actually" in _QUALITY_I18N
         assert "3-4 real people" in _QUALITY_I18N
+
+    async def test_finish_reason_length_is_logged_distinctly(self, caplog):
+        # Reproduces the second production shape directly: a response that
+        # finished with finish_reason="length" (the definitive truncation
+        # signal) and JSON cut off right before the closing brace.
+        fake_message = type("M", (), {"content": '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], "faq": [{"q": "Q", "a": "A"}]'})()
+        fake_choice = type("C", (), {"message": fake_message, "finish_reason": "length"})()
+        fake_resp = type("R", (), {"choices": [fake_choice]})()
+
+        fake_client = AsyncMock()
+        fake_client.chat.completions.create = AsyncMock(return_value=fake_resp)
+
+        with patch("app.core.groq_client._get_async_client", return_value=fake_client):
+            import logging
+            with caplog.at_level(logging.WARNING, logger="app.core.seo_generator"):
+                result = await _generate_and_store("zodiac", "aries", ZODIAC_BY_SLUG["aries"], session=None, lang="en")
+
+        assert result.get("_fallback") is True  # incomplete JSON -> fallback, not garbage
+        assert any("finish_reason=length" in r.message for r in caplog.records)
