@@ -1,8 +1,9 @@
 from datetime import date
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -11,7 +12,12 @@ from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
 from app.data.seo_data import (
     NUMEROLOGY_BY_SLUG, NUMEROLOGY_SEO, RUNE_BY_SLUG, RUNE_SEO,
-    SUITS, SUITS_RU, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
+    SUITS, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
+)
+from app.data.seo_i18n import (
+    ALL_LANGS, LANG_NATIVE, OG_LOCALE, PREFIX_LANGS, SUITS_HDR, UI,
+    abs_url, hreflang_alternates, localize_card, localize_num,
+    localize_rune, localize_sign, url_prefix,
 )
 
 router = APIRouter()
@@ -19,112 +25,207 @@ templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent
 TODAY = lambda: date.today().isoformat()
 
 
+def _resolve_lang(lang: Optional[str]) -> str:
+    """None (root path) -> ru; unknown prefix -> plain 404, not a 422 JSON body."""
+    if lang is None:
+        return "ru"
+    if lang not in PREFIX_LANGS:
+        raise HTTPException(404)
+    return lang
+
+
+def _legacy_lang_redirect(request: Request, lang: str, path: str) -> Optional[RedirectResponse]:
+    """The old hreflang markup advertised ?lang=xx URLs for months — 301 any
+    such indexed URL to its real subdirectory version. Only relevant on the
+    root (ru) routes; junk or ?lang=ru just falls through to the ru page."""
+    if lang != "ru":
+        return None
+    q = request.query_params.get("lang")
+    if q in PREFIX_LANGS:
+        return RedirectResponse(f"/{q}{path}", status_code=301)
+    return None
+
+
+def _ctx(lang: str, path: str, title: str, description: str, content: Optional[dict] = None, **extra) -> dict:
+    """Shared template context: chrome translations, canonical, hreflang set,
+    language-switcher data, fallback flag for robots noindex."""
+    ctx = {
+        "lang": lang,
+        "t": UI[lang],
+        "prefix": url_prefix(lang),
+        "canonical": abs_url(lang, path),
+        "alternates": hreflang_alternates(path),
+        "lang_native": LANG_NATIVE,
+        "og_locale": OG_LOCALE[lang],
+        "title": title,
+        "description": description,
+        "content": content,
+        "faq": (content or {}).get("faq") or None,
+        "cta_text": (content or {}).get("cta_text"),
+        "is_fallback": bool((content or {}).get("_fallback")),
+    }
+    ctx.update(extra)
+    return ctx
+
+
 @router.get("/zodiac", response_class=HTMLResponse)
+@router.get("/{lang}/zodiac", response_class=HTMLResponse)
 async def zodiac_hub(request: Request):
-    return templates.TemplateResponse(request, "seo/zodiac_hub.html", { "signs": ZODIAC_SIGNS,
-        "title": "Знаки зодиака — характеристика и совместимость | Mystral",
-        "description": "Все 12 знаков зодиака с подробной характеристикой, совместимостью и персональным гороскопом. Узнайте свой знак на Mystral.",
-        "canonical": "https://mystral.space/zodiac",
-        "faq": None, "cta_text": None,
-    })
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/zodiac")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/zodiac_hub.html", _ctx(
+        lang, "/zodiac", t["zodiac_hub_title"], t["zodiac_hub_desc"],
+        signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS],
+    ))
 
 
 @router.get("/zodiac/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/zodiac/{slug}", response_class=HTMLResponse)
 async def zodiac_sign(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
-    sign = ZODIAC_BY_SLUG.get(slug)
-    if not sign:
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/zodiac/{slug}")
+    if redirect:
+        return redirect
+    raw = ZODIAC_BY_SLUG.get(slug)
+    if not raw:
         raise HTTPException(404)
-    content = await get_seo_content("zodiac", slug, sign, session)
-    return templates.TemplateResponse(request, "seo/zodiac_sign.html", { "sign": sign, "content": content, "all_signs": ZODIAC_SIGNS,
-        "h1": f"{sign['name']} — знак зодиака: характер и гороскоп",
-        "title": f"{sign['name']} — характеристика, гороскоп и совместимость | Mystral",
-        "description": f"{sign['name']} — знак {sign['element']} ({sign['dates']}). Характер, совместимость, карьера и любовь. Персональный гороскоп, натальная карта и расклады Таро бесплатно на Mystral — эзотерической платформе.",
-        "canonical": f"https://mystral.space/zodiac/{slug}",
-        "og_image": f"https://mystral.space/zodiac/{slug}/constellation.svg",
-        "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
-        "today": TODAY(),
-    })
+    sign = localize_sign(raw, lang)
+    content = await get_seo_content("zodiac", slug, sign, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/zodiac_sign.html", _ctx(
+        lang, f"/zodiac/{slug}",
+        t["zodiac_title"].format(**sign),
+        t["zodiac_desc"].format(**sign),
+        content=content,
+        sign=sign,
+        all_signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS],
+        h1=t["zodiac_h1"].format(**sign),
+        og_image=abs_url(lang, f"/zodiac/{slug}/constellation.svg"),
+        today=TODAY(),
+    ))
 
 
 @router.get("/tarot", response_class=HTMLResponse)
+@router.get("/{lang}/tarot", response_class=HTMLResponse)
 async def tarot_hub(request: Request):
-    major = [c for c in TAROT_CARDS if c["arcana"] == "major"]
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/tarot")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    major = [localize_card(c, lang) for c in TAROT_CARDS if c["arcana"] == "major"]
     suits_data = []
     for si, suit in enumerate(SUITS):
-        cards = [c for c in TAROT_CARDS if c["suit"] == suit]
-        suits_data.append((suit, SUITS_RU[si], cards))
-    return templates.TemplateResponse(request, "seo/tarot_hub.html", { "major": major, "suits": suits_data,
-        "title": "Карты Таро — значение всех 78 карт | Mystral",
-        "description": "Полный справочник карт Таро: 22 Старших Аркана и 56 Младших Арканов с подробным значением.",
-        "canonical": "https://mystral.space/tarot",
-        "faq": None, "cta_text": None,
-    })
+        cards = [localize_card(c, lang) for c in TAROT_CARDS if c["suit"] == suit]
+        suits_data.append((suit, SUITS_HDR[lang][si], cards))
+    return templates.TemplateResponse(request, "seo/tarot_hub.html", _ctx(
+        lang, "/tarot", t["tarot_hub_title"], t["tarot_hub_desc"],
+        major=major, suits=suits_data,
+    ))
 
 
 @router.get("/tarot/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/tarot/{slug}", response_class=HTMLResponse)
 async def tarot_card(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/tarot/{slug}")
+    if redirect:
+        return redirect
     card = TAROT_BY_SLUG.get(slug)
     if not card:
         raise HTTPException(404)
-    content = await get_seo_content("tarot", slug, card, session)
+    lcard = localize_card(card, lang)
+    name = lcard["display_name"]
+    gen_data = card if lang == "ru" else {**card, "name": name}
+    content = await get_seo_content("tarot", slug, gen_data, session, lang)
     idx = TAROT_CARDS.index(card)
-    prev_card = TAROT_CARDS[idx - 1] if idx > 0 else None
-    next_card = TAROT_CARDS[idx + 1] if idx < len(TAROT_CARDS) - 1 else None
+    prev_card = localize_card(TAROT_CARDS[idx - 1], lang) if idx > 0 else None
+    next_card = localize_card(TAROT_CARDS[idx + 1], lang) if idx < len(TAROT_CARDS) - 1 else None
     if card["arcana"] == "major":
         related = [c for c in TAROT_CARDS if c["arcana"] == "major" and c["slug"] != slug]
     else:
         related = [c for c in TAROT_CARDS if c["suit"] == card["suit"] and c["slug"] != slug]
-    return templates.TemplateResponse(request, "seo/tarot_card.html", { "card": card, "content": content,
-        "prev": prev_card, "next": next_card, "related": related[:14],
-        "h1": f"{card['name_ru']} — значение в Таро",
-        "title": f"{card['name_ru']} — значение карты Таро | Mystral",
-        "description": f"Значение карты Таро «{card['name_ru']}» в прямом и обратном положении. Толкование в любви, карьере, финансах.",
-        "canonical": f"https://mystral.space/tarot/{slug}",
-        "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
-        "today": TODAY(),
-    })
+    t = UI[lang]
+    suit_label = t["major_arcana"] if card["arcana"] == "major" else SUITS_HDR[lang][SUITS.index(card["suit"])]
+    return templates.TemplateResponse(request, "seo/tarot_card.html", _ctx(
+        lang, f"/tarot/{slug}",
+        t["tarot_title"].format(name=name),
+        t["tarot_desc"].format(name=name),
+        content=content,
+        card=lcard, suit_label=suit_label,
+        prev=prev_card, next=next_card,
+        related=[localize_card(c, lang) for c in related[:14]],
+        h1=t["tarot_h1"].format(name=name),
+        today=TODAY(),
+    ))
 
 
 @router.get("/runes", response_class=HTMLResponse)
+@router.get("/{lang}/runes", response_class=HTMLResponse)
 async def runes_hub(request: Request):
-    return templates.TemplateResponse(request, "seo/runes_hub.html", { "runes": RUNE_SEO,
-        "title": "Руны Старшего Футарка — значение и толкование | Mystral",
-        "description": "24 руны Старшего Футарка с подробным значением, толкованием и применением в магических ставах.",
-        "canonical": "https://mystral.space/runes",
-        "faq": None, "cta_text": None,
-    })
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/runes")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/runes_hub.html", _ctx(
+        lang, "/runes", t["runes_hub_title"], t["runes_hub_desc"],
+        runes=[localize_rune(r, lang) for r in RUNE_SEO],
+    ))
 
 
 @router.get("/runes/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/runes/{slug}", response_class=HTMLResponse)
 async def rune_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
-    rune = RUNE_BY_SLUG.get(slug)
-    if not rune:
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/runes/{slug}")
+    if redirect:
+        return redirect
+    raw = RUNE_BY_SLUG.get(slug)
+    if not raw:
         raise HTTPException(404)
-    content = await get_seo_content("rune", slug, rune, session)
-    return templates.TemplateResponse(request, "seo/rune.html", { "rune": rune, "content": content, "all_runes": RUNE_SEO,
-        "h1": f"Руна {rune['name']} — значение и толкование",
-        "title": f"Руна {rune['name']} — значение и толкование | Mystral",
-        "description": f"Руна {rune['name']} ({rune['symbol']}) — подробное значение в гадании, магическое применение и использование в ставах.",
-        "canonical": f"https://mystral.space/runes/{slug}",
-        "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
-        "today": TODAY(),
-    })
+    rune = localize_rune(raw, lang)
+    content = await get_seo_content("rune", slug, rune, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/rune.html", _ctx(
+        lang, f"/runes/{slug}",
+        t["rune_title"].format(**rune),
+        t["rune_desc"].format(**rune),
+        content=content,
+        rune=rune,
+        all_runes=[localize_rune(r, lang) for r in RUNE_SEO],
+        aett_label=t["aett_fmt"].format(aett=rune["aett"]),
+        h1=t["rune_h1"].format(**rune),
+        today=TODAY(),
+    ))
 
 
 @router.get("/numerology/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/numerology/{slug}", response_class=HTMLResponse)
 async def numerology_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
-    num = NUMEROLOGY_BY_SLUG.get(slug)
-    if not num:
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/numerology/{slug}")
+    if redirect:
+        return redirect
+    raw = NUMEROLOGY_BY_SLUG.get(slug)
+    if not raw:
         raise HTTPException(404)
-    content = await get_seo_content("numerology", slug, num, session)
-    return templates.TemplateResponse(request, "seo/numerology.html", { "num": num, "content": content, "all_nums": NUMEROLOGY_SEO,
-        "h1": f"Число жизненного пути {num['number']} — {num['name']}",
-        "title": f"Число жизненного пути {num['number']} — значение | Mystral",
-        "description": f"Число жизненного пути {num['number']} «{num['name']}» — характер, предназначение, карьера и отношения в нумерологии.",
-        "canonical": f"https://mystral.space/numerology/{slug}",
-        "faq": content.get("faq", []), "cta_text": content.get("cta_text"),
-        "today": TODAY(),
-    })
+    num = localize_num(raw, lang)
+    content = await get_seo_content("numerology", slug, num, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/numerology.html", _ctx(
+        lang, f"/numerology/{slug}",
+        t["num_title"].format(**num),
+        t["num_desc"].format(**num),
+        content=content,
+        num=num,
+        all_nums=[localize_num(n, lang) for n in NUMEROLOGY_SEO],
+        h1=t["num_h1"].format(**num),
+        today=TODAY(),
+    ))
 
 
 CONSTELLATIONS = {
@@ -144,11 +245,13 @@ CONSTELLATIONS = {
 
 
 @router.get("/zodiac/{slug}/constellation.svg", response_class=Response)
-async def constellation_svg(slug: str):
+@router.get("/{lang}/zodiac/{slug}/constellation.svg", response_class=Response)
+async def constellation_svg(slug: str, request: Request):
+    lang = _resolve_lang(request.path_params.get("lang"))
     c = CONSTELLATIONS.get(slug)
     if not c:
         raise HTTPException(404)
-    sign = ZODIAC_BY_SLUG.get(slug, {})
+    sign = localize_sign(ZODIAC_BY_SLUG[slug], lang)
     lines_svg = "".join(f'<line x1="{c["pts"][a][0]}" y1="{c["pts"][a][1]}" x2="{c["pts"][b][0]}" y2="{c["pts"][b][1]}" stroke="rgba(201,168,76,.5)" stroke-width="1"/>' for a, b in c["lines"])
     dots_svg = "".join(
         f'<circle cx="{p[0]}" cy="{p[1]}" r="{"2.8" if i in c["bright"] else "1.6"}" fill="#F0D680"/>'
@@ -168,18 +271,27 @@ async def constellation_svg(slug: str):
 @router.get("/sitemap.xml", response_class=Response)
 async def sitemap():
     today = date.today().isoformat()
-    urls = [("https://mystral.space/", "1.0"), ("https://mystral.space/zodiac", "0.9"), ("https://mystral.space/tarot", "0.9"), ("https://mystral.space/runes", "0.9")]
+    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9")]
     for s in ZODIAC_SIGNS:
-        urls.append((f"https://mystral.space/zodiac/{s['slug']}", "0.9"))
+        paths.append((f"/zodiac/{s['slug']}", "0.9"))
     for c in TAROT_CARDS:
-        urls.append((f"https://mystral.space/tarot/{c['slug']}", "0.8"))
+        paths.append((f"/tarot/{c['slug']}", "0.8"))
     for r in RUNE_SEO:
-        urls.append((f"https://mystral.space/runes/{r['slug']}", "0.8"))
+        paths.append((f"/runes/{r['slug']}", "0.8"))
     for n in NUMEROLOGY_SEO:
-        urls.append((f"https://mystral.space/numerology/{n['slug']}", "0.7"))
+        paths.append((f"/numerology/{n['slug']}", "0.7"))
 
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for loc, prio in urls:
-        xml += f"<url><loc>{loc}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>{prio}</priority></url>\n"
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n')
+    # The SPA homepage has no per-language URLs — one plain entry, no hreflang.
+    xml += f"<url><loc>https://mystral.space/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n"
+    for path, prio in paths:
+        links = "".join(
+            f'<xhtml:link rel="alternate" hreflang="{hl}" href="{url}"/>'
+            for hl, url in hreflang_alternates(path)
+        )
+        for lang in ALL_LANGS:
+            xml += (f"<url><loc>{abs_url(lang, path)}</loc><lastmod>{today}</lastmod>"
+                    f"<changefreq>weekly</changefreq><priority>{prio}</priority>{links}</url>\n")
     xml += "</urlset>"
     return Response(content=xml, media_type="application/xml")

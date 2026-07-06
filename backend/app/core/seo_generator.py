@@ -7,11 +7,14 @@ from datetime import datetime, timedelta
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.models.user import SeoContent
 
 logger = logging.getLogger(__name__)
 
-_CLEAN_RE = re.compile(r'[^ -~ -\xffЀ-ӿ\n\r\t«»„""\'\'–—…°%№♈-♓☽✦★{}:,\[\]"]')
+# Latin Extended-A (Ā-ſ) is required for Turkish ğ/ş/ı/İ — plain Latin-1
+# does not contain them and they would be stripped from generated content.
+_CLEAN_RE = re.compile(r'[^ -~ -\xffĀ-ſЀ-ӿ\n\r\t«»„""\'\'–—…°%№♈-♓☽✦★{}:,\[\]"]')
 
 _QUALITY = (
     "Каждая секция должна содержать не менее 150 слов. Итоговый текст — не менее 1000 слов. "
@@ -19,6 +22,7 @@ _QUALITY = (
     "Используй ТОЛЬКО кириллицу, стандартные знаки препинания и цифры. "
 )
 
+# Russian prompts stay byte-identical — zero behavior change for ru pages.
 PROMPTS = {
     "zodiac": (
         "Напиши подробную характеристику знака зодиака {name} ({dates}, стихия {element}, планета {ruler}). "
@@ -57,40 +61,128 @@ PROMPTS = {
     ),
 }
 
-FALLBACK = json.dumps({
-    "intro": "Подробная информация скоро появится. Зарегистрируйтесь в Mystral для персонального анализа.",
-    "sections": [{"title": "Описание", "text": "Контент генерируется. Пожалуйста, зайдите позже."}],
-    "faq": [{"q": "Как узнать больше?", "a": "Зарегистрируйтесь в Mystral для персонального анализа."}],
-    "cta_text": "Откройте Mystral для персонального эзотерического анализа.",
-}, ensure_ascii=False)
+# For the 5 prefixed languages: English master templates with an explicit
+# target-language directive produce far better native-quality output from
+# deepseek-class models than a Russian prompt with "translate to X" appended.
+# Data passed in is already localized, so {name} etc. are target-language names.
+_LANG_NAME = {"en": "English", "es": "Spanish", "pt": "Brazilian Portuguese", "tr": "Turkish", "uk": "Ukrainian"}
+
+_QUALITY_I18N = (
+    "Each section must contain at least 150 words; the full text must be at least 1000 words. "
+    "Avoid filler and generic phrases — every sentence must carry specific information. "
+    "Write ALL output in {language}: native-sounding, not a literal translation. "
+    "Use only standard punctuation and digits. "
+)
+
+_JSON_SCHEMA = (
+    "Return JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+    "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+)
+
+PROMPTS_I18N = {
+    "zodiac": (
+        "Write a detailed profile of the zodiac sign {name} ({dates}, element {element}, ruling planet {ruler}). "
+        "Include sections: 1) Personality overview, 2) Strengths, 3) Weaknesses, "
+        "4) Love and relationships, 5) Career, 6) Compatibility with other signs, "
+        "7) Health and wellbeing, 8) Money and finances, 9) Famous {name} people, 10) Advice. "
+        "Create 5 FAQ with answers. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "tarot": (
+        "Write the detailed meaning of the Tarot card \"{name}\". "
+        "Include sections: 1) Upright meaning, 2) Reversed meaning, "
+        "3) In love and relationships, 4) In career and finances, 5) The card's advice, 6) Combinations with other cards. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "rune": (
+        "Write the detailed meaning of the rune {name} ({symbol}). "
+        "Include sections: 1) Origin and etymology, 2) Magical meaning, "
+        "3) Upright meaning in divination, 4) Reversed meaning in divination, "
+        "5) Use in bind runes and runic scripts, 6) The rune as an amulet. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "numerology": (
+        "Write the detailed meaning of life path number {number} — \"{name}\". "
+        "Include sections: 1) Character and personality, 2) Life purpose, "
+        "3) Career and vocation, 4) Love and relationships, 5) Health, "
+        "6) Famous people with this number. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+}
+
+# ru entry is the previously hardcoded system message, unchanged.
+SYSTEM_GEN = {
+    "ru": "Ты SEO-копирайтер для эзотерического сайта Mystral. Пиши на русском. Отвечай строго JSON. Никаких иероглифов или символов других алфавитов.",
+    "en": "You are an SEO copywriter for the esoteric platform Mystral. Write in English. Respond strictly with JSON. No characters from other scripts.",
+    "es": "You are an SEO copywriter for the esoteric platform Mystral. Write in Spanish. Respond strictly with JSON. No characters from other scripts.",
+    "pt": "You are an SEO copywriter for the esoteric platform Mystral. Write in Brazilian Portuguese. Respond strictly with JSON. No characters from other scripts.",
+    "tr": "You are an SEO copywriter for the esoteric platform Mystral. Write in Turkish. Respond strictly with JSON. No characters from other scripts.",
+    "uk": "You are an SEO copywriter for the esoteric platform Mystral. Write in Ukrainian. Respond strictly with JSON. No characters from other scripts.",
+}
+
+_FALLBACK_TEXTS = {
+    "ru": ("Подробная информация скоро появится. Зарегистрируйтесь в Mystral для персонального анализа.",
+           "Описание", "Контент генерируется. Пожалуйста, зайдите позже.",
+           "Как узнать больше?", "Зарегистрируйтесь в Mystral для персонального анализа.",
+           "Откройте Mystral для персонального эзотерического анализа."),
+    "en": ("Detailed content is coming soon. Sign up on Mystral for a personal analysis.",
+           "Description", "This content is being generated. Please check back later.",
+           "How can I learn more?", "Sign up on Mystral for a personal analysis.",
+           "Discover Mystral for a personal esoteric analysis."),
+    "es": ("La información detallada estará disponible pronto. Regístrate en Mystral para un análisis personal.",
+           "Descripción", "El contenido se está generando. Vuelve más tarde, por favor.",
+           "¿Cómo puedo saber más?", "Regístrate en Mystral para un análisis personal.",
+           "Descubre Mystral para un análisis esotérico personal."),
+    "pt": ("As informações detalhadas estarão disponíveis em breve. Cadastre-se no Mystral para uma análise pessoal.",
+           "Descrição", "O conteúdo está sendo gerado. Volte mais tarde, por favor.",
+           "Como saber mais?", "Cadastre-se no Mystral para uma análise pessoal.",
+           "Descubra o Mystral para uma análise esotérica pessoal."),
+    "tr": ("Ayrıntılı içerik yakında burada olacak. Kişisel analiz için Mystral'a kaydolun.",
+           "Açıklama", "İçerik oluşturuluyor. Lütfen daha sonra tekrar deneyin.",
+           "Daha fazlasını nasıl öğrenebilirim?", "Kişisel analiz için Mystral'a kaydolun.",
+           "Kişisel ezoterik analiz için Mystral'ı keşfedin."),
+    "uk": ("Детальна інформація незабаром з'явиться. Зареєструйтеся в Mystral для персонального аналізу.",
+           "Опис", "Контент генерується. Будь ласка, завітайте пізніше.",
+           "Як дізнатися більше?", "Зареєструйтеся в Mystral для персонального аналізу.",
+           "Відкрийте Mystral для персонального езотеричного аналізу."),
+}
 
 
-async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncSession) -> dict:
-    result = await session.exec(
-        select(SeoContent).where(SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == "ru")
-    )
-    cached = result.first()
+def _fallback(lang: str) -> dict:
+    intro, sec_title, sec_text, faq_q, faq_a, cta = _FALLBACK_TEXTS.get(lang, _FALLBACK_TEXTS["ru"])
+    return {
+        "intro": intro,
+        "sections": [{"title": sec_title, "text": sec_text}],
+        "faq": [{"q": faq_q, "a": faq_a}],
+        "cta_text": cta,
+        "_fallback": True,  # never persisted; template switches robots to noindex
+    }
 
-    if cached and cached.generated_at and cached.generated_at > datetime.utcnow() - timedelta(days=30):
-        try:
-            logger.debug("Cache hit for %s/%s", page_type, slug)
-            return json.loads(cached.content)
-        except Exception:
-            pass
 
-    prompt_tpl = PROMPTS.get(page_type, "")
-    if not prompt_tpl:
-        return json.loads(FALLBACK)
+def _build_prompt(page_type: str, data: dict, lang: str) -> str | None:
+    if lang == "ru":
+        tpl = PROMPTS.get(page_type, "")
+        return tpl.format(**data) if tpl else None
+    tpl = PROMPTS_I18N.get(page_type, "")
+    if not tpl:
+        return None
+    return tpl.format(language=_LANG_NAME[lang], **data)
 
-    prompt = prompt_tpl.format(**data)
+
+async def _generate_and_store(page_type: str, slug: str, data: dict, session: AsyncSession, lang: str) -> dict:
+    """Calls the LLM, persists the result, returns parsed content (or an
+    in-memory fallback on any failure — fallbacks are never persisted)."""
+    prompt = _build_prompt(page_type, data, lang)
+    if not prompt:
+        return _fallback(lang)
 
     try:
         from app.core.groq_client import _get_async_client
+        from app.core.prompts import LANG_ENFORCE
         client = _get_async_client()
         resp = await client.chat.completions.create(
             model="deepseek/deepseek-v4-flash",
             messages=[
-                {"role": "system", "content": "Ты SEO-копирайтер для эзотерического сайта Mystral. Пиши на русском. Отвечай строго JSON. Никаких иероглифов или символов других алфавитов."},
+                {"role": "system", "content": SYSTEM_GEN.get(lang, SYSTEM_GEN["en"]) + LANG_ENFORCE.get(lang, "")},
                 {"role": "user", "content": prompt},
             ],
             max_tokens=3000,
@@ -102,25 +194,103 @@ async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncS
         if start >= 0 and end > start:
             parsed = json.loads(raw[start:end])
         else:
-            return json.loads(FALLBACK)
+            return _fallback(lang)
     except Exception as e:
-        logger.error("SEO gen error for %s/%s: %s", page_type, slug, e)
-        return json.loads(FALLBACK)
+        logger.error("SEO gen error for %s/%s/%s: %s", page_type, slug, lang, e)
+        return _fallback(lang)
 
     content_str = json.dumps(parsed, ensure_ascii=False)
+    result = await session.exec(
+        select(SeoContent).where(
+            SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+        )
+    )
+    cached = result.first()
     if cached:
         cached.content = content_str
         cached.generated_at = datetime.utcnow()
         session.add(cached)
     else:
-        session.add(SeoContent(page_type=page_type, slug=slug, lang="ru", content=content_str))
+        session.add(SeoContent(page_type=page_type, slug=slug, lang=lang, content=content_str))
     await session.commit()
-    logger.info("Generated SEO content for %s/%s", page_type, slug)
+    logger.info("Generated SEO content for %s/%s/%s", page_type, slug, lang)
     return parsed
 
 
-async def warm_seo_cache() -> None:
+# Fire-and-forget refresh tasks: keep references so they aren't GC'd,
+# and dedupe so a burst of requests on one stale page spawns one refresh.
+_bg_tasks: set = set()
+_refreshing: set = set()
+
+
+async def _refresh_content(page_type: str, slug: str, data: dict, lang: str) -> None:
     from app.core.database import get_session_context
+    key = (page_type, slug, lang)
+    try:
+        async with get_session_context() as session:
+            await _generate_and_store(page_type, slug, data, session, lang)
+    except Exception as e:
+        logger.error("SEO SWR refresh failed for %s/%s/%s: %s", page_type, slug, lang, e)
+    finally:
+        _refreshing.discard(key)
+
+
+def _spawn_refresh(page_type: str, slug: str, data: dict, lang: str) -> None:
+    key = (page_type, slug, lang)
+    if key in _refreshing:
+        return
+    _refreshing.add(key)
+    task = asyncio.create_task(_refresh_content(page_type, slug, data, lang))
+    _bg_tasks.add(task)
+    task.add_done_callback(_bg_tasks.discard)
+
+
+async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncSession, lang: str = "ru") -> dict:
+    """Cached content for one page+language. `data` must already be localized
+    for `lang` (see seo_i18n.localize_*). Expired rows are served stale and
+    refreshed in the background so crawlers never wait on generation; only a
+    complete cache miss generates synchronously."""
+    result = await session.exec(
+        select(SeoContent).where(
+            SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+        )
+    )
+    cached = result.first()
+
+    if cached and cached.generated_at:
+        try:
+            parsed = json.loads(cached.content)
+        except Exception:
+            parsed = None
+        if parsed is not None:
+            if cached.generated_at <= datetime.utcnow() - timedelta(days=30):
+                logger.debug("Stale cache for %s/%s/%s — serving stale, refreshing in background", page_type, slug, lang)
+                _spawn_refresh(page_type, slug, data, lang)
+            return parsed
+
+    return await _generate_and_store(page_type, slug, data, session, lang)
+
+
+def localize_data(page_type: str, data: dict, lang: str) -> dict:
+    """Localized copy of a seo_data entry for prompt building (used by the
+    warm cache and the batch script; page handlers localize via seo_i18n
+    directly). Tarot gets a target-language "name" key for the i18n prompt."""
+    if lang == "ru":
+        return data
+    from app.data.seo_i18n import localize_num, localize_rune, localize_sign, tarot_display_name
+    if page_type == "zodiac":
+        return localize_sign(data, lang)
+    if page_type == "tarot":
+        return {**data, "name": tarot_display_name(data, lang)}
+    if page_type == "rune":
+        return localize_rune(data, lang)
+    if page_type == "numerology":
+        return localize_num(data, lang)
+    return data
+
+
+def seo_page_items() -> list[tuple[str, str, dict]]:
+    """(page_type, slug, raw ru data) for all 123 individual SEO pages."""
     from app.data.seo_data import NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS
 
     items: list[tuple[str, str, dict]] = []
@@ -132,28 +302,41 @@ async def warm_seo_cache() -> None:
         items.append(("rune", r["slug"], r))
     for n in NUMEROLOGY_SEO:
         items.append(("numerology", n["slug"], n))
+    return items
 
-    total = len(items)
-    logger.info("SEO cache warm: starting %d pages", total)
+
+async def warm_seo_cache() -> None:
+    from app.core.database import get_session_context
+    from app.data.seo_i18n import ALL_LANGS
+
+    langs = [l.strip() for l in settings.seo_warm_langs.split(",") if l.strip() in ALL_LANGS]
+    items = seo_page_items()
+    total = len(items) * len(langs)
+    logger.info("SEO cache warm: starting %d pages (langs: %s)", total, ",".join(langs))
 
     errors = 0
-    for i, (ptype, slug, data) in enumerate(items):
-        async with get_session_context() as session:
-            result = await session.exec(
-                select(SeoContent).where(SeoContent.page_type == ptype, SeoContent.slug == slug)
-            )
-            if result.first():
-                continue
-            try:
-                await get_seo_content(ptype, slug, data, session)
-                logger.info("SEO cache warm: %s/%s (%d/%d)", ptype, slug, i + 1, total)
-                errors = 0
-            except Exception as e:
-                logger.error("SEO warm error %s/%s: %s", ptype, slug, e)
-                errors += 1
-                if errors >= 3:
-                    logger.warning("SEO cache warm: stopping after 3 consecutive errors (rate limit?)")
-                    break
-        await asyncio.sleep(3)
+    done = 0
+    for lang in langs:
+        for ptype, slug, data in items:
+            done += 1
+            async with get_session_context() as session:
+                result = await session.exec(
+                    select(SeoContent).where(
+                        SeoContent.page_type == ptype, SeoContent.slug == slug, SeoContent.lang == lang,
+                    )
+                )
+                if result.first():
+                    continue
+                try:
+                    await get_seo_content(ptype, slug, localize_data(ptype, data, lang), session, lang)
+                    logger.info("SEO cache warm: %s/%s/%s (%d/%d)", ptype, slug, lang, done, total)
+                    errors = 0
+                except Exception as e:
+                    logger.error("SEO warm error %s/%s/%s: %s", ptype, slug, lang, e)
+                    errors += 1
+                    if errors >= 3:
+                        logger.warning("SEO cache warm: stopping after 3 consecutive errors (rate limit?)")
+                        return
+            await asyncio.sleep(3)
 
     logger.info("SEO cache warm: done")

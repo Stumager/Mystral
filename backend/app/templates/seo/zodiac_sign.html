@@ -1,17 +1,17 @@
 {% extends "seo/base.html" %}
 {% block schema %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral","logo":{"@type":"ImageObject","url":"https://mystral.space/icons/icon-192.svg"}},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral","logo":{"@type":"ImageObject","url":"https://mystral.space/icons/icon-192.svg"}},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
 {% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Знаки зодиака","item":"https://mystral.space/zodiac"},{"@type":"ListItem","position":3,"name":"{{ sign.name }}","item":"{{ canonical }}"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_zodiac }}","item":"https://mystral.space{{ prefix }}/zodiac"},{"@type":"ListItem","position":3,"name":"{{ sign.name }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
-{% block breadcrumbs %}<a href="/">Главная</a> › <a href="/zodiac">Знаки зодиака</a> › {{ sign.name }}{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › <a href="{{ prefix }}/zodiac">{{ t.bc_zodiac }}</a> › {{ sign.name }}{% endblock %}
 {% block content %}
 <h1>{{ h1 }}</h1>
 <div class="card" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-  <img src="/zodiac/{{ sign.slug }}/constellation.svg" alt="Созвездие {{ sign.name }} — знак зодиака" width="200" height="200" loading="lazy" style="border-radius:16px;flex-shrink:0">
+  <img src="{{ prefix }}/zodiac/{{ sign.slug }}/constellation.svg" alt="{{ t.constellation_alt.format(name=sign.name) }}" width="200" height="200" loading="lazy" style="border-radius:16px;flex-shrink:0">
   <div style="flex:1;min-width:200px">
     <p style="font-size:13px;color:#C9A84C">{{ sign.dates }} · {{ sign.element }} · {{ sign.ruler }}</p>
-    <p style="margin-top:12px">Камень: {{ sign.stone }} · Цвет: {{ sign.color }} · Тип: {{ sign.modality }}</p>
+    <p style="margin-top:12px">{{ t.label_stone }}: {{ sign.stone }} · {{ t.label_color }}: {{ sign.color }} · {{ t.label_type }}: {{ sign.modality }}</p>
   </div>
 </div>
 <p>{{ content.intro }}</p>
@@ -21,6 +21,6 @@
 {% endfor %}
 {% endblock %}
 {% block links %}
-<h2>Другие знаки зодиака</h2>
-<div class="links">{% for s in all_signs %}<a href="/zodiac/{{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>
+<h2>{{ t.other_signs }}</h2>
+<div class="links">{% for s in all_signs %}<a href="{{ prefix }}/zodiac/{{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>
 {% endblock %}

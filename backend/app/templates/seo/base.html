@@ -1,27 +1,23 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ title }}</title>
 <meta name="description" content="{{ description }}">
 <link rel="canonical" href="{{ canonical }}">
-<link rel="alternate" hreflang="ru" href="{{ canonical }}">
-<link rel="alternate" hreflang="es" href="{{ canonical }}?lang=es">
-<link rel="alternate" hreflang="pt" href="{{ canonical }}?lang=pt">
-<link rel="alternate" hreflang="tr" href="{{ canonical }}?lang=tr">
-<link rel="alternate" hreflang="uk" href="{{ canonical }}?lang=uk">
-<link rel="alternate" hreflang="x-default" href="{{ canonical }}">
-<meta property="og:title" content="{{ title }}">
+{% for hl, url in alternates %}<link rel="alternate" hreflang="{{ hl }}" href="{{ url }}">
+{% endfor %}<meta property="og:title" content="{{ title }}">
 <meta property="og:description" content="{{ description }}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="{{ canonical }}">
+<meta property="og:locale" content="{{ og_locale }}">
 <meta property="og:image" content="{{ og_image|default('https://mystral.space/og-image.svg') }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="Mystral">
 <meta name="twitter:card" content="summary">
-<meta name="robots" content="index, follow">
+{% if is_fallback %}<meta name="robots" content="noindex, follow">{% else %}<meta name="robots" content="index, follow">{% endif %}
 <!-- Google Analytics: GA_MEASUREMENT_ID -->
 <!-- Яндекс.Метрика: YANDEX_COUNTER_ID -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -37,6 +33,9 @@ a{color:#C9A84C;text-decoration:none}a:hover{text-decoration:underline}
 .hdr-logo{font-family:'Cinzel',serif;font-size:16px;letter-spacing:.28em;color:#E8CD7E}
 .hdr-nav a{margin-left:20px;font-size:13px;color:#A89E8B}
 .bc{padding:16px 0;font-size:12px;color:#6E6757}.bc a{color:#8A8170}
+.langs{padding:0 0 8px;font-size:11.5px;color:#6E6757}
+.langs a{color:#8A8170;margin-right:10px}
+.langs span{color:#C9A84C;margin-right:10px}
 h1{font-family:'Cormorant Garamond',serif;font-size:36px;color:#F0E9DA;line-height:1.15;margin:0 0 16px}
 h2{font-family:'Cormorant Garamond',serif;font-size:24px;color:#E8CD7E;margin:32px 0 12px}
 h3{font-family:'Cormorant Garamond',serif;font-size:20px;color:#F0E9DA;margin:24px 0 8px}
@@ -57,14 +56,15 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
 <body>
 <header class="hdr">
   <a href="/" class="hdr-logo">MYSTRAL</a>
-  <nav class="hdr-nav"><a href="/">Главная</a><a href="/zodiac">Зодиак</a><a href="/tarot">Таро</a><a href="/runes">Руны</a></nav>
+  <nav class="hdr-nav"><a href="/">{{ t.nav_home }}</a><a href="{{ prefix }}/zodiac">{{ t.nav_zodiac }}</a><a href="{{ prefix }}/tarot">{{ t.nav_tarot }}</a><a href="{{ prefix }}/runes">{{ t.nav_runes }}</a></nav>
 </header>
 <main class="wrap">
   <nav class="bc">{% block breadcrumbs %}{% endblock %}</nav>
+  <nav class="langs">{% for hl, url in alternates %}{% if hl != 'x-default' %}{% if hl == lang %}<span>{{ lang_native[hl] }}</span>{% else %}<a href="{{ url }}" hreflang="{{ hl }}">{{ lang_native[hl] }}</a>{% endif %}{% endif %}{% endfor %}</nav>
   {% block content %}{% endblock %}
   {% if faq %}
   <div class="card">
-    <h2>Часто задаваемые вопросы</h2>
+    <h2>{{ t.faq_title }}</h2>
     {% for item in faq %}
     <p class="faq-q">{{ item.q }}</p>
     <p class="faq-a">{{ item.a }}</p>
@@ -72,12 +72,12 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
   </div>
   {% endif %}
   <div class="cta">
-    <h2>Откройте Mystral</h2>
-    <p>{{ cta_text|default('Персональный гороскоп, натальная карта, Таро и руны — бесплатно.') }}</p>
-    <a href="/" class="cta-btn">Попробовать бесплатно</a>
+    <h2>{{ t.cta_title }}</h2>
+    <p>{{ cta_text|default(t.cta_default, true) }}</p>
+    <a href="/" class="cta-btn">{{ t.cta_button }}</a>
   </div>
   {% block links %}{% endblock %}
 </main>
-<footer class="ft">© 2026 Mystral. Эзотерическая платформа.</footer>
+<footer class="ft">{{ t.footer }}</footer>
 </body>
 </html>

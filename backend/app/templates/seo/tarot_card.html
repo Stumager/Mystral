@@ -1,16 +1,16 @@
 {% extends "seo/base.html" %}
 {% block schema %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
 {% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Карты Таро","item":"https://mystral.space/tarot"},{"@type":"ListItem","position":3,"name":"{{ card.name_ru }}","item":"{{ canonical }}"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_tarot }}","item":"https://mystral.space{{ prefix }}/tarot"},{"@type":"ListItem","position":3,"name":"{{ card.display_name }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
-{% block breadcrumbs %}<a href="/">Главная</a> › <a href="/tarot">Карты Таро</a> › {{ card.name_ru }}{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › <a href="{{ prefix }}/tarot">{{ t.bc_tarot }}</a> › {{ card.display_name }}{% endblock %}
 {% block content %}
 <h1>{{ h1 }}</h1>
 <div style="display:flex;gap:24px;align-items:flex-start;margin:20px 0;flex-wrap:wrap">
-  <img src="/tarot/{{ card.number }}.jpg" alt="{{ card.name_ru }} — карта Таро" loading="lazy" width="180" height="300" style="border-radius:14px;border:2px solid rgba(201,168,76,.35)">
+  <img src="/tarot/{{ card.number }}.jpg" alt="{{ t.card_alt.format(name=card.display_name) }}" loading="lazy" width="180" height="300" style="border-radius:14px;border:2px solid rgba(201,168,76,.35)">
   <div style="flex:1;min-width:240px">
-    <p style="font-size:13px;color:#C9A84C">{{ 'Старший Аркан' if card.arcana == 'major' else card.suit|capitalize }}</p>
+    <p style="font-size:13px;color:#C9A84C">{{ suit_label }}</p>
     <p style="margin-top:12px">{{ content.intro }}</p>
   </div>
 </div>
@@ -19,11 +19,11 @@
 <p>{{ sec.text }}</p>
 {% endfor %}
 <div style="display:flex;justify-content:space-between;margin:32px 0">
-  {% if prev %}<a href="/tarot/{{ prev.slug }}" style="font-size:13px">← {{ prev.name_ru }}</a>{% else %}<span></span>{% endif %}
-  {% if next %}<a href="/tarot/{{ next.slug }}" style="font-size:13px">{{ next.name_ru }} →</a>{% else %}<span></span>{% endif %}
+  {% if prev %}<a href="{{ prefix }}/tarot/{{ prev.slug }}" style="font-size:13px">← {{ prev.display_name }}</a>{% else %}<span></span>{% endif %}
+  {% if next %}<a href="{{ prefix }}/tarot/{{ next.slug }}" style="font-size:13px">{{ next.display_name }} →</a>{% else %}<span></span>{% endif %}
 </div>
 {% endblock %}
 {% block links %}
-<h2>{{ 'Старшие Арканы' if card.arcana == 'major' else 'Другие карты' }}</h2>
-<div class="links">{% for c in related %}<a href="/tarot/{{ c.slug }}">{{ c.name_ru }}</a>{% endfor %}</div>
+<h2>{{ t.major_arcana_plural if card.arcana == 'major' else t.other_cards }}</h2>
+<div class="links">{% for c in related %}<a href="{{ prefix }}/tarot/{{ c.slug }}">{{ c.display_name }}</a>{% endfor %}</div>
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "seo/base.html" %}
 {% block schema %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
 {% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Нумерология","item":"https://mystral.space/numerology"},{"@type":"ListItem","position":3,"name":"Число {{ num.number }}","item":"{{ canonical }}"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_number.format(number=num.number) }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
-{% block breadcrumbs %}<a href="/">Главная</a> › Нумерология › Число {{ num.number }}{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_numerology }} › {{ t.bc_number.format(number=num.number) }}{% endblock %}
 {% block content %}
 <h1>{{ h1 }}</h1>
 <div class="card" style="text-align:center">
@@ -18,6 +18,6 @@
 {% endfor %}
 {% endblock %}
 {% block links %}
-<h2>Другие числа жизненного пути</h2>
-<div class="links">{% for n in all_nums %}<a href="/numerology/{{ n.slug }}">Число {{ n.number }} — {{ n.name }}</a>{% endfor %}</div>
+<h2>{{ t.other_numbers }}</h2>
+<div class="links">{% for n in all_nums %}<a href="{{ prefix }}/numerology/{{ n.slug }}">{{ t.number_link.format(number=n.number, name=n.name) }}</a>{% endfor %}</div>
 {% endblock %}

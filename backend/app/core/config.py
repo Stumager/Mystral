@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_public_key: str = ""
     vapid_claims_email: str = "mailto:noreply@mail.mystral.space"
+    seo_warm_langs: str = "ru"
 
 
 settings = Settings()

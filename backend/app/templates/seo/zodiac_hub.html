@@ -1,10 +1,10 @@
 {% extends "seo/base.html" %}
 {% block schema %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"Знаки зодиака","item":"https://mystral.space/zodiac"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_zodiac }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
-{% block breadcrumbs %}<a href="/">Главная</a> › Знаки зодиака{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_zodiac }}{% endblock %}
 {% block content %}
-<h1>Знаки зодиака — характеристика и совместимость</h1>
-<p>Все 12 знаков зодиака с подробной характеристикой, совместимостью и персональным гороскопом на каждый день.</p>
-<div class="links" style="margin-top:24px">{% for s in signs %}<a href="/zodiac/{{ s.slug }}" style="padding:18px;text-align:center"><span style="display:block;font-family:'Cormorant Garamond',serif;font-size:22px;color:#F0E9DA">{{ s.name }}</span><span style="font-size:11px;color:#8A8170">{{ s.dates }}</span></a>{% endfor %}</div>
+<h1>{{ t.zodiac_hub_h1 }}</h1>
+<p>{{ t.zodiac_hub_intro }}</p>
+<div class="links" style="margin-top:24px">{% for s in signs %}<a href="{{ prefix }}/zodiac/{{ s.slug }}" style="padding:18px;text-align:center"><span style="display:block;font-family:'Cormorant Garamond',serif;font-size:22px;color:#F0E9DA">{{ s.name }}</span><span style="font-size:11px;color:#8A8170">{{ s.dates }}</span></a>{% endfor %}</div>
 {% endblock %}
