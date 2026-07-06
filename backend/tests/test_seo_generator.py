@@ -133,10 +133,11 @@ class TestTruncationFollowUp:
         assert result is None
 
     def test_max_tokens_has_real_headroom_over_old_value(self):
-        # Regression guard: 3000 then 4096 both caused real truncation in
-        # production (the second time on a clean, non-rambling response
-        # that was simply thorough). Must stay comfortably higher.
-        assert GENERATION_MAX_TOKENS >= 6144
+        # Regression guard: 3000, then 4096, then 6144 all caused real
+        # truncation in production on clean, non-rambling responses that
+        # were simply thorough (confirmed via finish_reason=length each
+        # time, not guesswork). Must stay comfortably higher.
+        assert GENERATION_MAX_TOKENS >= 12000
 
     def test_quality_directives_forbid_rambling_and_cap_famous_people(self):
         from app.core.seo_generator import _QUALITY, _QUALITY_I18N

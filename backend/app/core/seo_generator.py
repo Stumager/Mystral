@@ -188,14 +188,17 @@ def _build_prompt(page_type: str, data: dict, lang: str) -> str | None:
     return tpl.format(language=_LANG_NAME[lang], **data)
 
 
-# TZ-060 follow-up #2: 4096 was STILL too tight for a clean, non-rambling
-# response — a production page came back with intro + all 10 sections + all
-# 5 faq (no self-correction artifacts, the anti-rambling prompt fix worked)
-# and still got cut off right before cta_text, the very last field. All of
-# this model's OpenRouter provider endpoints support >=16k output tokens, so
-# there's no reason to stay this close to the edge; 6144 gives real margin
-# over content that is long purely because it's thorough, not bloated.
-GENERATION_MAX_TOKENS = 6144
+# TZ-060 follow-up #3: 6144 ALSO truncated a clean response (Capricorn/en —
+# intro + 10 sections + 4 of 5 faq, cut off with finish_reason=length,
+# confirmed via the explicit signal added in follow-up #2, not guesswork).
+# A tokenizer-based estimate from a similar prior response (cl100k_base as
+# a proxy for DeepSeek's real tokenizer) predicted ~3-4.5k tokens would be
+# enough — it was wrong; proxy-tokenizer math is not reliable here, so stop
+# incrementally chasing the real number. max_tokens is a ceiling, not a
+# cost — pages that finish in fewer tokens aren't affected either way, and
+# every provider behind this model supports >=16k output. Jump straight to
+# a generous cap instead of nudging it up again next time this recurs.
+GENERATION_MAX_TOKENS = 12000
 
 _REQUIRED_KEYS = ("intro", "sections", "faq", "cta_text")
 
