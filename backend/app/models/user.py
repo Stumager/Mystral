@@ -144,7 +144,7 @@ class Payment(SQLModel, table=True):
     product: str
     amount: str
     currency: str = Field(default="RUB")
-    status: str = Field(default="pending")  # pending | succeeded | canceled
+    status: str = Field(default="pending")  # pending | succeeded | canceled | refunded
     metadata_json: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

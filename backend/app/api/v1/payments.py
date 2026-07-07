@@ -63,6 +63,11 @@ def _activate_pro(user: User, product_key: str) -> None:
     user.subscription_created_at = datetime.utcnow()
 
 
+def _revoke_pro(user: User) -> None:
+    user.subscription_tier = "free"
+    user.subscription_expires_at = None
+
+
 class StarsCreateRequest(BaseModel):
     product: str
 
@@ -341,32 +346,95 @@ async def _verify_and_sync_payment(payment_id: str, session: AsyncSession) -> Op
     return payment
 
 
+async def _verify_and_revoke_refund(refund_id: str, session: AsyncSession) -> Optional[Payment]:
+    """Re-fetches the refund from YuKassa's API (never trust webhook body alone —
+    same discipline as _verify_and_sync_payment), resolves the local Payment via
+    the verified refund's payment_id, and revokes Pro from that payment's user.
+    Any refund amount (full or partial) revokes access — no amount comparison,
+    per product decision. Idempotent: a payment already marked "refunded" is
+    left alone on repeat webhook delivery, so retries don't re-log/re-touch it."""
+    creds = base64.b64encode(
+        f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
+    ).decode()
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        resp = await http.get(
+            f"https://api.yookassa.ru/v3/refunds/{refund_id}",
+            headers={"Authorization": f"Basic {creds}"},
+        )
+    if resp.status_code != 200:
+        logger.warning("YuKassa refund verify: failed for %s (%s)", refund_id, resp.status_code)
+        return None
+
+    yk_refund = resp.json()
+    if yk_refund.get("status") != "succeeded":
+        logger.warning("YuKassa refund verify: refund %s not succeeded (status=%s)", refund_id, yk_refund.get("status"))
+        return None
+
+    payment_id = yk_refund.get("payment_id")
+    if not payment_id:
+        logger.warning("YuKassa refund verify: no payment_id on refund %s", refund_id)
+        return None
+
+    result = await session.exec(select(Payment).where(Payment.provider_payment_id == payment_id))
+    payment = result.first()
+    if not payment:
+        logger.warning("YuKassa refund verify: no local row for payment %s (refund %s)", payment_id, refund_id)
+        return None
+
+    was_refunded = payment.status == "refunded"
+    payment.status = "refunded"
+    payment.updated_at = datetime.utcnow()
+    session.add(payment)
+    await session.commit()
+    await session.refresh(payment)
+
+    if not was_refunded:
+        user = await session.get(User, payment.user_id)
+        if user:
+            _revoke_pro(user)
+            session.add(user)
+            await session.commit()
+            logger.info("YuKassa: user %s Pro revoked (refund %s, payment %s)", payment.user_id, refund_id, payment_id)
+
+    return payment
+
+
 @router.post("/yukassa/webhook")
 async def yukassa_webhook(
     request: Request,
     session: AsyncSession = Depends(get_session),
 ):
-    """YuKassa webhooks are unsigned — _verify_and_sync_payment re-fetches the
-    payment from the YuKassa API and only trusts status/metadata YuKassa
+    """YuKassa webhooks are unsigned — _verify_and_sync_payment/_verify_and_revoke_refund
+    re-fetch the object from the YuKassa API and only trust status/metadata YuKassa
     itself returns, never the webhook body directly."""
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    if body.get("event") not in ("payment.succeeded", "payment.canceled"):
+    event = body.get("event")
+    if event not in ("payment.succeeded", "payment.canceled", "refund.succeeded"):
         return {"status": "ignored"}
-
-    payment_id = body.get("object", {}).get("id")
-    if not payment_id:
-        return {"status": "no_payment_id"}
 
     if not settings.yukassa_shop_id or not settings.yukassa_secret_key:
         raise HTTPException(status_code=503, detail="YuKassa not configured")
 
-    payment = await _verify_and_sync_payment(payment_id, session)
+    # object.id means different things per event: for payment.* it IS the
+    # payment id; for refund.* it's the refund's own id, and the originating
+    # payment_id only appears inside the verified refund object (see below).
+    object_id = body.get("object", {}).get("id")
+
+    if event == "refund.succeeded":
+        if not object_id:
+            return {"status": "no_refund_id"}
+        payment = await _verify_and_revoke_refund(object_id, session)
+    else:
+        if not object_id:
+            return {"status": "no_payment_id"}
+        payment = await _verify_and_sync_payment(object_id, session)
+
     if not payment:
-        raise HTTPException(status_code=400, detail="Payment verification failed")
+        raise HTTPException(status_code=400, detail="Verification failed")
 
     return {"status": "ok"}
 

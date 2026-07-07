@@ -301,3 +301,119 @@ class TestYukassaFlow:
         data = res.json()
         assert data["status"] == "succeeded"
         assert data["tier"] == "pro"
+
+
+class TestYukassaRefund:
+    """TZ-061: refund.succeeded must revoke Pro — a real production gap where
+    a refunded payment left Pro active indefinitely."""
+
+    async def _pay_and_activate(self, client, user, provider_payment_id, product="pro_month"):
+        """Realistic setup: create the pending Payment row (as /yukassa/create
+        would) and drive the actual payment.succeeded webhook (like
+        TestYukassaFlow does) so the test starts from a genuine Pro-active +
+        Payment(status="succeeded") state, not a hand-crafted one."""
+        async with AsyncSessionLocal() as s:
+            payment = Payment(user_id=user.id, provider_payment_id=provider_payment_id,
+                              product=product, amount="399.00")
+            s.add(payment)
+            await s.commit()
+
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": provider_payment_id, "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": product},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "payment.succeeded", "object": {"id": provider_payment_id}})
+        assert res.status_code == 200
+
+    async def test_refund_webhook_revokes_pro(self, client, auth_user):
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "yk-refund-1")
+
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "re-1", "status": "succeeded", "payment_id": "yk-refund-1",
+            "amount": {"value": "399.00", "currency": "RUB"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "refund.succeeded", "object": {"id": "re-1"}})
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+            assert u.subscription_expires_at is None
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "yk-refund-1"))
+            assert result.first().status == "refunded"
+
+    async def test_refund_webhook_partial_amount_still_revokes(self, client, auth_user):
+        """Product decision: any refund amount revokes Pro, no comparison
+        against the original payment amount."""
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "yk-refund-partial-1", "pro_year")
+
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "re-partial-1", "status": "succeeded", "payment_id": "yk-refund-partial-1",
+            "amount": {"value": "1.00", "currency": "RUB"},  # far less than the 2999.00 payment
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "refund.succeeded", "object": {"id": "re-partial-1"}})
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+
+    async def test_refund_webhook_idempotent_on_retry(self, client, auth_user):
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "yk-refund-retry-1")
+
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "re-retry-1", "status": "succeeded", "payment_id": "yk-refund-retry-1",
+            "amount": {"value": "399.00", "currency": "RUB"},
+        })):
+            res1 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "refund.succeeded", "object": {"id": "re-retry-1"}})
+            assert res1.status_code == 200
+            res2 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "refund.succeeded", "object": {"id": "re-retry-1"}})
+            assert res2.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+            assert u.subscription_expires_at is None
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "yk-refund-retry-1"))
+            assert result.first().status == "refunded"
+
+    async def test_refund_webhook_unknown_local_payment(self, client):
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "re-unknown-1", "status": "succeeded", "payment_id": "yk-does-not-exist",
+            "amount": {"value": "399.00", "currency": "RUB"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "refund.succeeded", "object": {"id": "re-unknown-1"}})
+        assert res.status_code == 400
+
+    async def test_refund_webhook_status_not_succeeded_ignored(self, client, auth_user):
+        """Never trust the webhook body alone (TZ-055 discipline): if the
+        re-fetched refund isn't actually "succeeded", Pro must not be revoked."""
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "yk-refund-pending-1")
+
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "re-pending-1", "status": "pending", "payment_id": "yk-refund-pending-1",
+            "amount": {"value": "399.00", "currency": "RUB"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "refund.succeeded", "object": {"id": "re-pending-1"}})
+        assert res.status_code == 400
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "pro"
+
+    async def test_refund_webhook_no_refund_id_ignored(self, client):
+        res = await client.post("/v1/payments/yukassa/webhook",
+                                json={"event": "refund.succeeded", "object": {}})
+        assert res.status_code == 200
+        assert res.json()["status"] == "no_refund_id"
