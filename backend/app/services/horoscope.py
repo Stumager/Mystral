@@ -1,7 +1,18 @@
+import logging
 from datetime import date
 
 from app.core.groq_client import _get_async_client
 from app.core.prompts import lang_enforce, system_prompt
+
+logger = logging.getLogger(__name__)
+
+# A production push notification was observed cut off mid-sentence ("...day
+# for" with nothing after it) — the same max_tokens-too-tight class of bug
+# fixed for SEO generation (TZ-060). 200 was not enough margin for a 60-70
+# word response, especially in Cyrillic where this tokenizer needs more
+# tokens per word than for English. max_tokens is a ceiling, not a cost — a
+# short response that finishes well under this isn't billed any differently.
+GENERATION_MAX_TOKENS = 500
 
 SIGNS_DATA = [
     (1, 1, 1, 19, "capricorn"), (1, 20, 2, 18, "aquarius"), (2, 19, 3, 20, "pisces"),
@@ -64,6 +75,8 @@ async def generate_horoscope(sign: str, lang: str) -> str:
             {"role": "user", "content": prompt},
         ],
         stream=False,
-        max_tokens=200,
+        max_tokens=GENERATION_MAX_TOKENS,
     )
+    if getattr(response.choices[0], "finish_reason", None) == "length":
+        logger.warning("Daily horoscope for %s/%s truncated by max_tokens (finish_reason=length)", sign, lang)
     return response.choices[0].message.content or ""
