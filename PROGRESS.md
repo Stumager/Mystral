@@ -88,3 +88,22 @@
 - Alembic миграции (вместо create_all); перепроверить `shareToTelegram` на телефоне; webhook URL ЮKassa; per-page lastmod в sitemap — бэклог; уникальный индекс `(page_type, slug, lang)` — бэклог.
 - Приоритизировать находки `AUDIT_2026-07-07.md` в отдельные тикеты: реферальная программа, возврат Stars, `/natal` без auth+rate limit, push, языковой пробел, противоречие Privacy/Terms.
 - Подписка на `refund.succeeded` + ручное снятие Pro со своего аккаунта (см. ТЗ-061 выше).
+
+---
+
+## 2026-07-11 — ТЗ-062: фикс UUID в composite_interpret (500 на каждый вызов)
+
+### Completed
+- Диагностика (найдено в `docs/archive/AUDIT_2026-07-07.md`, подтверждено эмпирически по запросу Саши) — `compatibility.py:603`: `session.get(UserPartner, req.partner_id)` передавал str вместо UUID. Падало со `StatementError`/`AttributeError: 'str' object has no attribute 'hex'` на каждый вызов, для любого пользователя и раздела — весь AI-интерпретатор Composite Chart (overview/planets/aspects/advice) был нерабочим. Сам расчёт Composite Chart (не интерпретация, `compat_composite`) не затронут — там уже стоял `UUID(req.partner_id)`.
+- Добавлен общий `_parse_partner_id(partner_id: str) -> UUID` в `compatibility.py`: оборачивает `UUID()`, превращает `ValueError` в `HTTPException(422, "Invalid partner_id")`. Ни одно из 4 мест разбора `partner_id` в файле раньше не обрабатывало невалидный формат (свалились бы в общий 500) — применено единообразно во всех четырёх местах (строки 208, 228, 526, 603), не только в багованном.
+
+### Verified
+- Новый `tests/test_compatibility.py`: невалидный формат partner_id → 422, не 500; partner_id чужого партнёра → 404, не 500. Оба гоняются без Docker.
+- По одному тесту на все 4 раздела (overview/planets/aspects/advice) с валидным partner_id — требуют реального kerykeion/pyswisseph (нет Windows-колеса), помечены `skipif` по образцу `test_natal_timezone.py`: локально скипаются, реально прогоняются в Docker/CI.
+- Полный `pytest` — **150 passed, 6 skipped** (было 148/2 — +2 passed, +4 skipped, без регрессий).
+- `tsc --noEmit` — 0 ошибок. Фронтенд не менялся: `streamRequest`/`parseApiError` уже показывают `body.detail` для любого не-2xx статуса вне 401/402/429/5xx — новый 422 подхватывается существующей веткой без правок. `partner_id` на фронте всегда берётся из списка партнёров (реальный UUID), так что 422 — защитный случай на бэкенде, не реальный пользовательский сценарий.
+
+### Next step
+- Прогнать 4 skipped-теста реально в Docker (`docker compose exec backend pytest tests/test_compatibility.py -v`) на сервере — Саша делает деплой/pull сам.
+- Alembic миграции; перепроверить `shareToTelegram`; webhook URL ЮKassa; per-page lastmod в sitemap; уникальный индекс `(page_type, slug, lang)` — бэклог.
+- Остальные находки `AUDIT_2026-07-07.md`: реферальная программа, возврат Stars, `/natal` без auth+rate limit, push, языковой пробел, Privacy/Terms — в отдельные тикеты.

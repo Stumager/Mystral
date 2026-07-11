@@ -127,6 +127,13 @@ def _desc(score: int, lang: str) -> str:
 
 # ---- Partner CRUD ----
 
+def _parse_partner_id(partner_id: str) -> UUID:
+    try:
+        return UUID(partner_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid partner_id")
+
+
 class PartnerCreate(BaseModel):
     name: str
     birth_date: str
@@ -205,7 +212,7 @@ async def delete_partner(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    p = await session.get(UserPartner, UUID(partner_id))
+    p = await session.get(UserPartner, _parse_partner_id(partner_id))
     if not p or p.user_id != current_user.id:
         raise HTTPException(404, "Not found")
     await session.delete(p)
@@ -225,7 +232,7 @@ async def _get_user_and_partner(req: CompatTypeRequest, user: User, session: Asy
     prof = profile.first()
     if not prof or not prof.birth_date:
         raise HTTPException(400, "Fill your birth date in profile")
-    partner = await session.get(UserPartner, UUID(req.partner_id))
+    partner = await session.get(UserPartner, _parse_partner_id(req.partner_id))
     if not partner or partner.user_id != user.id:
         raise HTTPException(404, "Partner not found")
     return prof, partner
@@ -523,7 +530,7 @@ async def compat_composite(
     if not prof or not prof.birth_date:
         return {"error": "incomplete_data", "message": "Заполните дату рождения в Профиле для composite chart."}
 
-    partner = await session.get(UserPartner, UUID(req.partner_id))
+    partner = await session.get(UserPartner, _parse_partner_id(req.partner_id))
     if not partner or partner.user_id != current_user.id:
         raise HTTPException(404, "Partner not found")
 
@@ -600,7 +607,7 @@ async def composite_interpret(
     if not prof or not prof.birth_date:
         raise HTTPException(400, "No birth data")
 
-    partner = await session.get(UserPartner, req.partner_id)
+    partner = await session.get(UserPartner, _parse_partner_id(req.partner_id))
     if not partner or partner.user_id != current_user.id:
         raise HTTPException(404, "Partner not found")
 
