@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
+import { applyStoredReferralCode } from "../utils/api";
 
 interface Props { email: string; }
 
@@ -56,6 +57,7 @@ export function VerifyEmail({ email }: Props) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.detail || data.message || "Ошибка"); setLoading(false); return; }
+      await applyStoredReferralCode(data.access_token);
       login(data.access_token, data.user);
     } catch { setError("Ошибка соединения"); }
     finally { setLoading(false); }

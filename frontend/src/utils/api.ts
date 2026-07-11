@@ -103,6 +103,18 @@ export async function apiRequest<T = unknown>(
   return res.json();
 }
 
+export async function applyStoredReferralCode(token: string): Promise<void> {
+  const code = localStorage.getItem("mystral_ref_code");
+  if (!code) return;
+  try {
+    await apiRequest("/referrals/apply", { ref_code: code }, token);
+  } catch {
+    // best-effort: invalid/self-refer/already-applied/rate-limited — never block login
+  } finally {
+    localStorage.removeItem("mystral_ref_code");
+  }
+}
+
 export async function apiGet<T = unknown>(
   endpoint: string,
   token?: string,

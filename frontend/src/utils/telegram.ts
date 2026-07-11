@@ -3,6 +3,7 @@ declare global {
     Telegram?: {
       WebApp?: {
         initData: string;
+        initDataUnsafe?: { start_param?: string };
         platform: string;
       };
     };

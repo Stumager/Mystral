@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui";
 import { validateEmail, validatePassword, validateName } from "../utils/validate";
 import { VerifyEmail } from "./VerifyEmail";
+import { applyStoredReferralCode } from "../utils/api";
 
 type Mode = "login" | "register";
 
@@ -38,6 +39,7 @@ export function LoginScreen() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || t("login.tg_error"));
+        if (data.is_new) await applyStoredReferralCode(data.access_token);
         login(data.access_token, data.user);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : t("login.tg_error"));
@@ -81,9 +83,8 @@ export function LoginScreen() {
     try {
       const endpoint =
         mode === "login" ? "/api/v1/auth/login" : "/api/v1/auth/register";
-      const refCode = localStorage.getItem("mystral_ref_code");
       const body: Record<string, unknown> =
-        mode === "login" ? { email, password } : { email, password, name, ref_code: refCode || undefined };
+        mode === "login" ? { email, password } : { email, password, name };
 
       const res = await fetch(endpoint, {
         method: "POST",

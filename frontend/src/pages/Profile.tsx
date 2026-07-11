@@ -552,6 +552,9 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                 <p className="font-cormorant" style={{ fontSize: 22, color: "#F0E9DA" }}>{t("profile.invite_friends")}</p>
                 <p style={{ fontSize: 13, color: "#A89E8B", marginTop: 4 }}>{t("profile.ref_bonus_you")}</p>
                 <p style={{ fontSize: 13, color: "#A89E8B" }}>{t("profile.ref_bonus_friend")}</p>
+                <p style={{ fontSize: 13, color: "#C9A84C", fontWeight: 600, marginTop: 6 }}>
+                  {t("profile.ref_bonus_earned")}: +{refData.total_bonus_days}
+                </p>
               </div>
               <span className="font-cinzel" style={{ fontSize: 11, color: "#E8CD7E", background: "rgba(201,168,76,.15)", border: "1px solid rgba(201,168,76,.3)", borderRadius: 99, padding: "4px 12px" }}>
                 {refData.total_referrals}

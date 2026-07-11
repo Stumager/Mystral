@@ -2,12 +2,13 @@ import secrets
 import string
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api.v1.auth import _check_ip_rate, _get_ip
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.models.user import ReferralLog, User, UserProfile
@@ -22,7 +23,10 @@ def _gen_ref_code() -> str:
 
 async def _ensure_ref_code(user: User, session: AsyncSession) -> str:
     if not user.ref_code:
-        user.ref_code = _gen_ref_code()
+        code = _gen_ref_code()
+        while (await session.exec(select(User).where(User.ref_code == code))).first():
+            code = _gen_ref_code()
+        user.ref_code = code
         session.add(user)
         await session.commit()
         await session.refresh(user)
@@ -90,11 +94,20 @@ class ApplyRefRequest(BaseModel):
 @router.post("/referrals/apply")
 async def apply_referral(
     req: ApplyRefRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    await _check_ip_rate(_get_ip(request), "referral_apply", 5, 3600)
+
     if current_user.referred_by:
         raise HTTPException(400, "Реферальный код уже применён")
+
+    # Telegram-native accounts have no email at all (auth_telegram() never sets
+    # one) and email_verified defaults to False forever for them — only email
+    # registrations need to prove a real inbox before a bonus counts.
+    if current_user.email and not current_user.email_verified:
+        raise HTTPException(400, "Подтвердите email перед применением реферального кода")
 
     result = await session.exec(select(User).where(User.ref_code == req.ref_code))
     referrer = result.first()

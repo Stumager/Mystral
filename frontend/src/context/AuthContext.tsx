@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import i18n from "../i18n";
 import { isTMA } from "../utils/telegram";
+import { applyStoredReferralCode } from "../utils/api";
 
 interface UserData {
   id: string;
@@ -78,7 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (res.ok) {
             const data = await res.json();
             login(data.access_token, data.user);
-            if (data.is_new) setPendingMerge(true);
+            if (data.is_new) {
+              await applyStoredReferralCode(data.access_token);
+              setPendingMerge(true);
+            }
             return;
           }
         } catch {}

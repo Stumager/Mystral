@@ -107,3 +107,25 @@
 - Прогнать 4 skipped-теста реально в Docker (`docker compose exec backend pytest tests/test_compatibility.py -v`) на сервере — Саша делает деплой/pull сам.
 - Alembic миграции; перепроверить `shareToTelegram`; webhook URL ЮKassa; per-page lastmod в sitemap; уникальный индекс `(page_type, slug, lang)` — бэклог.
 - Остальные находки `AUDIT_2026-07-07.md`: реферальная программа, возврат Stars, `/natal` без auth+rate limit, push, языковой пробел, Privacy/Terms — в отдельные тикеты.
+
+---
+
+## 2026-07-11 — ТЗ-063: реферальная программа не начисляла бонусы никогда
+
+### Completed
+- Диагностика (отдельным заходом, до фикса): бэкенд-логика начисления (`POST /referrals/apply`, `_extend_pro`, `ReferralLog`) уже была полностью реализована и покрыта 5 тестами — разрыв был только в интеграции. `RegisterRequest` не принимал `ref_code`; фронтенд ни разу не вызывал `/referrals/apply`; Telegram-пути (auto-login/widget/merge) вообще не касались реферального кода; `startapp`/`start_param` deep-link не читался совсем (`initDataUnsafe` даже не был в типах).
+- Решение: не трогать `RegisterRequest`/`register()` — вместо этого фронтенд сам вызывает уже готовый и протестированный `/referrals/apply` в момент, когда у нового пользователя впервые появляется JWT (email — сразу после `/auth/verify-email`; Telegram — сразу после `/auth/telegram` при `is_new === true`, во всех трёх местах, где дергается этот эндпоинт: auto-login, widget-login, и теперь единообразно).
+- `backend/app/api/v1/referrals.py`: rate-limit на `/referrals/apply` (переиспользован `_check_ip_rate`/`_get_ip` из `auth.py`, тот же лимит 5/час, что у `register`); гейт `email_verified` для email-аккаунтов — с явным исключением для Telegram-нативных (`email is None`), иначе Telegram-бонусы никогда бы не начислялись (у них `email_verified` по умолчанию `False` и никогда не станет `True`); коллизия `ref_code` теперь исключена ретраем в `_ensure_ref_code` (колонка не была `unique`).
+- Frontend: `utils/telegram.ts` — тип `initDataUnsafe.start_param`; `main.tsx` — мост `start_param` → тот же `localStorage["mystral_ref_code"]`, что и у веб-пути `/ref/CODE`, один механизм применения на оба источника; новый `applyStoredReferralCode()` в `utils/api.ts`; подключён в `VerifyEmail.tsx`, `AuthContext.tsx` (auto-login), `LoginScreen.tsx` (widget-login); убрано мёртвое поле `ref_code` из тела `/auth/register` (бэкенд его больше не читает и не будет). `Profile.tsx` — явная строка `total_bonus_days`.
+
+### Verified
+- Новый `TestReferralFullCycle` в `test_profile.py` (4 теста): полный HTTP-цикл email (register→verify→apply, оба получают Pro); неверифицированный email → 400, бонус не начислен; Telegram-нативный пользователь (`email=None`, `email_verified=False`) **не** блокируется гейтом — ключевой тест, доказывающий, что фикс не сломал Telegram; rate-limit на 6-й попытке → 429.
+- Полный `pytest` — **154 passed, 6 skipped** (было 150/6, +4 passed, без регрессий).
+- `tsc --noEmit` — 0 ошибок.
+- Живая ручная проверка в браузере — **выполнена** после того, как Docker поднялся (первая попытка упёрлась в краш Docker Desktop, вторая — в устаревший образ backend без `json-repair`, пересобран `docker compose build backend`). Полный цикл на 2 реальных аккаунтах через настоящий UI: Alice регистрируется → верифицирует email → копирует ссылку `/ref/3ZERN953` → Bob переходит по ней (код лёг в `localStorage`) → регистрируется → верифицирует email → в network-логе браузера виден автоматический `POST /referrals/apply → 200 OK` сразу после `verify-email`. Проверено в БД напрямую: Alice `subscription_tier=pro`, `expires_at=+7д`, `ref_bonus_days_given=7`; Bob `subscription_tier=pro`, `expires_at=+3д`, `referred_by=<Alice.id>`; `referral_log` — 1 строка. В профиле Alice вживую: «Mystral Pro активен · Pro до 18 июля», «Получено дней Pro: +7», счётчик рефералов «1», в списке приглашённых — «Bo\*\*\* +7д».
+- Telegram `start_param`-путь — покрыт только `tsc`/код-ревью, не проверен вживую (нужен настоящий Telegram-клиент/бот, недоступно даже с поднятым Docker).
+
+### Next step
+- `scheduler.py` `ReferralLog.user_id` краш — уже отдельный тикет-предложение (не в рамках ТЗ-063).
+- Тестовые аккаунты `alice@test.com`/`bob@test.com` остались в локальной dev-БД (Docker) — не мешают, можно почистить или оставить для дальнейшего ручного тыканья.
+- Остальные находки `AUDIT_2026-07-07.md`: возврат Stars, `/natal` без auth+rate limit, push, языковой пробел, Privacy/Terms — в отдельные тикеты.

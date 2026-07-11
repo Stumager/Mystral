@@ -15,6 +15,11 @@ const twa = (window as any).Telegram?.WebApp;
 if (twa) {
   twa.ready();
   twa.expand();
+  // Referral deep link: t.me/<bot>/<app>?startapp=CODE delivers CODE here,
+  // not via a URL path — bridge it into the same key App.tsx's /ref/CODE
+  // capture uses so both origins share one apply mechanism.
+  const startParam = twa.initDataUnsafe?.start_param;
+  if (startParam) localStorage.setItem("mystral_ref_code", startParam);
 }
 
 if ("serviceWorker" in navigator) {
