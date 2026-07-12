@@ -205,3 +205,32 @@ class TestAdminRefundsModeration:
         second = await client.post(f"/v1/admin/refunds/{refund_req.id}/reject",
                                    headers=admin_headers, json={"comment": "no again"})
         assert second.status_code == 400
+
+
+class TestDeleteUserCascade:
+    """Found via live verification against real Postgres: delete_user's manual
+    cascade list predates Payment (TZ-038b/055) and never included it, so
+    deleting a user with any payment history violated the payments_user_id_fkey
+    constraint. SQLite in tests doesn't enforce FKs by default, so this was
+    invisible here until RefundRequest (TZ-065) made it concrete. Both tables
+    are now in the cascade list — this guards against it regressing."""
+
+    async def test_delete_user_with_payment_and_refund_request(self, client, admin_headers):
+        user, _ = await make_user(email=f"cascade-{uuid4()}@test.com")
+        async with AsyncSessionLocal() as s:
+            payment = Payment(user_id=user.id, provider="yukassa",
+                              provider_payment_id=f"cascade-{uuid4()}",
+                              product="pro_month", amount="399.00", status="succeeded")
+            s.add(payment)
+            await s.commit()
+            await s.refresh(payment)
+            s.add(RefundRequest(user_id=user.id, payment_id=payment.id, reason="cascade test"))
+            await s.commit()
+
+        res = await client.delete(f"/v1/admin/users/{user.id}", headers=admin_headers)
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            assert await s.get(User, user.id) is None
+            assert (await s.exec(select(Payment).where(Payment.user_id == user.id))).first() is None
+            assert (await s.exec(select(RefundRequest).where(RefundRequest.user_id == user.id))).first() is None

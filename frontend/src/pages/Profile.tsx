@@ -465,7 +465,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                       const d = await res.json();
                       if (d.status === "sent") { showToast(t("profile.refund_sent")); setRefundReason(""); loadRefundStatus(); }
                       else if (d.status === "expired") showToast(t("profile.refund_expired"));
-                      else showToast(d.detail || t("profile.refund_no_payment"));
+                      else showToast(d.message || d.detail || t("profile.refund_no_payment"));
                     } catch { showToast("Error"); }
                     finally { setRefundLoading(false); }
                   }}

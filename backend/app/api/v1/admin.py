@@ -133,8 +133,14 @@ async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
-    for table in ["auth_providers", "user_profiles", "tarot_readings", "rune_readings", "user_partners", "reviews"]:
-        await session.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
+    # refund_requests before payments (FK on payment_id), both before the rest —
+    # Postgres enforces these FKs (SQLite in tests doesn't by default, which is
+    # how this list went stale without a test catching it).
+    # .hex (no hyphens) matches how SQLite stores UUID columns; Postgres's uuid
+    # type accepts that form too, so this works against both without relying on
+    # the ORM's type decorator (which text() bypasses).
+    for table in ["refund_requests", "payments", "auth_providers", "user_profiles", "tarot_readings", "rune_readings", "user_partners", "reviews"]:
+        await session.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id.hex})
     await session.delete(user)
     await session.commit()
     return {"ok": True}
