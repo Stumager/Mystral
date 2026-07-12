@@ -200,8 +200,15 @@
     "delete_confirm_check": "Eu entendo que minha conta será excluída",
     "delete_forever": "Excluir para sempre",
     "request_refund": "Solicitar reembolso",
+    "refund_reason_placeholder": "Motivo (opcional)",
     "refund_sent": "Solicitação enviada. Entraremos em contato em 24 horas.",
-    "refund_expired": "O período de solicitação de reembolso expirou (24 horas)"
+    "refund_expired": "O período de solicitação de reembolso expirou (24 horas)",
+    "refund_no_payment": "Nenhum pagamento elegível para reembolso",
+    "refund_status_pending": "Sua solicitação de reembolso está em análise",
+    "refund_status_rejected": "Solicitação de reembolso rejeitada",
+    "refund_status_rejected_comment": "Comentário",
+    "refund_status_completed": "Reembolso processado",
+    "refund_status_failed": "Reembolso falhou — entre em contato com o suporte"
   },
   "login": {
     "subtitle": "Plataforma esotérica",

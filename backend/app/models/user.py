@@ -148,3 +148,18 @@ class Payment(SQLModel, table=True):
     metadata_json: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RefundRequest(SQLModel, table=True):
+    __tablename__ = "refund_requests"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    payment_id: UUID = Field(foreign_key="payments.id", index=True)
+    status: str = Field(default="pending")  # pending | rejected | completed | failed
+    reason: Optional[str] = None
+    admin_comment: Optional[str] = None
+    error_detail: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None

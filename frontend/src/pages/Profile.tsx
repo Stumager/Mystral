@@ -75,6 +75,14 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [refundLoading, setRefundLoading] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundStatus, setRefundStatus] = useState<{ status: string | null; admin_comment: string | null } | null>(null);
+
+  function loadRefundStatus() {
+    if (!token) return;
+    fetch("/api/v1/payments/refund-request/status", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(setRefundStatus).catch(() => {});
+  }
 
   const setField = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +145,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         .then(r => r.json())
         .then(d => { if (d && d.rating) { setReviewRating(d.rating); setReviewText(d.text || ""); setReviewExists(true); } })
         .catch(() => {});
+      loadRefundStatus();
     }
   }, [token]);
 
@@ -424,23 +433,49 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             <Button variant="gold" size="sm" className="w-full mt-2" onClick={() => setShowPaywall(true)}>
               {t("profile.renew")}
             </Button>
-            <button
-              onClick={async () => {
-                setRefundLoading(true);
-                try {
-                  const res = await fetch("/api/v1/payments/refund-request", { method: "POST", headers: authHeaders(), body: JSON.stringify({}) });
-                  const d = await res.json();
-                  if (d.status === "sent") showToast(t("profile.refund_sent"));
-                  else if (d.status === "expired") showToast(t("profile.refund_expired"));
-                  else showToast(d.message || "Error");
-                } catch { showToast("Error"); }
-                finally { setRefundLoading(false); }
-              }}
-              disabled={refundLoading}
-              style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(196,84,84,.3)", background: "transparent", color: "#D98A8A", fontSize: 13, cursor: "pointer" }}
-            >
-              {refundLoading ? "..." : t("profile.request_refund")}
-            </button>
+            {refundStatus?.status === "pending" ? (
+              <p style={{ fontSize: 12, color: "#C9A84C", marginTop: 8, textAlign: "center" }}>
+                {t("profile.refund_status_pending")}
+              </p>
+            ) : (
+              <>
+                {refundStatus?.status === "rejected" && (
+                  <p style={{ fontSize: 11, color: "#D98A8A", marginTop: 8 }}>
+                    {t("profile.refund_status_rejected")}
+                    {refundStatus.admin_comment && ` — ${t("profile.refund_status_rejected_comment")}: ${refundStatus.admin_comment}`}
+                  </p>
+                )}
+                {refundStatus?.status === "completed" && (
+                  <p style={{ fontSize: 11, color: "#6E9A8A", marginTop: 8 }}>{t("profile.refund_status_completed")}</p>
+                )}
+                {refundStatus?.status === "failed" && (
+                  <p style={{ fontSize: 11, color: "#D98A8A", marginTop: 8 }}>{t("profile.refund_status_failed")}</p>
+                )}
+                <input
+                  value={refundReason}
+                  onChange={e => setRefundReason(e.target.value)}
+                  placeholder={t("profile.refund_reason_placeholder")}
+                  style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#F0E9DA", fontSize: 13, padding: "0 12px", boxSizing: "border-box", outline: "none" }}
+                />
+                <button
+                  onClick={async () => {
+                    setRefundLoading(true);
+                    try {
+                      const res = await fetch("/api/v1/payments/refund-request", { method: "POST", headers: authHeaders(), body: JSON.stringify({ reason: refundReason || null }) });
+                      const d = await res.json();
+                      if (d.status === "sent") { showToast(t("profile.refund_sent")); setRefundReason(""); loadRefundStatus(); }
+                      else if (d.status === "expired") showToast(t("profile.refund_expired"));
+                      else showToast(d.detail || t("profile.refund_no_payment"));
+                    } catch { showToast("Error"); }
+                    finally { setRefundLoading(false); }
+                  }}
+                  disabled={refundLoading}
+                  style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(196,84,84,.3)", background: "transparent", color: "#D98A8A", fontSize: 13, cursor: "pointer" }}
+                >
+                  {refundLoading ? "..." : t("profile.request_refund")}
+                </button>
+              </>
+            )}
           </Card>
         ) : (
           <Card>

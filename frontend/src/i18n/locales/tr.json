@@ -200,8 +200,15 @@
     "delete_confirm_check": "Hesabımın silineceğini anlıyorum",
     "delete_forever": "Kalıcı olarak sil",
     "request_refund": "İade talep et",
+    "refund_reason_placeholder": "Sebep (isteğe bağlı)",
     "refund_sent": "Talep gönderildi. 24 saat içinde geri döneceğiz.",
-    "refund_expired": "İade talep süresi doldu (24 saat)"
+    "refund_expired": "İade talep süresi doldu (24 saat)",
+    "refund_no_payment": "İade için uygun bir ödeme yok",
+    "refund_status_pending": "İade talebiniz inceleniyor",
+    "refund_status_rejected": "İade talebi reddedildi",
+    "refund_status_rejected_comment": "Yorum",
+    "refund_status_completed": "İade işlendi",
+    "refund_status_failed": "İade başarısız oldu — lütfen destek ile iletişime geçin"
   },
   "login": {
     "subtitle": "Ezoterik platform",

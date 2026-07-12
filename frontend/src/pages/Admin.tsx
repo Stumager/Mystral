@@ -8,6 +8,13 @@ interface UserRow {
   subscription_expires_at: string | null; created_at: string | null;
 }
 interface UsersRes { users: UserRow[]; total: number; page: number; pages: number; }
+interface RefundRow {
+  id: string; status: string; reason: string | null; admin_comment: string | null;
+  error_detail: string | null; created_at: string | null; resolved_at: string | null;
+  user: { id: string | null; email: string | null; display_name: string | null; telegram_id: string | null };
+  payment: { provider: string; product: string; amount: string; currency: string; status: string; created_at: string | null } | null;
+}
+interface RefundsRes { pending: RefundRow[]; resolved: RefundRow[]; }
 
 const API = "/api/v1";
 
@@ -33,9 +40,11 @@ export function Admin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
-  const [tab, setTab] = useState<"users" | "reviews" | "referrals">("users");
+  const [tab, setTab] = useState<"users" | "reviews" | "referrals" | "refunds">("users");
   const [refStats, setRefStats] = useState<{ total_referrals: number; total_bonus_days_given: number; top_referrers: { name: string; email: string; ref_code: string; referral_count: number; bonus_days: number }[]; recent: { referrer_name: string; referred_name: string; bonus_days: number; created_at: string | null }[] } | null>(null);
   const [reviews, setReviews] = useState<{ id: string; user_name: string; user_email: string | null; rating: number; text: string | null; is_published: boolean; created_at: string | null }[]>([]);
+  const [refundsPending, setRefundsPending] = useState<RefundRow[]>([]);
+  const [refundsResolved, setRefundsResolved] = useState<RefundRow[]>([]);
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(search), 400);
@@ -61,7 +70,14 @@ export function Admin() {
     try { setRefStats(await apiFetch("/admin/referrals/stats")); } catch {}
   }, []);
 
-  useEffect(() => { if (authed) { loadStats(); loadUsers(); loadReviews(); loadRefStats(); } }, [authed, loadStats, loadUsers, loadReviews, loadRefStats]);
+  const loadRefunds = useCallback(async () => {
+    try {
+      const d = await apiFetch<RefundsRes>("/admin/refunds");
+      setRefundsPending(d.pending); setRefundsResolved(d.resolved);
+    } catch {}
+  }, []);
+
+  useEffect(() => { if (authed) { loadStats(); loadUsers(); loadReviews(); loadRefStats(); loadRefunds(); } }, [authed, loadStats, loadUsers, loadReviews, loadRefStats, loadRefunds]);
 
   async function handleLogin() {
     sessionStorage.setItem("admin_token", tokenInput);
@@ -96,6 +112,24 @@ export function Admin() {
     if (!window.confirm("Удалить отзыв?")) return;
     await apiFetch(`/admin/reviews/${id}`, { method: "DELETE" });
     loadReviews();
+  }
+
+  async function approveRefund(id: string) {
+    if (!window.confirm("Одобрить и вернуть деньги? Возврат будет отправлен провайдеру немедленно.")) return;
+    try {
+      const res = await apiFetch<{ status: string; error?: string }>(`/admin/refunds/${id}/approve`, { method: "POST" });
+      if (res.status === "failed") window.alert(`Возврат не удался: ${res.error || "неизвестная ошибка"}`);
+    } catch { window.alert("Ошибка запроса"); }
+    loadRefunds(); loadStats(); loadUsers();
+  }
+
+  async function rejectRefund(id: string) {
+    const comment = window.prompt("Причина отклонения (обязательно):");
+    if (!comment || !comment.trim()) return;
+    try {
+      await apiFetch(`/admin/refunds/${id}/reject`, { method: "POST", body: JSON.stringify({ comment }) });
+    } catch { window.alert("Ошибка запроса"); }
+    loadRefunds();
   }
 
   function logout() { sessionStorage.removeItem("admin_token"); location.reload(); }
@@ -170,6 +204,46 @@ export function Admin() {
     );
   }
 
+  function RefundCard({ r }: { r: RefundRow }) {
+    const statusColor = r.status === "pending" ? "#C9A84C"
+      : r.status === "completed" ? "#6E9A8A"
+      : r.status === "rejected" || r.status === "failed" ? "#D98A8A"
+      : "#6E6757";
+    return (
+      <div style={{ padding: 16, borderRadius: 14, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, color: "#F0E9DA", fontWeight: 500 }}>{r.user.display_name || r.user.email || r.user.telegram_id || "?"}</div>
+            {r.user.email && <div style={{ fontSize: 12, color: "#A89E8B", wordBreak: "break-all" }}>{r.user.email}</div>}
+            {r.user.telegram_id && <div style={{ fontSize: 11, color: "#8A8170" }}>TG: {r.user.telegram_id}</div>}
+          </div>
+          <span className="font-cinzel" style={{ fontSize: 10, padding: "3px 10px", borderRadius: 99, flexShrink: 0, background: "rgba(255,255,255,.05)", color: statusColor, border: `1px solid ${statusColor}55` }}>
+            {r.status.toUpperCase()}
+          </span>
+        </div>
+        {r.payment && (
+          <div style={{ fontSize: 12, color: "#B6AC98" }}>
+            {r.payment.provider === "stars" ? "Stars" : "ЮKassa"} · {r.payment.amount} {r.payment.currency} · {r.payment.product}
+            {r.payment.created_at && ` · ${new Date(r.payment.created_at).toLocaleDateString("ru-RU")}`}
+          </div>
+        )}
+        {r.reason && <div style={{ fontSize: 12, color: "#8A8170" }}>Причина: {r.reason}</div>}
+        {r.admin_comment && <div style={{ fontSize: 12, color: "#8A8170" }}>Комментарий: {r.admin_comment}</div>}
+        {r.error_detail && <div style={{ fontSize: 12, color: "#D98A8A" }}>Ошибка: {r.error_detail}</div>}
+        <div style={{ fontSize: 11, color: "#6E6757" }}>
+          {r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : ""}
+          {r.resolved_at && ` → ${new Date(r.resolved_at).toLocaleString("ru-RU")}`}
+        </div>
+        {r.status === "pending" && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={() => approveRefund(r.id)} style={actionBtn("#6E9A8A", "rgba(110,154,138,.4)")}>Одобрить и вернуть</button>
+            <button onClick={() => rejectRefund(r.id)} style={actionBtn("#D98A8A", "rgba(196,84,84,.3)")}>Отклонить</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={cs}>
       {/* Header */}
@@ -179,13 +253,13 @@ export function Admin() {
           <span className="font-cinzel" style={{ fontSize: 11, letterSpacing: ".25em", color: "#E8CD7E" }}>ADMIN</span>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
-          {(["users", "reviews", "referrals"] as const).map(t => (
+          {(["users", "reviews", "referrals", "refunds"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "6px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer",
               background: tab === t ? "rgba(201,168,76,.15)" : "transparent",
               border: tab === t ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
               color: tab === t ? "#E8CD7E" : "#A89E8B",
-            }}>{t === "users" ? "Пользователи" : t === "reviews" ? "Отзывы" : "Рефералы"}</button>
+            }}>{t === "users" ? "Пользователи" : t === "reviews" ? "Отзывы" : t === "referrals" ? "Рефералы" : `Возвраты${refundsPending.length ? ` (${refundsPending.length})` : ""}`}</button>
           ))}
         </div>
         <button onClick={logout} style={{ padding: "6px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", fontSize: 12, cursor: "pointer" }}>
@@ -283,6 +357,26 @@ export function Admin() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ===== REFUNDS TAB ===== */}
+        {tab === "refunds" && (
+          <div>
+            <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 16 }}>
+              На рассмотрении ({refundsPending.length})
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
+              {refundsPending.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Нет заявок на рассмотрении</p>}
+              {refundsPending.map(r => <RefundCard key={r.id} r={r} />)}
+            </div>
+            <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 16 }}>
+              История
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {refundsResolved.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Пусто</p>}
+              {refundsResolved.map(r => <RefundCard key={r.id} r={r} />)}
+            </div>
           </div>
         )}
 

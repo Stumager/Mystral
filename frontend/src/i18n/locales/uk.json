@@ -200,8 +200,15 @@
     "delete_confirm_check": "Я розумію що акаунт буде видалено",
     "delete_forever": "Видалити назавжди",
     "request_refund": "Запросити повернення",
+    "refund_reason_placeholder": "Причина (необов'язково)",
     "refund_sent": "Запит надіслано. Ми зв'яжемося протягом 24 годин.",
-    "refund_expired": "Термін подачі запиту на повернення минув (24 години)"
+    "refund_expired": "Термін подачі запиту на повернення минув (24 години)",
+    "refund_no_payment": "Немає платежу, доступного для повернення",
+    "refund_status_pending": "Запит на повернення розглядається",
+    "refund_status_rejected": "Запит на повернення відхилено",
+    "refund_status_rejected_comment": "Коментар",
+    "refund_status_completed": "Повернення оформлено",
+    "refund_status_failed": "Повернення не вдалося — зверніться до підтримки"
   },
   "login": {
     "subtitle": "Езотерична платформа",

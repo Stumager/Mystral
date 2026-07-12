@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.email import send_refund_email
-from app.models.user import AuthProvider, Payment, User
+from app.models.user import AuthProvider, Payment, RefundRequest, User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
@@ -256,33 +256,58 @@ async def stars_refund(
     return {"status": "ok"}
 
 
-class RefundRequest(BaseModel):
+class RefundRequestBody(BaseModel):
     reason: Optional[str] = None
+
+
+REFUND_WINDOW_HOURS = 24
+
+
+async def _find_refundable_payment(user_id: UUID, session: AsyncSession) -> Optional[Payment]:
+    """Latest succeeded payment for the user that isn't already refunded and has
+    no open (pending) or already-completed refund request against it. A payment
+    whose prior request was rejected is left refundable — the user can ask again."""
+    result = await session.exec(
+        select(Payment)
+        .where(Payment.user_id == user_id, Payment.status == "succeeded")
+        .order_by(Payment.created_at.desc())
+    )
+    for payment in result.all():
+        blocking = await session.exec(
+            select(RefundRequest).where(
+                RefundRequest.payment_id == payment.id,
+                RefundRequest.status.in_(("pending", "completed")),
+            )
+        )
+        if not blocking.first():
+            return payment
+    return None
 
 
 @router.post("/refund-request")
 async def refund_request(
-    req: RefundRequest,
+    req: RefundRequestBody,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
+    """TZ-065: creates a moderated RefundRequest instead of just emailing —
+    the actual provider refund only happens once an admin approves it (see
+    admin.py's /admin/refunds/{id}/approve)."""
     if current_user.subscription_tier != "pro":
         raise HTTPException(status_code=400, detail="No active Pro subscription")
 
-    if not current_user.subscription_created_at:
-        raise HTTPException(status_code=400, detail="Subscription date unknown")
+    payment = await _find_refundable_payment(current_user.id, session)
+    if not payment:
+        raise HTTPException(status_code=400, detail="No eligible payment found")
 
-    cutoff = datetime.utcnow() - timedelta(hours=24)
-    if current_user.subscription_created_at < cutoff:
-        return {"status": "expired", "message": "Refund period has expired (24 hours)"}
+    cutoff = datetime.utcnow() - timedelta(hours=REFUND_WINDOW_HOURS)
+    if payment.created_at < cutoff:
+        return {"status": "expired", "message": f"Refund period has expired ({REFUND_WINDOW_HOURS} hours)"}
 
-    r = aioredis.from_url(settings.redis_url)
-    try:
-        dup_key = f"refund_req:{current_user.id}"
-        if await r.exists(dup_key):
-            raise HTTPException(status_code=400, detail="Refund request already submitted")
-        await r.setex(dup_key, 86400, "1")
-    finally:
-        await r.close()
+    refund_req = RefundRequest(user_id=current_user.id, payment_id=payment.id, reason=req.reason or None)
+    session.add(refund_req)
+    await session.commit()
+    await session.refresh(refund_req)
 
     await send_refund_email(
         to_admin="sasha.nechunaev1234@gmail.com",
@@ -290,10 +315,101 @@ async def refund_request(
         user_name=current_user.display_name or "",
         user_id=str(current_user.id),
         reason=req.reason or "",
-        subscription_date=current_user.subscription_created_at.isoformat(),
+        subscription_date=payment.created_at.isoformat(),
+        provider=payment.provider,
+        amount=f"{payment.amount} {payment.currency}",
     )
 
-    return {"status": "sent"}
+    logger.info("Refund request %s created: user %s, payment %s (%s)",
+                refund_req.id, current_user.id, payment.id, payment.provider)
+    return {"status": "sent", "request_id": str(refund_req.id)}
+
+
+@router.get("/refund-request/status")
+async def refund_request_status(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Latest refund request for the current user, if any — lets the profile
+    page show pending/rejected(+comment)/completed/failed without polling admin data."""
+    result = await session.exec(
+        select(RefundRequest)
+        .where(RefundRequest.user_id == current_user.id)
+        .order_by(RefundRequest.created_at.desc())
+    )
+    latest = result.first()
+    if not latest:
+        return {"status": None}
+    return {
+        "status": latest.status,
+        "admin_comment": latest.admin_comment,
+        "created_at": latest.created_at.isoformat(),
+        "resolved_at": latest.resolved_at.isoformat() if latest.resolved_at else None,
+    }
+
+
+async def yukassa_issue_refund(payment: Payment) -> tuple[bool, Optional[str]]:
+    """Calls YuKassa's refund-creation API for a full refund of this payment.
+    Returns (success, error_detail) — never raises, so a provider-side
+    rejection (e.g. already refunded) surfaces as a clean failure, not a 500."""
+    creds = base64.b64encode(
+        f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
+    ).decode()
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.post(
+                "https://api.yookassa.ru/v3/refunds",
+                headers={
+                    "Authorization": f"Basic {creds}",
+                    "Idempotence-Key": str(uuid4()),
+                },
+                json={
+                    "amount": {"value": payment.amount, "currency": payment.currency},
+                    "payment_id": payment.provider_payment_id,
+                },
+            )
+    except httpx.HTTPError:
+        return False, "YuKassa request failed (network)"
+
+    data = resp.json()
+    if resp.status_code not in (200, 201):
+        return False, data.get("description") or f"YuKassa error (status {resp.status_code})"
+    return True, None
+
+
+async def stars_issue_refund(payment: Payment, session: AsyncSession) -> tuple[bool, Optional[str]]:
+    """Calls Telegram's refundStarPayment for this Stars payment. Needs the
+    user's numeric Telegram id (Payment only stores our internal UUID),
+    resolved via the linked AuthProvider row."""
+    if not settings.telegram_bot_token:
+        return False, "Telegram bot not configured"
+
+    result = await session.exec(
+        select(AuthProvider).where(
+            AuthProvider.user_id == payment.user_id,
+            AuthProvider.provider == "telegram",
+        )
+    )
+    provider = result.first()
+    if not provider:
+        return False, "No linked Telegram account for this user"
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.post(
+                f"https://api.telegram.org/bot{settings.telegram_bot_token}/refundStarPayment",
+                json={
+                    "user_id": int(provider.provider_id),
+                    "telegram_payment_charge_id": payment.provider_payment_id,
+                },
+            )
+    except httpx.HTTPError:
+        return False, "Telegram request failed (network)"
+
+    data = resp.json()
+    if not data.get("ok"):
+        return False, data.get("description") or "Telegram error"
+    return True, None
 
 
 @router.post("/yukassa/create")

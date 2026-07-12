@@ -64,6 +64,8 @@ async def send_refund_email(
     user_id: str,
     reason: str,
     subscription_date: str,
+    provider: str = "",
+    amount: str = "",
 ) -> bool:
     if not settings.resend_api_key:
         logger.warning("RESEND_API_KEY not set, skipping refund email")
@@ -79,8 +81,11 @@ async def send_refund_email(
         f'<p><b>Пользователь:</b> {user_name}</p>'
         f'<p><b>Email:</b> {user_email}</p>'
         f'<p><b>ID:</b> {user_id}</p>'
-        f'<p><b>Дата подписки:</b> {subscription_date}</p>'
+        f'<p><b>Провайдер:</b> {provider or "?"}</p>'
+        f'<p><b>Сумма:</b> {amount or "?"}</p>'
+        f'<p><b>Дата платежа:</b> {subscription_date}</p>'
         f'<p><b>Причина:</b> {reason or "Не указана"}</p>'
+        '<p style="color:#6E6757;font-size:12px;margin-top:20px">Решение принимается в админ-панели, раздел «Возвраты».</p>'
         '</div></div>'
     )
 
@@ -107,6 +112,63 @@ async def send_refund_email(
             return False
     except Exception as e:
         logger.error("Failed to send refund email: %s", e)
+        return False
+
+
+async def send_refund_decision_email(
+    to_email: str,
+    approved: bool,
+    admin_comment: str = "",
+) -> bool:
+    if not to_email or not settings.resend_api_key:
+        if not settings.resend_api_key:
+            logger.warning("RESEND_API_KEY not set, skipping refund decision email")
+        return False
+
+    if approved:
+        title = "Возврат оформлен"
+        body = '<p>Ваш запрос на возврат одобрен, средства будут зачислены обратно в ближайшее время.</p>'
+    else:
+        title = "Запрос на возврат отклонён"
+        body = (
+            '<p>К сожалению, ваш запрос на возврат отклонён.</p>'
+            f'<p><b>Комментарий:</b> {admin_comment or "не указан"}</p>'
+        )
+
+    html = (
+        '<div style="background:#07060F;padding:40px 20px;font-family:Georgia,serif;max-width:480px;margin:0 auto">'
+        '<div style="text-align:center;margin-bottom:32px">'
+        '<div style="font-family:serif;font-size:13px;letter-spacing:.4em;color:#C9A84C">MYSTRAL</div>'
+        '</div>'
+        '<div style="text-align:left;color:#F0E9DA;font-size:14px">'
+        f'<p style="color:#C9A84C;font-size:18px;font-weight:600;margin:0 0 20px">{title}</p>'
+        f'{body}'
+        '</div></div>'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                RESEND_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"Mystral <{settings.smtp_from}>",
+                    "to": [to_email],
+                    "subject": title,
+                    "html": html,
+                },
+            )
+        if resp.status_code in (200, 201):
+            logger.info("Refund decision email sent to %s (approved=%s)", to_email, approved)
+            return True
+        else:
+            logger.error("Resend refund-decision error %s: %s", resp.status_code, resp.text[:300])
+            return False
+    except Exception as e:
+        logger.error("Failed to send refund decision email: %s", e)
         return False
 
 

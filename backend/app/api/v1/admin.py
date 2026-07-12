@@ -1,4 +1,5 @@
 import hmac
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
@@ -10,11 +11,14 @@ from sqlalchemy import func, text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api.v1.payments import stars_issue_refund, yukassa_issue_refund
 from app.core.config import settings
 from app.core.database import get_session
-from app.models.user import AuthProvider, ReferralLog, Review, User
+from app.core.email import send_refund_decision_email
+from app.models.user import AuthProvider, Payment, ReferralLog, RefundRequest, Review, User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 async def is_admin(request: Request, x_admin_token: str = Header("")):
@@ -219,3 +223,135 @@ async def admin_referral_stats(session: AsyncSession = Depends(get_session)):
         })
 
     return {"total_referrals": total, "total_bonus_days_given": int(total_days), "top_referrers": top, "recent": recent}
+
+
+async def _serialize_refund_request(req: RefundRequest, session: AsyncSession) -> dict:
+    payment = await session.get(Payment, req.payment_id)
+    user = await session.get(User, req.user_id)
+    tg_ap = None
+    if user:
+        tg_result = await session.exec(
+            select(AuthProvider).where(AuthProvider.user_id == user.id, AuthProvider.provider == "telegram")
+        )
+        tg_ap = tg_result.first()
+
+    return {
+        "id": str(req.id),
+        "status": req.status,
+        "reason": req.reason,
+        "admin_comment": req.admin_comment,
+        "error_detail": req.error_detail,
+        "created_at": req.created_at.isoformat() if req.created_at else None,
+        "resolved_at": req.resolved_at.isoformat() if req.resolved_at else None,
+        "resolved_by": req.resolved_by,
+        "user": {
+            "id": str(user.id) if user else None,
+            "email": user.email if user else None,
+            "display_name": user.display_name if user else None,
+            "telegram_id": tg_ap.provider_id if tg_ap else None,
+        },
+        "payment": {
+            "provider": payment.provider,
+            "product": payment.product,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "status": payment.status,
+            "created_at": payment.created_at.isoformat() if payment.created_at else None,
+        } if payment else None,
+    }
+
+
+@router.get("/admin/refunds", dependencies=[Depends(is_admin)])
+async def admin_refunds(session: AsyncSession = Depends(get_session)):
+    rows = (await session.exec(select(RefundRequest).order_by(RefundRequest.created_at.desc()))).all()
+    serialized = [await _serialize_refund_request(r, session) for r in rows]
+    return {
+        "pending": [r for r in serialized if r["status"] == "pending"],
+        "resolved": [r for r in serialized if r["status"] != "pending"],
+    }
+
+
+@router.post("/admin/refunds/{request_id}/approve", dependencies=[Depends(is_admin)])
+async def approve_refund(request_id: UUID, session: AsyncSession = Depends(get_session)):
+    """TZ-065: approving here means actually calling the provider (YuKassa
+    /v3/refunds or Telegram refundStarPayment) — this is the only place in the
+    codebase that initiates a real refund. Pro revocation itself is NOT done
+    here: it happens automatically via the existing refund.succeeded webhook
+    (TZ-061) / refunded_payment bot handler (TZ-064) once the provider confirms,
+    so we don't duplicate that idempotent logic a second time."""
+    req = await session.get(RefundRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Refund request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already resolved (status={req.status})")
+
+    payment = await session.get(Payment, req.payment_id)
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.status == "refunded":
+        req.status = "failed"
+        req.error_detail = "Payment was already refunded outside this request"
+        req.resolved_at = datetime.utcnow()
+        req.resolved_by = "admin"
+        session.add(req)
+        await session.commit()
+        return {"status": "failed", "error": req.error_detail}
+
+    if payment.provider == "yukassa":
+        success, error = await yukassa_issue_refund(payment)
+    elif payment.provider == "stars":
+        success, error = await stars_issue_refund(payment, session)
+    else:
+        success, error = False, f"Unknown provider: {payment.provider}"
+
+    req.status = "completed" if success else "failed"
+    req.error_detail = None if success else error
+    req.resolved_at = datetime.utcnow()
+    req.resolved_by = "admin"
+    session.add(req)
+    await session.commit()
+
+    user = await session.get(User, req.user_id)
+    if user and user.email:
+        await send_refund_decision_email(user.email, approved=success)
+
+    if success:
+        logger.info("Refund request %s completed (payment %s, provider %s)", req.id, payment.id, payment.provider)
+        return {"status": "completed"}
+    logger.error("Refund request %s failed (payment %s, provider %s): %s", req.id, payment.id, payment.provider, error)
+    return {"status": "failed", "error": error}
+
+
+class RejectRefundRequest(BaseModel):
+    comment: str
+
+
+@router.post("/admin/refunds/{request_id}/reject", dependencies=[Depends(is_admin)])
+async def reject_refund(
+    request_id: UUID,
+    body: RejectRefundRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    if not body.comment or not body.comment.strip():
+        raise HTTPException(status_code=422, detail="Comment is required")
+
+    req = await session.get(RefundRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Refund request not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already resolved (status={req.status})")
+
+    req.status = "rejected"
+    req.admin_comment = body.comment.strip()
+    req.resolved_at = datetime.utcnow()
+    req.resolved_by = "admin"
+    session.add(req)
+    await session.commit()
+
+    user = await session.get(User, req.user_id)
+    if user and user.email:
+        await send_refund_decision_email(user.email, approved=False, admin_comment=req.admin_comment)
+
+    logger.info("Refund request %s rejected: %s", req.id, req.admin_comment)
+    return {"status": "rejected"}

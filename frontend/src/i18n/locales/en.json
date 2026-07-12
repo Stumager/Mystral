@@ -200,8 +200,15 @@
     "delete_confirm_check": "I understand my account will be deleted",
     "delete_forever": "Delete forever",
     "request_refund": "Request refund",
+    "refund_reason_placeholder": "Reason (optional)",
     "refund_sent": "Request sent. We'll get back within 24 hours.",
-    "refund_expired": "Refund request period has expired (24 hours)"
+    "refund_expired": "Refund request period has expired (24 hours)",
+    "refund_no_payment": "No payment eligible for a refund",
+    "refund_status_pending": "Your refund request is under review",
+    "refund_status_rejected": "Refund request rejected",
+    "refund_status_rejected_comment": "Comment",
+    "refund_status_completed": "Refund processed",
+    "refund_status_failed": "Refund failed — please contact support"
   },
   "login": {
     "subtitle": "Esoteric platform",

@@ -130,32 +130,41 @@ class TestStarsFlow:
 
 
 class TestRefund:
-    async def _make_pro(self, created_hours_ago: float):
-        user, headers = await make_user(email=f"ref{created_hours_ago}@test.com", tier="pro")
+    """TZ-065: /refund-request now creates a moderated RefundRequest tied to a
+    real Payment row, instead of just emailing — so eligibility needs an
+    actual succeeded payment behind the user's Pro status."""
+
+    async def _make_pro_with_payment(self, created_hours_ago: float, tag: str = ""):
+        user, headers = await make_user(email=f"ref{created_hours_ago}{tag}@test.com", tier="pro")
         async with AsyncSessionLocal() as s:
             u = await s.get(User, user.id)
-            u.subscription_created_at = datetime.utcnow() - timedelta(hours=created_hours_ago)
             u.subscription_expires_at = datetime.utcnow() + timedelta(days=30)
             s.add(u)
+            s.add(Payment(
+                user_id=user.id, provider="yukassa",
+                provider_payment_id=f"yk-refundreq-{created_hours_ago}{tag}",
+                product="pro_month", amount="399.00", status="succeeded",
+                created_at=datetime.utcnow() - timedelta(hours=created_hours_ago),
+            ))
             await s.commit()
         return user, headers
 
     async def test_refund_request_within_24h(self, client):
-        _, headers = await self._make_pro(1)
+        _, headers = await self._make_pro_with_payment(1)
         res = await client.post("/v1/payments/refund-request",
                                 headers=headers, json={"reason": "test"})
         assert res.status_code == 200
         assert res.json()["status"] == "sent"
 
     async def test_refund_request_after_24h(self, client):
-        _, headers = await self._make_pro(30)
+        _, headers = await self._make_pro_with_payment(30)
         res = await client.post("/v1/payments/refund-request",
                                 headers=headers, json={"reason": "test"})
         assert res.status_code == 200
         assert res.json()["status"] == "expired"
 
     async def test_refund_request_duplicate(self, client):
-        _, headers = await self._make_pro(2)
+        _, headers = await self._make_pro_with_payment(2)
         first = await client.post("/v1/payments/refund-request",
                                   headers=headers, json={"reason": "one"})
         assert first.json()["status"] == "sent"
@@ -167,6 +176,25 @@ class TestRefund:
         res = await client.post("/v1/payments/refund-request",
                                 headers=auth_headers, json={"reason": "x"})
         assert res.status_code == 400
+
+    async def test_refund_request_no_underlying_payment(self, client, pro_user):
+        """Pro granted without a real payment behind it (e.g. admin grant-pro)
+        has nothing to refund — must fail cleanly, not 500."""
+        _, headers = pro_user
+        res = await client.post("/v1/payments/refund-request",
+                                headers=headers, json={"reason": "x"})
+        assert res.status_code == 400
+
+    async def test_refund_request_status_none_initially(self, client, auth_headers):
+        res = await client.get("/v1/payments/refund-request/status", headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json()["status"] is None
+
+    async def test_refund_request_status_reflects_pending(self, client):
+        _, headers = await self._make_pro_with_payment(1, "-status")
+        await client.post("/v1/payments/refund-request", headers=headers, json={"reason": "test"})
+        res = await client.get("/v1/payments/refund-request/status", headers=headers)
+        assert res.json()["status"] == "pending"
 
 
 class TestAdminGrant:
