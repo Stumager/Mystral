@@ -102,6 +102,32 @@ class TestStarsFlow:
                                 headers=internal_headers, json={"payload": "hack_payload"})
         assert res.status_code == 400
 
+    async def test_stars_activate_persists_payment_row(self, client, auth_user, internal_headers):
+        """TZ-064 prerequisite: without a recorded Payment row, a later refund
+        event has nothing to look up. Activate must write one, like YuKassa's
+        /create does for its own flow."""
+        user, _ = auth_user
+        payload = f"pro_month_{user.id}"
+        res = await client.post("/v1/payments/stars/activate", headers=internal_headers,
+                                json={"payload": payload, "telegram_payment_charge_id": "tg-charge-1"})
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "tg-charge-1"))
+            payment = result.first()
+            assert payment is not None
+            assert payment.provider == "stars"
+            assert payment.status == "succeeded"
+            assert payment.user_id == user.id
+
+    async def test_stars_activate_without_charge_id_does_not_crash(self, client, internal_headers, auth_user):
+        """Missing charge id (e.g. an older bot build) must degrade gracefully —
+        Pro still activates, just nothing recorded for a future refund lookup."""
+        user, _ = auth_user
+        res = await client.post("/v1/payments/stars/activate", headers=internal_headers,
+                                json={"payload": f"pro_month_{user.id}"})
+        assert res.status_code == 200
+
 
 class TestRefund:
     async def _make_pro(self, created_hours_ago: float):
@@ -417,3 +443,63 @@ class TestYukassaRefund:
                                 json={"event": "refund.succeeded", "object": {}})
         assert res.status_code == 200
         assert res.json()["status"] == "no_refund_id"
+
+
+class TestStarsRefund:
+    """TZ-064: Telegram Stars refunds (refunded_payment) must revoke Pro, same
+    as TZ-061 did for YuKassa's refund.succeeded — the bot previously had no
+    handler for this event at all, and activate didn't even persist a Payment
+    row for Stars purchases to look up."""
+
+    async def _pay_and_activate(self, client, user, charge_id, internal_headers, product="pro_month"):
+        res = await client.post("/v1/payments/stars/activate", headers=internal_headers,
+                                json={"payload": f"{product}_{user.id}",
+                                      "telegram_payment_charge_id": charge_id})
+        assert res.status_code == 200
+
+    async def test_stars_refund_requires_internal_token(self, client):
+        res = await client.post("/v1/payments/stars/refund",
+                                json={"telegram_payment_charge_id": "tg-x"})
+        assert res.status_code == 403
+
+    async def test_stars_refund_full_cycle_revokes_pro(self, client, auth_user, internal_headers):
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "tg-refund-1", internal_headers)
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "pro"
+
+        res = await client.post("/v1/payments/stars/refund", headers=internal_headers,
+                                json={"telegram_payment_charge_id": "tg-refund-1"})
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+            assert u.subscription_expires_at is None
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "tg-refund-1"))
+            assert result.first().status == "refunded"
+
+    async def test_stars_refund_idempotent_on_retry(self, client, auth_user, internal_headers):
+        user, _ = auth_user
+        await self._pay_and_activate(client, user, "tg-refund-retry-1", internal_headers)
+
+        res1 = await client.post("/v1/payments/stars/refund", headers=internal_headers,
+                                 json={"telegram_payment_charge_id": "tg-refund-retry-1"})
+        assert res1.status_code == 200
+        res2 = await client.post("/v1/payments/stars/refund", headers=internal_headers,
+                                 json={"telegram_payment_charge_id": "tg-refund-retry-1"})
+        assert res2.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "free"
+            assert u.subscription_expires_at is None
+            result = await s.exec(select(Payment).where(Payment.provider_payment_id == "tg-refund-retry-1"))
+            assert result.first().status == "refunded"
+
+    async def test_stars_refund_unknown_payment_does_not_crash(self, client, internal_headers):
+        res = await client.post("/v1/payments/stars/refund", headers=internal_headers,
+                                json={"telegram_payment_charge_id": "tg-does-not-exist"})
+        assert res.status_code == 404

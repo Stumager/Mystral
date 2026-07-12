@@ -79,6 +79,11 @@ class StarsConfirmRequest(BaseModel):
 
 class StarsActivateRequest(BaseModel):
     payload: str
+    telegram_payment_charge_id: str = ""
+
+
+class StarsRefundRequest(BaseModel):
+    telegram_payment_charge_id: str
 
 
 class YukassaCreateRequest(BaseModel):
@@ -159,6 +164,31 @@ async def _require_internal_token(x_internal_token: str = Header("")):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
+async def _record_stars_payment(user: User, product_key: str, charge_id: str, session: AsyncSession) -> None:
+    """Persists a Payment row for a Stars purchase (provider="stars") so a later
+    refund event has something to look up — mirrors the row YuKassa's /create
+    endpoint writes for its own flow. Idempotent against activate retries: a
+    charge_id already recorded is left alone rather than inserted again (the
+    column is unique, so a naive re-insert would 500 on retry)."""
+    if not charge_id:
+        logger.warning("Stars activate: no telegram_payment_charge_id for user %s — refund lookup won't work", user.id)
+        return
+    result = await session.exec(select(Payment).where(Payment.provider_payment_id == charge_id))
+    if result.first():
+        return
+    product = PRODUCTS.get(product_key, PRODUCTS["pro_month"])
+    session.add(Payment(
+        user_id=user.id,
+        provider="stars",
+        provider_payment_id=charge_id,
+        product=product_key,
+        amount=str(product["stars"]),
+        currency="XTR",
+        status="succeeded",
+    ))
+    await session.commit()
+
+
 @router.post("/stars/activate", dependencies=[Depends(_require_internal_token)])
 async def stars_activate(
     req: StarsActivateRequest,
@@ -175,6 +205,8 @@ async def stars_activate(
     session.add(user)
     await session.commit()
 
+    await _record_stars_payment(user, product_key, req.telegram_payment_charge_id, session)
+
     r = aioredis.from_url(settings.redis_url)
     try:
         await r.setex(f"stars_paid:{req.payload}", PAID_MARKER_TTL, "1")
@@ -182,6 +214,45 @@ async def stars_activate(
         await r.close()
 
     logger.info("Stars activate: user %s activated %s via bot", user.id, product_key)
+    return {"status": "ok"}
+
+
+@router.post("/stars/refund", dependencies=[Depends(_require_internal_token)])
+async def stars_refund(
+    req: StarsRefundRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Called by the bot when Telegram delivers a refunded_payment update (Stars
+    refund, whether user-initiated via Telegram or bot-initiated via
+    refundStarPayment). Unlike YuKassa's public webhook, this arrives over the
+    bot's own long-polling channel (already authenticated by the bot token), so
+    there's no third-party body to distrust — the charge id is taken as given.
+    Revokes on any refund, matching TZ-061's YuKassa policy (refundStarPayment
+    has no amount parameter, so Stars refunds are full anyway, but we don't
+    rely on that). Idempotent: a payment already "refunded" is left alone."""
+    result = await session.exec(
+        select(Payment).where(Payment.provider_payment_id == req.telegram_payment_charge_id)
+    )
+    payment = result.first()
+    if not payment:
+        logger.warning("Stars refund: no local row for charge %s", req.telegram_payment_charge_id)
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.status == "refunded":
+        return {"status": "ok"}
+
+    payment.status = "refunded"
+    payment.updated_at = datetime.utcnow()
+    session.add(payment)
+    await session.commit()
+
+    user = await session.get(User, payment.user_id)
+    if user:
+        _revoke_pro(user)
+        session.add(user)
+        await session.commit()
+        logger.info("Stars: user %s Pro revoked (charge %s)", payment.user_id, req.telegram_payment_charge_id)
+
     return {"status": "ok"}
 
 

@@ -242,7 +242,10 @@ async def on_successful_payment(message: Message) -> None:
             async with httpx.AsyncClient(timeout=10) as client:
                 res = await client.post(
                     f"{BACKEND_URL}/api/v1/payments/stars/activate",
-                    json={"payload": payload},
+                    json={
+                        "payload": payload,
+                        "telegram_payment_charge_id": payment.telegram_payment_charge_id,
+                    },
                     headers={"X-Internal-Token": ADMIN_TOKEN},
                 )
                 if res.status_code == 200:
@@ -269,6 +272,55 @@ async def on_successful_payment(message: Message) -> None:
             "Все функции разблокированы. Приятного пользования!",
             parse_mode="HTML",
         )
+
+
+@dp.message(F.refunded_payment)
+async def on_refunded_payment(message: Message) -> None:
+    """Telegram delivers this as a normal message update (same mechanism as
+    successful_payment) when a Stars payment is refunded — whether the user
+    requested it via Telegram themselves, or we call refundStarPayment. No
+    separate update-type subscription is needed since the bot already polls
+    for "message" updates."""
+    refund = message.refunded_payment
+    if not refund:
+        return
+
+    charge_id = refund.telegram_payment_charge_id
+    tg_id = message.from_user.id if message.from_user else None
+    logger.info("Refunded payment: charge_id=%s, tg_id=%s, amount=%s %s",
+                charge_id, tg_id, refund.total_amount, refund.currency)
+
+    revoked = False
+    not_found = False
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    f"{BACKEND_URL}/api/v1/payments/stars/refund",
+                    json={"telegram_payment_charge_id": charge_id},
+                    headers={"X-Internal-Token": ADMIN_TOKEN},
+                )
+                if res.status_code == 200:
+                    revoked = True
+                    break
+                if res.status_code == 404:
+                    not_found = True
+                    break
+                logger.error("Refund revoke failed (try %d): %s %s", attempt + 1, res.status_code, res.text)
+        except Exception as e:
+            logger.error("Failed to process refund (try %d): %s", attempt + 1, e)
+        await asyncio.sleep(2)
+
+    if not revoked and SUPPORT_TG_ID:
+        reason = "платёж не найден в БД" if not_found else "ошибка сервера"
+        try:
+            await bot.send_message(
+                chat_id=int(SUPPORT_TG_ID),
+                text=(f"⚠️ ВОЗВРАТ STARS НЕ ОБРАБОТАН ({reason}): "
+                      f"charge_id={charge_id}, tg_id={tg_id}. Отзови Pro вручную."),
+            )
+        except Exception:
+            pass
 
 
 async def main() -> None:
