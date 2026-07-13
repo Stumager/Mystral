@@ -323,7 +323,8 @@ class InterpretRequest(NatalRequest):
 
 
 @router.post("/natal/calculate")
-async def natal_calculate(req: NatalRequest):
+async def natal_calculate(req: NatalRequest, current_user: User = Depends(get_current_user)):
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_calculate", 10, 10, window=60)
     lat, lon = await geocode_city(req.city)
     try:
         subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
@@ -333,7 +334,8 @@ async def natal_calculate(req: NatalRequest):
 
 
 @router.post("/natal/svg")
-async def natal_svg(req: NatalRequest):
+async def natal_svg(req: NatalRequest, current_user: User = Depends(get_current_user)):
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_svg", 10, 10, window=60)
     lat, lon = await geocode_city(req.city)
     try:
         from kerykeion import KerykeionChartSVG
