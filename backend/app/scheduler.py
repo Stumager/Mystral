@@ -1,5 +1,7 @@
+import html
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -34,7 +36,19 @@ scheduler = AsyncIOScheduler()
 TG_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 
+def _sanitize_llm_text(text: str) -> str:
+    """Messages are sent with parse_mode="HTML", but the LLM occasionally
+    ignores the prompt's no-Markdown instruction and emits **bold** (which
+    Telegram's HTML mode doesn't understand — shows as literal asterisks) or
+    stray HTML metacharacters that would otherwise break parsing entirely.
+    Escape first, then convert the one Markdown construct still seen in
+    practice, as a safety net on top of the prompt-level fix."""
+    escaped = html.escape(text)
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped)
+
+
 def _format_message(text: str, sign: str, lang: str) -> str:
+    text = _sanitize_llm_text(text)
     emoji = SIGNS_EMOJI.get(sign, "✨")
     lunar = get_lunar_today_data(lang)
     lunar_line = f"\n──────────────\n🌙 {lunar['lunar_day']}-й лунный день · {lunar['phase_name']}\n{lunar['day_title']}"

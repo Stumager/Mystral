@@ -6,13 +6,15 @@ from app.core.prompts import lang_enforce, system_prompt
 
 logger = logging.getLogger(__name__)
 
-# A production push notification was observed cut off mid-sentence ("...day
-# for" with nothing after it) — the same max_tokens-too-tight class of bug
-# fixed for SEO generation (TZ-060). 200 was not enough margin for a 60-70
-# word response, especially in Cyrillic where this tokenizer needs more
-# tokens per word than for English. max_tokens is a ceiling, not a cost — a
-# short response that finishes well under this isn't billed any differently.
-GENERATION_MAX_TOKENS = 500
+# Raised 200 -> 500 -> still truncated (confirmed via finish_reason=length in
+# prod logs on 2026-07-13 for scorpio/ru). Root cause, same as TZ-060's SEO
+# generation: the model burns budget second-guessing itself inline in the
+# output text before committing to the final answer, not just Cyrillic token
+# density. TZ-060 learned the same lesson three times over — stop nudging the
+# ceiling and instead (a) forbid the rambling at the prompt level (see below)
+# and (b) give a ceiling generous enough that it's a non-issue, since
+# max_tokens is a cap with no cost impact on responses that finish well under it.
+GENERATION_MAX_TOKENS = 2000
 
 SIGNS_DATA = [
     (1, 1, 1, 19, "capricorn"), (1, 20, 2, 18, "aquarius"), (2, 19, 3, 20, "pisces"),
@@ -55,7 +57,10 @@ async def generate_horoscope(sign: str, lang: str) -> str:
             f"1. Одну конкретную сферу жизни (работа/отношения/финансы/здоровье)\n"
             f"2. Один конкретный совет что сделать или избежать\n"
             f"3. Благоприятное время дня если уместно\n"
-            f"Объём: 60-70 слов. Без вступлений типа 'Дорогой Скорпион'."
+            f"Объём: 60-70 слов. Без вступлений типа 'Дорогой Скорпион'. "
+            f"Пиши сразу финальный текст, уверенно, без рассуждений и "
+            f"самокоррекции вслух (никаких 'хотя нет', 'точнее', 'на самом деле'). "
+            f"Только простой текст — без Markdown-разметки (никаких **, _, #, списков)."
         )
     else:
         prompt = (
@@ -64,7 +69,11 @@ async def generate_horoscope(sign: str, lang: str) -> str:
             f"1. One specific life area (work/relationships/finances/health)\n"
             f"2. One concrete tip — what to do or avoid\n"
             f"3. Best time of day if relevant\n"
-            f"60-70 words. No greetings like 'Dear Scorpio'."
+            f"60-70 words. No greetings like 'Dear Scorpio'. "
+            f"Write the final text directly and with confidence — never think out "
+            f"loud or self-correct inside the text (no 'wait, actually' or 'let me "
+            f"correct that'). Plain text only — no Markdown formatting "
+            f"(no **, _, #, lists)."
         )
 
     client = _get_async_client()
