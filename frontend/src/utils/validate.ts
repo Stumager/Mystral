@@ -40,8 +40,12 @@ export function validateDateExists(day: string, month: string, year: string): st
 }
 
 export function validateName(name: string): string | null {
-  if (!name.trim()) return "Укажи имя";
-  if (name.length > 100) return "Слишком длинное имя";
+  const trimmed = name.trim();
+  if (!trimmed) return "Укажи имя";
+  if (trimmed.length < 2) return "Минимум 2 символа";
+  if (trimmed.length > 50) return "Максимум 50 символов";
+  if (/[<>]/.test(name)) return "Имя не должно содержать < или >";
+  if (!/\p{L}/u.test(name)) return "Имя должно содержать хотя бы одну букву";
   return null;
 }
 

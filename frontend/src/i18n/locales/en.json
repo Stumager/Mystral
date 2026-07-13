@@ -215,6 +215,8 @@
     "tab_login": "Log in",
     "tab_register": "Sign up",
     "name": "Name",
+    "name_min_2": "At least 2 characters",
+    "name_has_letter": "Contains a letter",
     "email": "Email",
     "password": "Password",
     "submit_login": "Log in",
@@ -228,7 +230,8 @@
     "pw_min_8": "At least 8 characters",
     "pw_uppercase": "Uppercase letter",
     "pw_digit": "Digit",
-    "pw_match": "Passwords match"
+    "pw_match": "Passwords match",
+    "generic_error": "Error. Please try again later."
   },
   "paywall": {
     "feature_tarot": "Unlimited Tarot spreads every day",

@@ -161,10 +161,6 @@ export function OnboardingModal({ onClose }: Props) {
                 {t("onboarding.birth_determines")}
               </p>
 
-              {/* Hidden time input */}
-              <input ref={timeRef} type="time" style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                onChange={e => { if (e.target.value) { const [h, m] = e.target.value.split(":"); setHour(h); setMinute(m); } }} />
-
               <div style={{ display: "flex", gap: 10 }}>
                 {/* DAY */}
                 <div style={{ ...fieldStyle(true), flex: 1 }} onClick={() => dayRef.current?.focus()}>
@@ -206,13 +202,27 @@ export function OnboardingModal({ onClose }: Props) {
                 <p style={{ color: "#D98A8A", fontSize: 12, marginTop: 8 }}>{errors.day || errors.month || errors.year || errors.date}</p>
               )}
 
-              <button onClick={() => timeRef.current?.showPicker?.()}
-                style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
+              {/* Real native time input overlaid on the styled row (same pattern as
+                  day/month/year above) so a plain click/tap opens the picker via the
+                  browser's own default behavior — showPicker() alone isn't supported
+                  everywhere (e.g. Safari < 16.4, some in-app WebViews) and silently
+                  no-ops via the optional-chaining call, leaving the field unusable. */}
+              <div style={{ marginTop: 12, width: "100%", position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", cursor: "pointer" }}>
+                <input
+                  ref={timeRef}
+                  type="time"
+                  value={hour ? `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}` : ""}
+                  onChange={e => {
+                    if (e.target.value) { const [h, m] = e.target.value.split(":"); setHour(h); setMinute(m); }
+                    else { setHour(""); setMinute(""); }
+                  }}
+                  style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer", border: "none" }}
+                />
                 <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{t("onboarding.birth_time")}</span>
                 <span className="font-cormorant" style={{ fontSize: 20, color: "#F0E9DA" }}>
                   {hour ? `${hour.padStart(2, "0")}:${(minute || "0").padStart(2, "0")}` : "—"}
                 </span>
-              </button>
+              </div>
             </>
           )}
 

@@ -215,6 +215,8 @@
     "tab_login": "Entrar",
     "tab_register": "Cadastrar",
     "name": "Nome",
+    "name_min_2": "Mínimo 2 caracteres",
+    "name_has_letter": "Contém uma letra",
     "email": "Email",
     "password": "Senha",
     "submit_login": "Entrar",
@@ -228,7 +230,8 @@
     "pw_min_8": "Mínimo 8 caracteres",
     "pw_uppercase": "Letra maiúscula",
     "pw_digit": "Dígito",
-    "pw_match": "As senhas coincidem"
+    "pw_match": "As senhas coincidem",
+    "generic_error": "Erro. Tente novamente mais tarde."
   },
   "paywall": {
     "feature_tarot": "Tiragens de Tarot ilimitadas todos os dias",

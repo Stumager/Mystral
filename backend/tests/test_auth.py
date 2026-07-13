@@ -39,6 +39,48 @@ class TestRegister:
         res = await client.post("/v1/auth/register", json={**REG, "email": "not-an-email"})
         assert res.status_code == 400
 
+    async def test_register_invalid_names_rejected_empty_and_short(self, client):
+        """TZ-059: name wasn't validated for real beyond non-empty + max-100.
+        Split from the other invalid-names test to stay under the 5/hour
+        per-IP register rate limit (_check_ip_rate)."""
+        bad_names = [
+            "",              # empty
+            "   ",           # whitespace only (trims to empty)
+            "A",             # 1 char, below the 2-char minimum
+        ]
+        for i, bad in enumerate(bad_names):
+            res = await client.post("/v1/auth/register",
+                                    json={**REG, "email": f"badname-a{i}@test.com", "name": bad})
+            assert res.status_code == 400, f"expected 400 for name={bad!r}, got {res.status_code}"
+
+    async def test_register_invalid_names_rejected_special_and_long(self, client):
+        bad_names = [
+            "!!!",           # punctuation only, no letter
+            "A" * 51,        # over the 50-char maximum
+            "<script>",      # HTML tag, XSS risk in share cards/emails/profile
+        ]
+        for i, bad in enumerate(bad_names):
+            res = await client.post("/v1/auth/register",
+                                    json={**REG, "email": f"badname-b{i}@test.com", "name": bad})
+            assert res.status_code == 400, f"expected 400 for name={bad!r}, got {res.status_code}"
+
+    async def test_register_valid_names_with_punctuation_allowed(self, client):
+        """Space/hyphen/apostrophe inside a name must not be blocked, and any
+        of the platform's 6 languages' alphabets must count as a letter —
+        not a hardcoded Latin/Cyrillic-only check."""
+        good_names = ["O'Brien", "Anne-Marie", "Анна", "Ana María", "Ali"]
+        for i, good in enumerate(good_names):
+            res = await client.post("/v1/auth/register",
+                                    json={**REG, "email": f"goodname{i}@test.com", "name": good})
+            assert res.status_code == 200, f"expected 200 for name={good!r}, got {res.status_code}: {res.text}"
+
+    async def test_register_name_is_trimmed_before_storage(self, client):
+        res = await client.post("/v1/auth/register",
+                                json={**REG, "email": "trimname@test.com", "name": "  Anna  "})
+        assert res.status_code == 200
+        user = await _get_user("trimname@test.com")
+        assert user.display_name == "Anna"
+
 
 class TestLogin:
     async def test_login_success(self, client):

@@ -38,7 +38,7 @@ export function LoginScreen() {
           body: JSON.stringify({ widget_data: user }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || t("login.tg_error"));
+        if (!res.ok) throw new Error(data.message || data.detail || t("login.tg_error"));
         if (data.is_new) await applyStoredReferralCode(data.access_token);
         login(data.access_token, data.user);
       } catch (e: unknown) {
@@ -91,13 +91,16 @@ export function LoginScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Error");
+      // .catch(() => ({})) covers a non-JSON body (e.g. an upstream 502 HTML
+      // page) so a parse failure falls back to the generic message below
+      // instead of leaking a raw "Unexpected token..." SyntaxError to the user.
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.detail || t("login.generic_error"));
       if (data.status === "verification_required") { setPendingEmail(data.email); return; }
       localStorage.removeItem("mystral_ref_code");
       login(data.access_token, data.user);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(e instanceof Error ? e.message : t("login.generic_error"));
     } finally {
       setLoading(false);
     }
@@ -153,6 +156,16 @@ export function LoginScreen() {
               style={inputStyle}
             />
             {errors.name && <p className={errCls}>{errors.name}</p>}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
+              {[
+                { ok: name.trim().length >= 2, text: t("login.name_min_2") },
+                { ok: /\p{L}/u.test(name), text: t("login.name_has_letter") },
+              ].map(c => (
+                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#6E6757" }}>
+                  {c.ok ? "✓" : "✗"} {c.text}
+                </span>
+              ))}
+            </div>
           </div>
         )}
         <div>
@@ -216,7 +229,7 @@ export function LoginScreen() {
           variant="primary"
           className="w-full mt-1"
           onClick={handleSubmit}
-          disabled={loading || (mode === "register" && (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || confirmPw !== password))}
+          disabled={loading || (mode === "register" && (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || confirmPw !== password || name.trim().length < 2 || !/\p{L}/u.test(name)))}
         >
           {loading ? "..." : mode === "login" ? t("login.submit_login") : t("login.submit_register")}
         </Button>

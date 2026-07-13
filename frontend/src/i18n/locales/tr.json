@@ -215,6 +215,8 @@
     "tab_login": "Giriş yap",
     "tab_register": "Kayıt ol",
     "name": "İsim",
+    "name_min_2": "En az 2 karakter",
+    "name_has_letter": "En az bir harf içerir",
     "email": "Email",
     "password": "Şifre",
     "submit_login": "Giriş yap",
@@ -228,7 +230,8 @@
     "pw_min_8": "En az 8 karakter",
     "pw_uppercase": "Büyük harf",
     "pw_digit": "Rakam",
-    "pw_match": "Şifreler eşleşiyor"
+    "pw_match": "Şifreler eşleşiyor",
+    "generic_error": "Hata. Lütfen daha sonra tekrar dene."
   },
   "paywall": {
     "feature_tarot": "Her gün sınırsız Tarot açılımı",

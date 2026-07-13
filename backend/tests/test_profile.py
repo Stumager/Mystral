@@ -104,7 +104,7 @@ class TestReferralFullCycle:
 
     async def _register_and_verify(self, client, email):
         await client.post("/v1/auth/register",
-                          json={"email": email, "password": "Password1", "name": "N"})
+                          json={"email": email, "password": "Password1", "name": "Nina"})
         async with AsyncSessionLocal() as s:
             user = (await s.exec(select(User).where(User.email == email))).first()
         res = await client.post("/v1/auth/verify-email",

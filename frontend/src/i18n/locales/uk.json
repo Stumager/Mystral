@@ -215,6 +215,8 @@
     "tab_login": "Увійти",
     "tab_register": "Реєстрація",
     "name": "Ім'я",
+    "name_min_2": "Мінімум 2 символи",
+    "name_has_letter": "Містить букву",
     "email": "Email",
     "password": "Пароль",
     "submit_login": "Увійти",
@@ -228,7 +230,8 @@
     "pw_min_8": "Мінімум 8 символів",
     "pw_uppercase": "Велика літера",
     "pw_digit": "Цифра",
-    "pw_match": "Паролі збігаються"
+    "pw_match": "Паролі збігаються",
+    "generic_error": "Помилка. Спробуй пізніше."
   },
   "paywall": {
     "feature_tarot": "Безлімітні розклади Таро щодня",

@@ -100,6 +100,28 @@ def _validate_password(password: str) -> str | None:
     return None
 
 
+def _validate_name(name: str) -> str | None:
+    """Final authoritative check backing the frontend's validateName (TZ-059).
+    No SQL-character blocklist here — name is only ever bound via the ORM
+    (parameterized), never concatenated into raw SQL, so that class of
+    "protection" would just reject legitimate names for no real safety gain.
+    str.isalpha() is the stdlib equivalent of a \\p{L} check (stdlib re has no
+    Unicode property escapes) — works for any of the platform's 6 languages,
+    not just a hardcoded alphabet list."""
+    trimmed = name.strip()
+    if not trimmed:
+        return "Укажи имя"
+    if len(trimmed) < 2:
+        return "Минимум 2 символа"
+    if len(trimmed) > 50:
+        return "Максимум 50 символов"
+    if "<" in name or ">" in name:
+        return "Имя не должно содержать < или >"
+    if not any(ch.isalpha() for ch in name):
+        return "Имя должно содержать хотя бы одну букву"
+    return None
+
+
 def _get_ip(request: Request) -> str:
     # nginx appends the real client IP as the LAST entry of X-Forwarded-For;
     # taking the first entry would let clients spoof rate-limit keys.
@@ -232,6 +254,10 @@ async def register(
     if pwd_err:
         raise HTTPException(400, pwd_err)
 
+    name_err = _validate_name(req.name)
+    if name_err:
+        raise HTTPException(400, name_err)
+
     from email_validator import validate_email, EmailNotValidError
     try:
         validate_email(req.email, check_deliverability=False)
@@ -245,7 +271,7 @@ async def register(
     code = str(random.randint(100000, 999999))
     user = User(
         email=req.email,
-        display_name=req.name,
+        display_name=req.name.strip(),
         email_verified=False,
         verification_code=code,
         verification_code_expires_at=datetime.utcnow() + timedelta(minutes=15),
