@@ -359,6 +359,8 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                       background: aiSection === s ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,.04)",
                       color: aiSection === s ? "#E8CD7E" : "#A89E8B",
                       border: `1px solid ${aiSection === s ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,.13)"}`,
+                      cursor: aiLoading ? "not-allowed" : "pointer",
+                      opacity: aiLoading ? 0.45 : 1,
                     }}>
                     {aiLabels[s]}
                     {s !== "core" && user?.tier !== "pro" && <span className="ml-0.5" style={{ color: "#C9A84C" }}>*</span>}

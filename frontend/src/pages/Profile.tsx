@@ -805,7 +805,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                   } catch { setDeleteError("Error"); }
                   finally { setDeleteLoading(false); }
                 }}
-                style={{ flex: 1, height: 38, borderRadius: 12, border: "1px solid rgba(196,84,84,.4)", background: "rgba(196,84,84,.15)", color: "#D98A8A", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                style={{ flex: 1, height: 38, borderRadius: 12, border: "1px solid rgba(196,84,84,.4)", background: "rgba(196,84,84,.15)", color: "#D98A8A", fontSize: 13, fontWeight: 600, cursor: deleteLoading || (providers.includes("email") ? !deletePassword : !deleteConfirm) ? "not-allowed" : "pointer", opacity: deleteLoading || (providers.includes("email") ? !deletePassword : !deleteConfirm) ? 0.45 : 1 }}
               >
                 {deleteLoading ? "..." : t("profile.delete_forever")}
               </button>
