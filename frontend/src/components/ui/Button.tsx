@@ -61,17 +61,25 @@ export function Button({
   className = "",
   children,
   style,
+  disabled,
   ...props
 }: ButtonProps) {
   const isPrimary = variant === "primary" || variant === "gold";
+  // Без этого disabled-кнопка визуально неотличима от активной (золотой
+  // градиент рисуется независимо от disabled) — пользователь не понимает,
+  // почему тап не срабатывает (ТЗ-071).
+  const disabledStyle: React.CSSProperties = disabled
+    ? { opacity: 0.45, filter: "grayscale(.5)", cursor: "not-allowed", boxShadow: "none" }
+    : {};
   return (
     <button
+      disabled={disabled}
       className={`${baseStyle} ${variantStyles[variant]} ${sizeClasses[size]} ${className}`}
-      style={{ ...getInlineStyle(variant), ...style }}
+      style={{ ...getInlineStyle(variant), ...disabledStyle, ...style }}
       {...props}
     >
       {children}
-      {shimmer && isPrimary && (
+      {shimmer && isPrimary && !disabled && (
         <span
           style={{
             position: "absolute",

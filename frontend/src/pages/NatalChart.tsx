@@ -64,6 +64,11 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [wheelSize, setWheelSize] = useState(() => computeWheelSize());
+  const nameRef = useRef<HTMLInputElement>(null);
+  const dayRef = useRef<HTMLInputElement>(null);
+  const monthRef = useRef<HTMLInputElement>(null);
+  const yearRef = useRef<HTMLInputElement>(null);
+  const cityRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onResize = () => setWheelSize(computeWheelSize());
@@ -176,6 +181,19 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
   const canSubmit = form.name && form.day && form.month && form.year && form.city;
+  // Кнопка визуально не отличается disabled/enabled без явного стиля (см.
+  // Button.tsx) — без этой подсказки пользователь не понимает, что расчёт
+  // блокирует конкретно незаполненное имя (оно не приходит из онбординга,
+  // только из Профиля или прошлого успешного расчёта) (ТЗ-071).
+  const missingFields = useMemo(() => {
+    const miss: { label: string; ref: React.RefObject<HTMLInputElement> }[] = [];
+    if (!form.name) miss.push({ label: t("natal.name"), ref: nameRef });
+    if (!form.day) miss.push({ label: t("natal.day"), ref: dayRef });
+    if (!form.month) miss.push({ label: t("natal.month"), ref: monthRef });
+    if (!form.year) miss.push({ label: t("natal.year"), ref: yearRef });
+    if (!form.city) miss.push({ label: t("natal.birth_city"), ref: cityRef });
+    return miss;
+  }, [form.name, form.day, form.month, form.year, form.city, t]);
   const elColors: Record<string, string> = { fire: "#ef4444", earth: "#a3e635", air: "#38bdf8", water: "#818cf8" };
   const elIcons: Record<string, string> = { fire: "^", earth: "v", air: "~", water: "o" };
   const elLabels: Record<string, string> = lang === "ru"
@@ -220,14 +238,14 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
           <div className="flex flex-col gap-3">
             <p className="text-text-muted text-xs text-center mb-1">{t("natal.subtitle")}</p>
             <div>
-              <input className={inputCls} placeholder={t("natal.name")} value={form.name} onChange={setField("name")} />
+              <input ref={nameRef} className={inputCls} placeholder={t("natal.name")} value={form.name} onChange={setField("name")} />
               {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
             </div>
             <div>
               <div className="grid grid-cols-3 gap-2">
-                <input className={inputCls} placeholder={t("natal.day")} type="number" min="1" max="31" value={form.day} onChange={setField("day")} />
-                <input className={inputCls} placeholder={t("natal.month")} type="number" min="1" max="12" value={form.month} onChange={setField("month")} />
-                <input className={inputCls} placeholder={t("natal.year")} type="number" min="1900" max="2025" value={form.year} onChange={setField("year")} />
+                <input ref={dayRef} className={inputCls} placeholder={t("natal.day")} type="number" min="1" max="31" value={form.day} onChange={setField("day")} />
+                <input ref={monthRef} className={inputCls} placeholder={t("natal.month")} type="number" min="1" max="12" value={form.month} onChange={setField("month")} />
+                <input ref={yearRef} className={inputCls} placeholder={t("natal.year")} type="number" min="1900" max="2025" value={form.year} onChange={setField("year")} />
               </div>
               {(formErrors.day || formErrors.month || formErrors.year || formErrors.date) && (
                 <p className="text-red-400 text-xs mt-1">{formErrors.day || formErrors.month || formErrors.year || formErrors.date}</p>
@@ -238,7 +256,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               <input className={inputCls} placeholder={t("natal.minutes")} type="number" min="0" max="59" value={form.minute} onChange={setField("minute")} />
             </div>
             <div>
-              <input className={inputCls} placeholder={t("natal.birth_city")} value={form.city} onChange={setField("city")} />
+              <input ref={cityRef} className={inputCls} placeholder={t("natal.birth_city")} value={form.city} onChange={setField("city")} />
               {formErrors.city && <p className="text-red-400 text-xs mt-1">{formErrors.city}</p>}
             </div>
             <p className="text-text-faint text-[10px] text-center">{t("natal.time_hint")}</p>
@@ -250,6 +268,23 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             <Button variant="primary" className="w-full mt-1" onClick={handleCalculate} disabled={loading || !canSubmit}>
               {loading ? t("natal.calculating") : t("natal.calculate")}
             </Button>
+            {!loading && missingFields.length > 0 && (
+              <p className="text-text-faint text-xs text-center -mt-1">
+                {lang === "ru" ? "Заполните: " : "Fill in: "}
+                {missingFields.map((f, i) => (
+                  <span key={f.label}>
+                    {i > 0 && ", "}
+                    <button
+                      type="button"
+                      onClick={() => { f.ref.current?.focus(); f.ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+                      style={{ color: "#C9A84C", background: "none", border: "none", padding: 0, font: "inherit", textDecoration: "underline", cursor: "pointer" }}
+                    >
+                      {f.label}
+                    </button>
+                  </span>
+                ))}
+              </p>
+            )}
           </div>
         ) : chart ? (
           <div className="flex flex-col gap-4">
