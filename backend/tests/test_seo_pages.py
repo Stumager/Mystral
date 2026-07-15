@@ -1,4 +1,11 @@
 import re
+import types
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from app.data.seo_data import NUMEROLOGY_SEO, RUNE_SEO
+from app.data.seo_i18n import PREFIX_LANGS
 
 
 class TestZodiacPages:
@@ -62,6 +69,68 @@ class TestRunePages:
     async def test_rune_invalid_slug(self, client):
         res = await client.get("/runes/notarune")
         assert res.status_code == 404
+
+
+class TestAllRunesAndNumerologyPages:
+    """TZ-073 regression: a SEO crawler found 21/123 pages returning 500 —
+    12/24 runes and 9/9 numerology pages — because a real fixture only
+    exercised one example slug per page type (test_rune_returns_html above),
+    so the other slugs' behavior had never actually been asserted. Walk the
+    full slug lists instead of a sample, on ru and every prefixed language,
+    so a future regression can't hide behind an untested slug again."""
+
+    @pytest.mark.parametrize("rune", RUNE_SEO, ids=lambda r: r["slug"])
+    async def test_every_rune_slug_ru(self, client, rune):
+        res = await client.get(f"/runes/{rune['slug']}")
+        assert res.status_code == 200, f"/runes/{rune['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("num", NUMEROLOGY_SEO, ids=lambda n: n["slug"])
+    async def test_every_numerology_slug_ru(self, client, num):
+        res = await client.get(f"/numerology/{num['slug']}")
+        assert res.status_code == 200, f"/numerology/{num['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("rune", RUNE_SEO, ids=lambda r: r["slug"])
+    async def test_every_rune_slug_all_langs(self, client, lang, rune):
+        res = await client.get(f"/{lang}/runes/{rune['slug']}")
+        assert res.status_code == 200, f"/{lang}/runes/{rune['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("num", NUMEROLOGY_SEO, ids=lambda n: n["slug"])
+    async def test_every_numerology_slug_all_langs(self, client, lang, num):
+        res = await client.get(f"/{lang}/numerology/{num['slug']}")
+        assert res.status_code == 200, f"/{lang}/numerology/{num['slug']} -> {res.status_code}"
+
+
+def _fake_llm_response(payload: str):
+    msg = types.SimpleNamespace(content=payload)
+    choice = types.SimpleNamespace(message=msg, finish_reason="stop")
+    return types.SimpleNamespace(choices=[choice])
+
+
+class TestSeoContentPersistenceFailureDoesNotCrashPage:
+    """TZ-073 root cause: _generate_and_store's DB-persistence step used to
+    sit outside any try/except, so a transient DB failure while caching
+    freshly generated content (pool exhaustion, dropped connection, etc.)
+    propagated as an unhandled exception -> 500, even though the LLM had
+    already produced valid content. The page must still render."""
+
+    async def test_page_renders_even_if_caching_the_content_fails(self, client):
+        good_json = (
+            '{"intro": "test intro", "sections": [{"title": "t", "text": "x"}], '
+            '"faq": [{"q": "q", "a": "a"}], "cta_text": "cta"}'
+        )
+        fake_client = types.SimpleNamespace(
+            chat=types.SimpleNamespace(completions=types.SimpleNamespace(
+                create=AsyncMock(return_value=_fake_llm_response(good_json))
+            ))
+        )
+        with patch("app.core.groq_client._get_async_client", return_value=fake_client), \
+             patch("sqlmodel.ext.asyncio.session.AsyncSession.commit",
+                   AsyncMock(side_effect=RuntimeError("simulated transient DB error"))):
+            res = await client.get("/runes/eihwaz")
+        assert res.status_code == 200
+        assert "test intro" in res.text
 
 
 class TestSitemap:

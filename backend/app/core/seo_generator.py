@@ -284,21 +284,31 @@ async def _generate_and_store(page_type: str, slug: str, data: dict, session: As
         logger.error("SEO gen error for %s/%s/%s: %s", page_type, slug, lang, e)
         return _fallback(lang)
 
-    content_str = json.dumps(parsed, ensure_ascii=False)
-    result = await session.exec(
-        select(SeoContent).where(
-            SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+    # TZ-073: this persistence step used to sit outside any try/except, so a
+    # transient DB failure here (pool exhaustion, dropped connection, etc.)
+    # propagated as an unhandled 500 to the caller — even though the LLM had
+    # already produced valid content. Serve the real content regardless of
+    # whether caching it succeeds; a page must never 500 just because its
+    # cache write failed (it will simply regenerate next request).
+    try:
+        content_str = json.dumps(parsed, ensure_ascii=False)
+        result = await session.exec(
+            select(SeoContent).where(
+                SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+            )
         )
-    )
-    cached = result.first()
-    if cached:
-        cached.content = content_str
-        cached.generated_at = datetime.utcnow()
-        session.add(cached)
-    else:
-        session.add(SeoContent(page_type=page_type, slug=slug, lang=lang, content=content_str))
-    await session.commit()
-    logger.info("Generated SEO content for %s/%s/%s", page_type, slug, lang)
+        cached = result.first()
+        if cached:
+            cached.content = content_str
+            cached.generated_at = datetime.utcnow()
+            session.add(cached)
+        else:
+            session.add(SeoContent(page_type=page_type, slug=slug, lang=lang, content=content_str))
+        await session.commit()
+        logger.info("Generated SEO content for %s/%s/%s", page_type, slug, lang)
+    except Exception as e:
+        logger.error("SEO gen for %s/%s/%s: failed to persist generated content, serving it unpersisted: %s",
+                     page_type, slug, lang, e)
     return parsed
 
 
