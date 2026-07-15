@@ -18,6 +18,14 @@ interface RefundsRes { pending: RefundRow[]; resolved: RefundRow[]; }
 
 const API = "/api/v1";
 
+// TZ-075: a date-only display ("до 15.07.2026") reads as "all of the 15th
+// still counts" — the real cutoff is an exact timestamp, so show the time too.
+function formatExpiresAt(iso: string): string {
+  return new Date(iso).toLocaleString("ru-RU", {
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 function adminHeaders(): Record<string, string> {
   return { "Content-Type": "application/json", "X-Admin-Token": sessionStorage.getItem("admin_token") || "" };
 }
@@ -185,7 +193,7 @@ export function Admin() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 11, color: "#6E6757" }}>
             {u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}
-            {u.tier === "pro" && u.subscription_expires_at && ` · до ${new Date(u.subscription_expires_at).toLocaleDateString("ru-RU")}`}
+            {u.tier === "pro" && u.subscription_expires_at && ` · до ${formatExpiresAt(u.subscription_expires_at)}`}
           </div>
           <div style={{ fontSize: 10, color: "#6E6757", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</div>
         </div>
@@ -423,7 +431,7 @@ export function Admin() {
                   color: u.tier === "pro" ? "#E8CD7E" : "#6E6757",
                 }}>{u.tier.toUpperCase()}</span>
                 {u.tier === "pro" && u.subscription_expires_at && (
-                  <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>до {new Date(u.subscription_expires_at).toLocaleDateString("ru-RU")}</div>
+                  <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>до {formatExpiresAt(u.subscription_expires_at)}</div>
                 )}
               </div>
               <span style={{ fontSize: 12, color: "#6E6757" }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}</span>

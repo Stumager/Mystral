@@ -44,8 +44,15 @@ async def is_admin(request: Request, x_admin_token: str = Header("")):
 async def admin_stats(session: AsyncSession = Depends(get_session)):
     now = datetime.utcnow()
     total = (await session.exec(select(func.count()).select_from(User))).one()
+    # TZ-075: exclude users whose subscription_expires_at has already passed
+    # but who haven't made a request since (so the lazy check in deps.py
+    # hasn't demoted them yet) / haven't yet been swept by the hourly
+    # demote_expired_subscriptions job — otherwise this count is stale.
     pro = (await session.exec(
-        select(func.count()).select_from(User).where(User.subscription_tier == "pro")
+        select(func.count()).select_from(User).where(
+            User.subscription_tier == "pro",
+            (User.subscription_expires_at.is_(None)) | (User.subscription_expires_at >= now),
+        )
     )).one()
     new_7 = (await session.exec(
         select(func.count()).select_from(User).where(User.created_at >= now - timedelta(days=7))
@@ -81,18 +88,30 @@ async def admin_users(
         q.order_by(User.created_at.desc()).offset(offset).limit(limit)
     )).all()
 
+    now = datetime.utcnow()
     result = []
     for u in user_rows:
         tg_ap = (await session.exec(
             select(AuthProvider).where(AuthProvider.user_id == u.id, AuthProvider.provider == "telegram")
         )).first()
 
+        # TZ-075: subscription_tier is only ever flipped to "free" lazily, on
+        # that specific user's next authenticated request (deps.py) or by the
+        # hourly demote_expired_subscriptions sweep — an inactive expired user
+        # can sit at tier="pro" in the DB indefinitely otherwise. Recompute
+        # the effective tier for display so the list is never stale, without
+        # writing anything back to the DB (that stays the job's/lazy check's
+        # responsibility).
+        effective_tier = u.subscription_tier
+        if effective_tier == "pro" and u.subscription_expires_at and u.subscription_expires_at < now:
+            effective_tier = "free"
+
         result.append({
             "id": str(u.id),
             "email": u.email,
             "display_name": u.display_name,
             "telegram_id": tg_ap.provider_id if tg_ap else None,
-            "tier": u.subscription_tier,
+            "tier": effective_tier,
             "subscription_expires_at": u.subscription_expires_at.isoformat() if u.subscription_expires_at else None,
             "created_at": u.created_at.isoformat() if u.created_at else None,
         })

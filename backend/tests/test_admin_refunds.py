@@ -234,3 +234,53 @@ class TestDeleteUserCascade:
             assert await s.get(User, user.id) is None
             assert (await s.exec(select(Payment).where(Payment.user_id == user.id))).first() is None
             assert (await s.exec(select(RefundRequest).where(RefundRequest.user_id == user.id))).first() is None
+
+
+class TestAdminSubscriptionStatusIsRecomputed:
+    """TZ-075: subscription_tier is only ever flipped to "free" lazily on that
+    user's own next authenticated request (deps.py) or by the hourly
+    demote_expired_subscriptions sweep — an inactive expired user can sit at
+    tier="pro" in the DB indefinitely otherwise. The admin endpoints must not
+    surface that stale raw value."""
+
+    async def _make_stale_pro_user(self, expires_at, email: str) -> User:
+        user, _ = await make_user(email=email, tier="pro", with_profile=False)
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            u.subscription_expires_at = expires_at
+            s.add(u)
+            await s.commit()
+        return user
+
+    async def test_expired_user_shows_free_in_users_list(self, client, admin_headers):
+        user = await self._make_stale_pro_user(
+            datetime.utcnow() - timedelta(hours=1), "stale-expired@test.com")
+
+        res = await client.get("/v1/admin/users?search=stale-expired", headers=admin_headers)
+        assert res.status_code == 200
+        rows = res.json()["users"]
+        assert len(rows) == 1
+        assert rows[0]["tier"] == "free"
+
+        # display-only recompute — the DB row itself is untouched (that stays
+        # the job's/lazy check's responsibility, not this read endpoint's)
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            assert u.subscription_tier == "pro"
+
+    async def test_active_user_still_shows_pro_in_users_list(self, client, admin_headers):
+        await self._make_stale_pro_user(
+            datetime.utcnow() + timedelta(days=1), "stale-active@test.com")
+
+        res = await client.get("/v1/admin/users?search=stale-active", headers=admin_headers)
+        rows = res.json()["users"]
+        assert len(rows) == 1
+        assert rows[0]["tier"] == "pro"
+
+    async def test_expired_user_excluded_from_pro_stats_count(self, client, admin_headers):
+        before = (await client.get("/v1/admin/stats", headers=admin_headers)).json()["pro_users"]
+        await self._make_stale_pro_user(
+            datetime.utcnow() - timedelta(hours=1), "stale-stats@test.com")
+
+        after = (await client.get("/v1/admin/stats", headers=admin_headers)).json()["pro_users"]
+        assert after == before

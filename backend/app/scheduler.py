@@ -148,6 +148,14 @@ async def send_daily_horoscopes():
 
 
 async def send_subscription_reminders():
+    """TZ-075: this used to also send the "istekla" (expired) message by
+    comparing .date() == today — a date-only check decoupled from the real,
+    timestamp-precise cutoff in deps.py, so it could fire hours before or
+    after access actually stopped. That case is now handled by
+    demote_expired_subscriptions, which sends it at the exact moment it
+    downgrades the account. This job keeps only the advance (3-day) warning,
+    which is genuinely date-based by design — it is a heads-up, not a report
+    of something that already happened, so .date() comparison is correct here."""
     if not settings.telegram_bot_token:
         return
 
@@ -171,37 +179,76 @@ async def send_subscription_reminders():
         async with httpx.AsyncClient(timeout=15) as http:
             for user, provider in results:
                 exp_date = user.subscription_expires_at.date()
+                if exp_date != in_3_days:
+                    continue
                 chat_id = int(provider.provider_id)
-                today_str = today.isoformat()
-
-                if exp_date == in_3_days:
-                    key = f"reminder_3d:{user.id}:{today_str}"
-                    if await redis.exists(key):
-                        continue
-                    msg = (
-                        "⚠️ Твоя подписка <b>Mystral Pro</b> истекает через 3 дня.\n"
-                        "Продли, чтобы не потерять доступ."
-                    )
-                    if await _send_tg_message(http, chat_id, msg):
-                        await redis.setex(key, 90000, "1")
-                        logger.info("Sent 3-day reminder to user %s", user.id)
-
-                elif exp_date == today:
-                    key = f"reminder_exp:{user.id}:{today_str}"
-                    if await redis.exists(key):
-                        continue
-                    msg = (
-                        "❌ Подписка <b>Mystral Pro</b> истекла.\n"
-                        "Возобнови доступ ко всем функциям."
-                    )
-                    if await _send_tg_message(http, chat_id, msg):
-                        await redis.setex(key, 90000, "1")
-                        logger.info("Sent expiry reminder to user %s", user.id)
+                key = f"reminder_3d:{user.id}:{today.isoformat()}"
+                if await redis.exists(key):
+                    continue
+                msg = (
+                    "⚠️ Твоя подписка <b>Mystral Pro</b> истекает через 3 дня.\n"
+                    "Продли, чтобы не потерять доступ."
+                )
+                if await _send_tg_message(http, chat_id, msg):
+                    await redis.setex(key, 90000, "1")
+                    logger.info("Sent 3-day reminder to user %s", user.id)
 
     except Exception as e:
         logger.error("Subscription reminders failed: %s", e)
     finally:
         await redis.close()
+
+
+async def demote_expired_subscriptions():
+    """TZ-075: active check — the only prior mechanism was the lazy check in
+    deps.get_current_user, which only ran on that specific user's next
+    authenticated request, so an inactive expired user stayed tier="pro" in
+    the DB (and in the admin panel) indefinitely. Runs hourly (see main.py)
+    so real demotion trails the actual cutoff by well under the ~24h the old
+    lazy-only design allowed, and sends the "istekla" notice at the exact
+    moment it demotes an account, instead of a separate date-only check."""
+    now = datetime.utcnow()
+    async with get_session_context() as session:
+        stmt = select(User).where(
+            User.subscription_tier == "pro",
+            User.subscription_expires_at.is_not(None),
+            User.subscription_expires_at < now,
+        )
+        users = (await session.exec(stmt)).all()
+        if not users:
+            logger.info("Subscription check: no expired pro users")
+            return
+
+        demoted_ids = []
+        for user in users:
+            user.subscription_tier = "free"
+            user.subscription_expires_at = None
+            session.add(user)
+            demoted_ids.append(user.id)
+        await session.commit()
+        logger.info("Subscription check: demoted %d expired pro users", len(demoted_ids))
+
+    if not settings.telegram_bot_token:
+        return
+
+    try:
+        async with get_session_context() as session:
+            providers = (await session.exec(
+                select(AuthProvider).where(
+                    AuthProvider.user_id.in_(demoted_ids),
+                    AuthProvider.provider == "telegram",
+                )
+            )).all()
+
+        if not providers:
+            return
+        msg = "❌ Подписка <b>Mystral Pro</b> истекла.\nВозобнови доступ ко всем функциям."
+        async with httpx.AsyncClient(timeout=15) as http:
+            for provider in providers:
+                if await _send_tg_message(http, int(provider.provider_id), msg):
+                    logger.info("Sent expiry notice to user %s", provider.user_id)
+    except Exception as e:
+        logger.error("Expired-subscription notification failed: %s", e)
 
 
 async def cleanup_deleted_accounts():

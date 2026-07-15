@@ -421,7 +421,11 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                 style={{ color: daysLeft <= 3 ? "#f87171" : "#9B8FBB" }}
               >
                 {t("profile.pro_until", {
-                  date: new Date(expiresAt).toLocaleDateString(user?.lang === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "long" }),
+                  // TZ-075: date-only ("до 15 июля") reads as "all day still
+                  // included" — the real cutoff is an exact timestamp, so show it.
+                  date: new Date(expiresAt).toLocaleString(user?.lang === "en" ? "en-US" : "ru-RU", {
+                    day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+                  }),
                 })} · {t("profile.days_left", { count: daysLeft })}
               </p>
             )}
