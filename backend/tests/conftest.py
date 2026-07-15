@@ -55,6 +55,7 @@ except ImportError:
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlmodel import SQLModel
 
 import app.core.redis as app_redis
@@ -65,6 +66,21 @@ from app.models.user import AuthProvider, User, UserProfile
 from app.core.security import hash_password
 
 app_redis.redis_client = _fake_from_url(decode_responses=True)
+
+# The shared file-based test DB (see _TEST_DB above) gets hit by hundreds of
+# parametrized requests plus a DROP/CREATE-TABLE cycle before every single
+# test (_fresh_state below). With SQLite's default busy_timeout of 0, any
+# connection that finds the file locked — including transient locks left by
+# a connection that just committed, especially under Windows filesystem
+# latency — fails immediately with "database is locked" instead of
+# retrying. WAL mode lets readers and a writer coexist, and busy_timeout
+# makes writers retry for up to 30s instead of failing instantly.
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragmas(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.close()
 
 
 @pytest_asyncio.fixture(autouse=True)
