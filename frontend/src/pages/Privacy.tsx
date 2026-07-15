@@ -98,13 +98,13 @@ export function Privacy() {
             <br /><br />
             Пароли хранятся в захешированном виде (bcrypt) и не могут быть восстановлены Оператором.
             <br /><br />
-            Данные хранятся в течение всего срока использования Сервиса и удаляются по запросу пользователя или через 12 месяцев после удаления аккаунта.
+            Данные хранятся в течение всего срока использования Сервиса и удаляются по запросу пользователя или через 30 дней после удаления аккаунта.
           </>) : (<>
             Personal data is stored on secure servers in the European Union (VPS hosting in Sweden). Data transfer between client and server is protected by TLS/SSL encryption.
             <br /><br />
             Passwords are stored in hashed form (bcrypt) and cannot be recovered by the Controller.
             <br /><br />
-            Data is retained for the duration of Service usage and deleted upon user request or 12 months after account deletion.
+            Data is retained for the duration of Service usage and deleted upon user request or 30 days after account deletion.
           </>)}
         </Section>
 
