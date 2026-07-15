@@ -382,7 +382,7 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
                 a2 = getattr(p2, "abs_pos", p2.position)
                 diff = abs(float(a1) - float(a2))
                 if diff > 180: diff = 360 - diff
-                for angle, max_orb, atype, name_ru, sym in NATAL_ASPECTS:
+                for angle, max_orb, atype, name_ru, _, sym in NATAL_ASPECTS:
                     orb = abs(diff - angle)
                     if orb <= 6:
                         aspects.append({

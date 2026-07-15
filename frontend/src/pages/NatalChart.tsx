@@ -19,7 +19,7 @@ interface PlanetData {
 interface HouseData { number: number; sign: string; sign_ru: string; degree: number; abs_pos: number; }
 interface AspectData {
   planet1: string; planet2: string; planet1_ru: string; planet2_ru: string;
-  type: string; name_ru: string; symbol: string; orb: number; harmony: boolean;
+  type: string; name_ru: string; name_en: string; symbol: string; orb: number; harmony: boolean;
 }
 interface Stellium {
   type: string; name_ru: string; name_en: string;
@@ -428,7 +428,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                       <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                         <span className="text-text-muted">{a.planet1_ru} {a.symbol} {a.planet2_ru}</span>
                         <span style={{ color: aspectColor }}>
-                          {a.name_ru} <span className="text-text-faint">{a.orb}°</span>
+                          {lang === "ru" ? a.name_ru : a.name_en} <span className="text-text-faint">{a.orb}°</span>
                         </span>
                       </div>
                     );
