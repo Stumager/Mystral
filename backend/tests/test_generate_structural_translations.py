@@ -32,8 +32,10 @@ class TestHeuristicCheck:
         assert not ok and "short" in reason
 
     def test_suspiciously_long_rejected(self):
+        # Long (>2-word) reference value, so the ratio check actually
+        # applies (short values are exempt - see below).
         long_text = "x" * 200
-        ok, reason = _heuristic_ok(long_text, "Овен", "Aries")
+        ok, reason = _heuristic_ok(long_text, "Полная совместимость пары", "Full pair compatibility")
         assert not ok and "long" in reason
 
     def test_long_verbatim_english_echo_rejected(self):
@@ -72,11 +74,23 @@ class TestHeuristicCheck:
         ok, _ = _heuristic_ok("ARIES", "Овен", "Aries")
         assert ok
 
-    def test_short_value_exemption_does_not_bypass_length_ratio_checks(self):
-        # The exemption only applies to the identical-to-English check -
-        # a short value that's also a garbage length is still rejected.
+    def test_short_value_exemption_also_bypasses_length_ratio_check(self):
+        # Real false positive found in production on
+        # compatibility.SIGNS_I18N[8].name/tr: "Sagittarius" -> "Yay" is the
+        # correct Turkish zodiac name, but is only ~27% of the English
+        # reference's length. One-word proper nouns/astrological terms can
+        # legitimately be much shorter (or longer) than either reference in
+        # any language, so short values skip the ratio check too, not just
+        # the identical-to-English one.
+        ok, reason = _heuristic_ok("Yay", "Стрелец", "Sagittarius")
+        assert ok, reason
+
+    def test_short_value_extremely_short_translation_still_accepted(self):
+        # Same exemption, taken to the edge: a single-letter translation of
+        # a short reference isn't rejected either - length alone isn't a
+        # quality signal at this scale.
         ok, reason = _heuristic_ok("A", "Овен", "Aries")
-        assert not ok and "short" in reason
+        assert ok, reason
 
 
 class TestBuildPrompt:
@@ -254,6 +268,43 @@ class TestWriteAndResumeCycle:
                        new=AsyncMock(side_effect=AssertionError("should not be called"))):
                 code2 = await run("compatibility", ["es"], None, force=False, delay=0, dry_run=False)
             assert code2 == 0
+
+    async def test_rerun_after_heuristic_fix_fills_only_previously_rejected_entries(self, tmp_path):
+        """Simulates the exact situation the heuristic false positives left
+        behind: one sign already translated and saved successfully (Aries),
+        one that a pre-fix run rejected and never saved (Sagittarius ->
+        "Yay", wrongly flagged as too short). Re-running --section
+        compatibility today (fix in place, no --force) must resume cleanly:
+        skip the already-good entry with no LLM call, and fill in only the
+        missing one."""
+        fake_registry = {
+            "compatibility": lambda: {"SIGNS_I18N": [
+                ("0", "name", "Овен", "Aries"),
+                ("8", "name", "Стрелец", "Sagittarius"),
+            ]},
+        }
+        with patch("scripts.generate_structural_translations.DATA_DIR", tmp_path):
+            _write_i18n_module("compatibility", {"SIGNS_I18N": {
+                "es": {"0": {"name": "Carnero"}}, "pt": {}, "tr": {}, "uk": {},
+            }})
+
+        calls = []
+
+        async def fake_translate(ru_value, en_value, lang):
+            calls.append((ru_value, en_value, lang))
+            return "Yay"
+
+        with patch("scripts.generate_structural_translations.DATA_DIR", tmp_path), \
+             patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
+             patch("scripts.generate_structural_translations._translate_one", side_effect=fake_translate):
+            code = await run("compatibility", ["es"], None, force=False, delay=0, dry_run=False)
+            assert code == 0
+            loaded = _load_existing_dicts("compatibility", ["SIGNS_I18N"])
+
+        assert calls == [("Стрелец", "Sagittarius", "es")], \
+            "must only call the LLM for the missing entry, not the already-saved one"
+        assert loaded["SIGNS_I18N"]["es"]["0"]["name"] == "Carnero"  # untouched
+        assert loaded["SIGNS_I18N"]["es"]["8"]["name"] == "Yay"  # filled in, no longer rejected
 
     async def test_run_reports_failure_when_heuristic_never_passes(self, tmp_path):
         # Long (>2-word) reference value, so the identical-to-English

@@ -284,25 +284,30 @@ def _build_prompt(ru_value: str, en_value: str, lang: str) -> str:
 
 def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool, str]:
     """Module 4's automatic pass: catches the two failure shapes that matter
-    most for short reference strings — a near-empty/truncated response, and
-    the model just echoing the English reference back untranslated. Proper
-    names (rune/card names) are expected to resemble the English spelling,
-    so this only flags a *verbatim* copy of the whole reference, not shared
-    substrings.
+    most for longer reference strings — a near-empty/truncated response, and
+    the model just echoing the English reference back untranslated.
 
-    The identical-to-English check is skipped for <=2-word values: a real
-    false positive on compatibility.SIGNS_I18N[0].name/es showed that short
-    reference strings are frequently proper nouns or established
-    astrological terms (zodiac signs, some tarot names) that are correctly
-    identical across languages — Spanish "Aries" is still "Aries", not an
-    untranslated leftover. Whether that identity is actually correct for a
-    given short value isn't something this script can verify automatically
-    either way, so for the short case we accept rather than burn retries
-    that would just reproduce the same (correct) answer. A whole phrase or
-    sentence copied verbatim from English remains a strong signal of a
-    lazy/stuck translation and is still flagged."""
+    Both the length-ratio and identical-to-English checks are skipped for
+    <=2-word values. Two real false positives came from this same root
+    cause: compatibility.SIGNS_I18N[0].name/es ("Aries" -> "Aries", flagged
+    as untranslated) and compatibility.SIGNS_I18N[8].name/tr ("Sagittarius"
+    -> "Yay", the correct Turkish name, flagged as "suspiciously short —
+    27% of reference length"). Short reference strings are frequently
+    proper nouns or established astrological terms (zodiac signs, some
+    tarot/rune names), and for those a legitimate translation can be
+    identical to English, or much shorter/longer than either reference, in
+    either direction — length and identity just aren't signals of quality
+    at that scale. Whether a given short value is actually correct isn't
+    something this script can verify automatically either way, so the
+    short case is accepted rather than burned on retries that would likely
+    just reproduce the same (correct) answer. Longer phrases and sentences
+    still get both checks — a whole description copied verbatim from
+    English, or wildly the wrong length, remains a strong signal of a
+    lazy/stuck translation there."""
     if not translation or not translation.strip():
         return False, "empty translation"
+    if len(en_value.split()) <= 2:
+        return True, ""
     ref_len = max(len(ru_value), len(en_value))
     if ref_len > 0:
         ratio = len(translation) / ref_len
@@ -310,8 +315,7 @@ def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool,
             return False, f"suspiciously short ({ratio:.0%} of reference length)"
         if ratio > 3.0:
             return False, f"suspiciously long ({ratio:.0%} of reference length)"
-    is_short_value = len(en_value.split()) <= 2
-    if not is_short_value and len(en_value) > 3 and en_value.strip().lower() == translation.strip().lower():
+    if len(en_value) > 3 and en_value.strip().lower() == translation.strip().lower():
         return False, "identical to the English reference — looks untranslated"
     return True, ""
 
