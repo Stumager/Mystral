@@ -42,6 +42,24 @@ class TestCalcAspectsIncludesBothLanguages:
         assert aspects[0]["name_ru"] == "Трин"
         assert aspects[0]["name_en"] == "Trine"
 
+    def test_aspect_dict_has_planet_names_in_both_languages(self):
+        # TZ-077: NatalChart.tsx's aspect row showed planet1_ru/planet2_ru
+        # unconditionally regardless of interface language — the aspect TYPE
+        # name (Trine/Трин) was already bilingual since TZ-076, but the
+        # planet names next to it weren't. _calc_aspects must expose both.
+        p1 = {"name": "sun", "name_ru": "Солнце", "name_en": "Sun", "abs_pos": 0.0}
+        p2 = {"name": "moon", "name_ru": "Луна", "name_en": "Moon", "abs_pos": 120.0}
+        aspects = _calc_aspects([p1, p2])
+        assert aspects[0]["planet1_en"] == "Sun"
+        assert aspects[0]["planet2_en"] == "Moon"
+
+    def test_planet_en_falls_back_to_raw_name_if_missing(self):
+        p1 = {"name": "sun", "name_ru": "Солнце", "abs_pos": 0.0}
+        p2 = {"name": "moon", "name_ru": "Луна", "abs_pos": 120.0}
+        aspects = _calc_aspects([p1, p2])
+        assert aspects[0]["planet1_en"] == "sun"
+        assert aspects[0]["planet2_en"] == "moon"
+
 
 class TestNatalTransitsAspectLanguage:
     """/natal/transits collapses the aspect to a single "aspect" field

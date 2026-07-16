@@ -7,6 +7,7 @@ meant to eliminate or recover from without silently losing content.
 """
 from unittest.mock import AsyncMock, patch
 
+from app.core import seo_generator
 from app.core.seo_generator import (
     GENERATION_MAX_TOKENS,
     PROMPTS,
@@ -163,3 +164,42 @@ class TestTruncationFollowUp:
 
         assert result.get("_fallback") is True  # incomplete JSON -> fallback, not garbage
         assert any("finish_reason=length" in r.message for r in caplog.records)
+
+
+class TestWarmSeoCacheErrorIsolation:
+    """TZ-074: warm_seo_cache used to count errors globally and `return`
+    (abort the whole warm) after 3 consecutive failures anywhere — so 3 bad
+    rune pages could silently stop zodiac/tarot/numerology from ever warming
+    (the actual cause behind 21 rune/numerology pages staying cold in
+    TZ-073). Errors must now be isolated per page_type: a type that trips 3
+    in a row skips only its own remaining slugs, while every other type
+    keeps going, and the specific skipped slugs are logged."""
+
+    async def test_other_types_keep_warming_after_one_type_fails_repeatedly(self, caplog):
+        items = [
+            ("zodiac", "aries", {}), ("zodiac", "taurus", {}),
+            ("rune", "fehu", {}), ("rune", "uruz", {}), ("rune", "thurisaz", {}), ("rune", "ansuz", {}),
+            ("tarot", "the-fool", {}),
+        ]
+        calls: list[tuple[str, str]] = []
+
+        async def fake_get_seo_content(ptype, slug, data, session, lang):
+            calls.append((ptype, slug))
+            if ptype == "rune":
+                raise RuntimeError("boom")
+            return {"intro": "ok"}
+
+        with patch.object(seo_generator, "seo_page_items", return_value=items), \
+             patch.object(seo_generator.settings, "seo_warm_langs", "ru"), \
+             patch.object(seo_generator, "get_seo_content", side_effect=fake_get_seo_content), \
+             patch("asyncio.sleep", new=AsyncMock()):
+            import logging
+            with caplog.at_level(logging.WARNING, logger="app.core.seo_generator"):
+                await seo_generator.warm_seo_cache()
+
+        rune_calls = [c for c in calls if c[0] == "rune"]
+        assert len(rune_calls) == 3, "must stop attempting rune after 3 consecutive failures, not retry every slug"
+        assert ("zodiac", "aries") in calls and ("zodiac", "taurus") in calls
+        assert ("tarot", "the-fool") in calls, "tarot must still warm even though rune failed repeatedly"
+        assert any("skipping its remaining slugs" in r.message for r in caplog.records)
+        assert any("did not warm" in r.message for r in caplog.records)

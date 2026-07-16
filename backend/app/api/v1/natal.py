@@ -175,8 +175,8 @@ def _calc_aspects(planets: list[dict]) -> list[dict]:
                 orb = abs(diff - angle)
                 if orb <= max_orb:
                     aspects.append({
-                        "planet1": p1["name"], "planet1_ru": p1["name_ru"],
-                        "planet2": p2["name"], "planet2_ru": p2["name_ru"],
+                        "planet1": p1["name"], "planet1_ru": p1["name_ru"], "planet1_en": p1.get("name_en", p1["name"]),
+                        "planet2": p2["name"], "planet2_ru": p2["name_ru"], "planet2_en": p2.get("name_en", p2["name"]),
                         "type": atype, "name_ru": name_ru, "name_en": name_en, "symbol": symbol,
                         "orb": round(orb, 1), "harmony": atype in ("trine", "sextile"),
                     })
@@ -382,8 +382,8 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
                 orb = abs(diff - angle)
                 if orb <= 3:
                     active.append({
-                        "transit_planet": tp["name_ru"], "transit_sign": tp["sign_ru"],
-                        "natal_planet": np["name_ru"], "natal_sign": np["sign_ru"],
+                        "transit_planet": tp["name_ru"] if ru else tp["name_en"], "transit_sign": tp["sign_ru"],
+                        "natal_planet": np["name_ru"] if ru else np["name_en"], "natal_sign": np["sign_ru"],
                         "aspect": name_ru if ru else name_en, "aspect_symbol": symbol, "orb": round(orb, 1),
                     })
                     break

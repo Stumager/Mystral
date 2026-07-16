@@ -409,9 +409,18 @@ async def warm_seo_cache() -> None:
     total = len(items) * len(langs)
     logger.info("SEO cache warm: starting %d pages (langs: %s)", total, ",".join(langs))
 
-    errors = 0
+    # TZ-074: errors used to be counted globally, so 3 failures anywhere (e.g.
+    # all rune pages hitting a transient issue) aborted the *entire* warm —
+    # including zodiac/tarot/numerology types that were working fine. Track
+    # consecutive errors per page_type instead: once a type trips 3 in a row,
+    # skip only its remaining slugs (still checking cache first, since earlier
+    # slugs of that type may already be warm) and keep warming the other types.
+    consecutive_errors: dict[str, int] = {}
+    skipped_types: set[tuple[str, str]] = set()
+    failed: list[str] = []
     done = 0
     for lang in langs:
+        consecutive_errors.clear()
         for ptype, slug, data in items:
             done += 1
             async with get_session_context() as session:
@@ -422,16 +431,25 @@ async def warm_seo_cache() -> None:
                 )
                 if result.first():
                     continue
+                if (lang, ptype) in skipped_types:
+                    failed.append(f"{ptype}/{slug}/{lang} (skipped: repeated errors for this type)")
+                    continue
                 try:
                     await get_seo_content(ptype, slug, localize_data(ptype, data, lang), session, lang)
                     logger.info("SEO cache warm: %s/%s/%s (%d/%d)", ptype, slug, lang, done, total)
-                    errors = 0
+                    consecutive_errors[ptype] = 0
                 except Exception as e:
                     logger.error("SEO warm error %s/%s/%s: %s", ptype, slug, lang, e)
-                    errors += 1
-                    if errors >= 3:
-                        logger.warning("SEO cache warm: stopping after 3 consecutive errors (rate limit?)")
-                        return
+                    failed.append(f"{ptype}/{slug}/{lang}")
+                    consecutive_errors[ptype] = consecutive_errors.get(ptype, 0) + 1
+                    if consecutive_errors[ptype] >= 3:
+                        logger.warning(
+                            "SEO cache warm: 3 consecutive errors for type=%s lang=%s, skipping its remaining slugs (other types continue)",
+                            ptype, lang,
+                        )
+                        skipped_types.add((lang, ptype))
             await asyncio.sleep(3)
 
+    if failed:
+        logger.warning("SEO cache warm: %d/%d pages did not warm: %s", len(failed), total, ", ".join(failed))
     logger.info("SEO cache warm: done")
