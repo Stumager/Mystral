@@ -17,6 +17,7 @@ interface DrawnCard {
   id: number;
   name: string;
   name_ru: string;
+  name_display: string;
   reversed: boolean;
 }
 
@@ -41,6 +42,14 @@ export function Tarot({ onNavigate }: TarotProps) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
 
+  // Display strings for a spread (name/desc/positions/schemes) live in the
+  // locale files under tarot.spreads.<id>, in all 6 languages — i18next
+  // already resolves to the active UI language, same as every other t() call.
+  const spreadName = (id: string) => t(`tarot.spreads.${id}.name`);
+  const spreadDesc = (id: string) => t(`tarot.spreads.${id}.desc`);
+  const spreadPositions = (id: string) => t(`tarot.spreads.${id}.positions`, { returnObjects: true }) as string[];
+  const spreadSchemes = (id: string) => t(`tarot.spreads.${id}.schemes`, { returnObjects: true }) as string[][];
+
   function selectSpread(s: SpreadType) {
     if (s.tier === "pro" && user?.tier !== "pro") {
       setShowPaywall(true);
@@ -50,7 +59,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     setSchemeIdx(0);
     setQuestion("");
     if (s.id === "card_of_day") {
-      doSpread(s, s.positions_ru);
+      doSpread(s, spreadPositions(s.id));
     } else {
       setStep("question");
     }
@@ -62,7 +71,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     try {
       const data = await apiRequest<{ cards: DrawnCard[] }>(
         "/tarot/spread",
-        { spread_id: s.id, positions: pos, question: question || null },
+        { spread_id: s.id, positions: pos, question: question || null, lang },
         token ?? undefined,
       );
       setCards(data.cards);
@@ -81,9 +90,7 @@ export function Tarot({ onNavigate }: TarotProps) {
 
   function handleProceed() {
     if (!spread) return;
-    const pos = spread.schemes
-      ? (lang === "ru" ? spread.schemes[schemeIdx].ru : spread.schemes[schemeIdx].en)
-      : (lang === "ru" ? spread.positions_ru : spread.positions_en);
+    const pos = spread.schemeCount ? spreadSchemes(spread.id)[schemeIdx] : spreadPositions(spread.id);
     doSpread(spread, pos);
   }
 
@@ -181,7 +188,7 @@ export function Tarot({ onNavigate }: TarotProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-cormorant text-text-primary" style={{ fontSize: 16 }}>
-                            {lang === "ru" ? s.name_ru : s.name_en}
+                            {spreadName(s.id)}
                           </span>
                           {s.tier === "pro" && (
                             <span className="text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
@@ -190,7 +197,7 @@ export function Tarot({ onNavigate }: TarotProps) {
                             <span className="text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "rgba(201,168,76,.1)", color: "#C9A84C" }}>Free</span>
                           )}
                         </div>
-                        <p className="text-text-faint text-[11px] leading-tight mt-0.5">{lang === "ru" ? s.desc_ru : s.desc_en}</p>
+                        <p className="text-text-faint text-[11px] leading-tight mt-0.5">{spreadDesc(s.id)}</p>
                         <span className="text-text-faint text-[9px] mt-1 inline-block">{s.count} {t("tarot.cards_label")}</span>
                       </div>
                     </div>
@@ -207,15 +214,15 @@ export function Tarot({ onNavigate }: TarotProps) {
         {step === "question" && spread && (
           <div className="flex flex-col gap-4">
             <p className="font-cormorant text-text-primary font-light text-center" style={{ fontSize: 22, color: "#F0E9DA" }}>
-              {lang === "ru" ? spread.name_ru : spread.name_en}
+              {spreadName(spread.id)}
             </p>
 
-            {spread.schemes && (
+            {spread.schemeCount && (
               <div className="flex flex-col gap-1.5">
                 <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                   {t("tarot.position_scheme")}
                 </p>
-                {spread.schemes.map((scheme, i) => (
+                {spreadSchemes(spread.id).map((scheme, i) => (
                   <button
                     key={i}
                     onClick={() => setSchemeIdx(i)}
@@ -227,7 +234,7 @@ export function Tarot({ onNavigate }: TarotProps) {
                       border: `1px solid ${schemeIdx === i ? "rgba(201,168,76,.3)" : "rgba(201,168,76,.08)"}`,
                     }}
                   >
-                    {(lang === "ru" ? scheme.ru : scheme.en).join(" · ")}
+                    {scheme.join(" · ")}
                   </button>
                 ))}
               </div>
@@ -259,7 +266,7 @@ export function Tarot({ onNavigate }: TarotProps) {
           <div className="flex flex-col gap-4">
             {spread && (
               <p className="font-cormorant text-text-primary font-light text-center mb-2" style={{ fontSize: 22, color: "#F0E9DA" }}>
-                {lang === "ru" ? spread.name_ru : spread.name_en}
+                {spreadName(spread.id)}
               </p>
             )}
 
@@ -268,14 +275,14 @@ export function Tarot({ onNavigate }: TarotProps) {
                 <div key={i} onClick={() => revealCard(i)} className="flex flex-col items-center">
                   <TarotCard
                     cardId={card.id}
-                    name={(lang === "ru" ? card.name_ru : card.name) || card.name}
+                    name={card.name_display || card.name}
                     revealed={revealed[i]}
                     reversed={card.reversed}
                     delay={i * 100}
                   />
                   {revealed[i] && (
                     <div className="mt-1.5 text-center max-w-[88px]">
-                      <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{(lang === "ru" ? card.name_ru : card.name) || card.name}</p>
+                      <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{card.name_display || card.name}</p>
                       <p className="text-text-faint text-[8px]">{positions[i]}</p>
                       {card.reversed && (
                         <p className="text-[8px]" style={{ color: "#f87171" }}>{t("tarot.reversed")}</p>
@@ -340,7 +347,7 @@ export function Tarot({ onNavigate }: TarotProps) {
       {showShareCard && spread && (
         <ShareCard
           type="tarot"
-          title={lang === "ru" ? spread.name_ru : spread.name_en}
+          title={spreadName(spread.id)}
           cards={cards.slice(0, 5)}
           onClose={() => setShowShareCard(false)}
         />

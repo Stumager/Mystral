@@ -17,6 +17,8 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.structural_i18n import localized_field
+from app.data.tarot_i18n import CARD_NAMES_I18N
 from app.models.user import TarotReading, User
 
 router = APIRouter()
@@ -52,6 +54,16 @@ for si in range(4):
         CARD_NAMES[idx] = f"{RANKS_EN[ri]} of {SUITS_EN[si]}"
         CARD_NAMES_RU[idx] = f"{RANKS_RU[ri]} {SUITS_RU[si]}"
 
+
+def _card_name(card_id: int, lang: str) -> str:
+    if lang == "ru":
+        return CARD_NAMES_RU.get(card_id, f"Карта {card_id}")
+    en_value = CARD_NAMES.get(card_id, f"Card {card_id}")
+    if lang == "en":
+        return en_value
+    return localized_field(CARD_NAMES_I18N, lang, str(card_id), "name", en_value)
+
+
 SPREADS = {
     "card_of_day":  {"count": 1,  "tier": "free"},
     "three_cards":  {"count": 3,  "tier": "free"},
@@ -69,6 +81,7 @@ class SpreadRequest(BaseModel):
     spread_id: str
     positions: list[str] = []
     question: Optional[str] = None
+    lang: str = "ru"
 
 
 class InterpretRequest(BaseModel):
@@ -109,6 +122,7 @@ async def tarot_spread(
             "id": card_id,
             "name": CARD_NAMES.get(card_id, f"Card {card_id}"),
             "name_ru": CARD_NAMES_RU.get(card_id, f"Карта {card_id}"),
+            "name_display": _card_name(card_id, req.lang),
             "reversed": random.random() < 0.3,
         })
 
@@ -144,12 +158,11 @@ async def tarot_interpret(
     for i, card in enumerate(req.cards):
         pos = req.positions[i] if i < len(req.positions) else f"Position {i+1}"
         card_id = card.get("id", -1)
-        if req.lang == "ru":
-            name = card.get("name_ru") or CARD_NAMES_RU.get(card_id, card.get("name", "?"))
-            rev = " (перевёрнутая)" if card.get("reversed") else " (прямая)"
-        else:
-            name = card.get("name") or CARD_NAMES.get(card_id, "?")
-            rev = " (reversed)" if card.get("reversed") else " (upright)"
+        # TZ-080: this used to be a ru/else-en ternary, so ES/PT/TR/UK always
+        # got the English card name here regardless of req.lang.
+        name = card.get("name_display") or _card_name(card_id, req.lang)
+        rev = (" (перевёрнутая)" if req.lang == "ru" else " (reversed)") if card.get("reversed") \
+            else (" (прямая)" if req.lang == "ru" else " (upright)")
         if not card.get("reversed"):
             upright_count += 1
         cards_desc.append(f"{name}{rev} — {pos}")

@@ -16,6 +16,8 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
+from app.core.structural_i18n import localized_field
+from app.data.natal_i18n import PLANET_NAMES_I18N, SIGNS_I18N
 from app.models.user import User
 
 router = APIRouter()
@@ -89,6 +91,29 @@ def _normalize_sign(sign: str) -> str:
     return sign
 
 
+# TZ-080: planet/sign names were ru/en-only everywhere in this file. These
+# resolve ES/PT/TR/UK via natal_i18n.py, falling back to English until a
+# language is actually generated. Aspect names (ASPECT_TYPES) already have
+# ru/en from TZ-076/079; the 5 long interpretation prompt templates are out
+# of scope here (TZ-080 Module 5, handled separately).
+def _planet_name(key: str, lang: str) -> str:
+    if lang == "ru":
+        return PLANET_NAMES_RU.get(key, key)
+    en_value = PLANET_NAMES_EN.get(key, key.capitalize())
+    if lang == "en":
+        return en_value
+    return localized_field(PLANET_NAMES_I18N, lang, key, "name", en_value)
+
+
+def _sign_name(sign: str, lang: str) -> str:
+    if lang == "ru":
+        return _ru(sign)
+    normalized = _normalize_sign(sign)
+    if lang == "en":
+        return normalized
+    return localized_field(SIGNS_I18N, lang, normalized, "name", normalized)
+
+
 def _sign_from_abs(abs_pos: float) -> str:
     return SIGN_ORDER[int(abs_pos / 30) % 12]
 
@@ -138,7 +163,7 @@ def _get_abs_pos(p) -> float:
     return idx * 30 + p.position
 
 
-def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet") -> dict | None:
+def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet", lang: str = "ru") -> dict | None:
     try:
         p = getattr(subj, key, None)
         if p is None or not hasattr(p, "sign"):
@@ -150,9 +175,11 @@ def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet") 
             "name": key,
             "name_ru": PLANET_NAMES_RU.get(key, key),
             "name_en": PLANET_NAMES_EN.get(key, key.capitalize()),
+            "name_local": _planet_name(key, lang),
             "symbol": PLANET_SYMBOLS.get(key, "?"),
             "sign": sign_full,
             "sign_ru": _ru(p.sign),
+            "sign_local": _sign_name(p.sign, lang),
             "degree": round(float(getattr(p, "position", 0)), 1),
             "abs_pos": round(_get_abs_pos(p), 1),
             "house": house,
@@ -176,7 +203,9 @@ def _calc_aspects(planets: list[dict]) -> list[dict]:
                 if orb <= max_orb:
                     aspects.append({
                         "planet1": p1["name"], "planet1_ru": p1["name_ru"], "planet1_en": p1.get("name_en", p1["name"]),
+                        "planet1_local": p1.get("name_local", p1["name"]),
                         "planet2": p2["name"], "planet2_ru": p2["name_ru"], "planet2_en": p2.get("name_en", p2["name"]),
+                        "planet2_local": p2.get("name_local", p2["name"]),
                         "type": atype, "name_ru": name_ru, "name_en": name_en, "symbol": symbol,
                         "orb": round(orb, 1), "harmony": atype in ("trine", "sextile"),
                     })
@@ -185,20 +214,21 @@ def _calc_aspects(planets: list[dict]) -> list[dict]:
     return aspects
 
 
-def build_full_chart(subj: AstrologicalSubject) -> dict:
+def build_full_chart(subj: AstrologicalSubject, lang: str = "ru") -> dict:
     planet_keys = ["sun", "moon", "mercury", "venus", "mars",
                    "jupiter", "saturn", "uranus", "neptune", "pluto"]
-    planets = [p for p in (_extract_planet(subj, k) for k in planet_keys) if p is not None]
+    planets = [p for p in (_extract_planet(subj, k, lang=lang) for k in planet_keys) if p is not None]
 
     # Extra points: True Node, Chiron
     extra = []
-    node = _extract_planet(subj, "true_node", "node")
+    node = _extract_planet(subj, "true_node", "node", lang=lang)
     if node is None:
         for attr in ["mean_node", "north_node"]:
-            node = _extract_planet(subj, attr, "node")
+            node = _extract_planet(subj, attr, "node", lang=lang)
             if node:
                 node["name"] = "true_node"
                 node["name_ru"] = "Сев. узел"
+                node["name_local"] = _planet_name("true_node", lang)
                 node["symbol"] = "☊"
                 break
     if node:
@@ -206,13 +236,14 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
         south_abs = (node["abs_pos"] + 180) % 360
         south_sign = _sign_from_abs(south_abs)
         extra.append({
-            "name": "south_node", "name_ru": "Юж. узел", "name_en": "South Node", "symbol": "☋",
-            "sign": south_sign, "sign_ru": _ru(south_sign),
+            "name": "south_node", "name_ru": "Юж. узел", "name_en": "South Node",
+            "name_local": _planet_name("south_node", lang), "symbol": "☋",
+            "sign": south_sign, "sign_ru": _ru(south_sign), "sign_local": _sign_name(south_sign, lang),
             "degree": round(south_abs % 30, 1), "abs_pos": round(south_abs, 1),
             "house": None, "retrograde": False, "type": "node",
         })
 
-    chiron = _extract_planet(subj, "chiron", "asteroid")
+    chiron = _extract_planet(subj, "chiron", "asteroid", lang=lang)
     if chiron:
         extra.append(chiron)
 
@@ -229,11 +260,13 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
             h = getattr(subj, attr)
             houses.append({
                 "number": i, "sign": _normalize_sign(h.sign),
-                "sign_ru": _ru(h.sign), "degree": round(float(getattr(h, "position", 0)), 1),
+                "sign_ru": _ru(h.sign), "sign_local": _sign_name(h.sign, lang),
+                "degree": round(float(getattr(h, "position", 0)), 1),
                 "abs_pos": round(_get_abs_pos(h), 1),
             })
         except Exception:
-            houses.append({"number": i, "sign": "Aries", "sign_ru": "Овен", "degree": 0, "abs_pos": (i - 1) * 30})
+            houses.append({"number": i, "sign": "Aries", "sign_ru": "Овен",
+                           "sign_local": _sign_name("Aries", lang), "degree": 0, "abs_pos": (i - 1) * 30})
 
     # Part of Fortune: ASC + Moon - Sun (mod 360)
     part_of_fortune = None
@@ -245,7 +278,7 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
             pof_abs = (asc_abs + moon_abs - sun_abs) % 360
             pof_sign = _sign_from_abs(pof_abs)
             part_of_fortune = {
-                "sign": pof_sign, "sign_ru": _ru(pof_sign),
+                "sign": pof_sign, "sign_ru": _ru(pof_sign), "sign_local": _sign_name(pof_sign, lang),
                 "degree": round(pof_abs % 30, 1), "house": None,
             }
     except Exception:
@@ -268,34 +301,40 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
         if ps >= 3:
             names_ru = [p["name_ru"] for p in planets if p["sign"] == s]
             names_en = [p.get("name_en", p["name"]) for p in planets if p["sign"] == s]
-            stelliums.append({"type": "sign", "name_ru": _ru(s), "name_en": s,
-                              "planets_ru": names_ru, "planets_en": names_en})
+            names_local = [p.get("name_local", p["name"]) for p in planets if p["sign"] == s]
+            stelliums.append({"type": "sign", "name_ru": _ru(s), "name_en": s, "name_local": _sign_name(s, lang),
+                              "planets_ru": names_ru, "planets_en": names_en, "planets_local": names_local})
     house_groups_ru: dict[int, list[str]] = {}
     house_groups_en: dict[int, list[str]] = {}
+    house_groups_local: dict[int, list[str]] = {}
     for p in planets:
         if p["house"]:
             house_groups_ru.setdefault(p["house"], []).append(p["name_ru"])
             house_groups_en.setdefault(p["house"], []).append(p.get("name_en", p["name"]))
+            house_groups_local.setdefault(p["house"], []).append(p.get("name_local", p["name"]))
     for h in house_groups_ru:
         if len(house_groups_ru[h]) >= 3:
-            stelliums.append({"type": "house", "name_ru": f"Дом {h}", "name_en": f"House {h}",
-                              "planets_ru": house_groups_ru[h], "planets_en": house_groups_en[h]})
+            stelliums.append({"type": "house", "name_ru": f"Дом {h}", "name_en": f"House {h}", "name_local": f"House {h}",
+                              "planets_ru": house_groups_ru[h], "planets_en": house_groups_en[h],
+                              "planets_local": house_groups_local[h]})
 
     dominant_sign = max(sign_count, key=sign_count.get) if sign_count else ""
 
     try:
         asc = {"sign": _normalize_sign(subj.first_house.sign),
-               "sign_ru": _ru(subj.first_house.sign),
+               "sign_ru": _ru(subj.first_house.sign), "sign_local": _sign_name(subj.first_house.sign, lang),
                "degree": round(float(subj.first_house.position), 1)}
     except Exception:
-        asc = houses[0] if houses else {"sign": "Aries", "sign_ru": "Овен", "degree": 0}
+        asc = houses[0] if houses else {"sign": "Aries", "sign_ru": "Овен",
+                                         "sign_local": _sign_name("Aries", lang), "degree": 0}
 
     try:
         mc = {"sign": _normalize_sign(subj.tenth_house.sign),
-              "sign_ru": _ru(subj.tenth_house.sign),
+              "sign_ru": _ru(subj.tenth_house.sign), "sign_local": _sign_name(subj.tenth_house.sign, lang),
               "degree": round(float(subj.tenth_house.position), 1)}
     except Exception:
-        mc = houses[9] if len(houses) > 9 else {"sign": "Aries", "sign_ru": "Овен", "degree": 0}
+        mc = houses[9] if len(houses) > 9 else {"sign": "Aries", "sign_ru": "Овен",
+                                                  "sign_local": _sign_name("Aries", lang), "degree": 0}
 
     return {
         "planets": planets,
@@ -310,6 +349,7 @@ def build_full_chart(subj: AstrologicalSubject) -> dict:
         "modality_balance": mod,
         "dominant_sign": dominant_sign,
         "dominant_sign_ru": _ru(dominant_sign) if dominant_sign else "",
+        "dominant_sign_local": _sign_name(dominant_sign, lang) if dominant_sign else "",
     }
 
 
@@ -328,7 +368,7 @@ async def natal_calculate(req: NatalRequest, current_user: User = Depends(get_cu
     lat, lon = await geocode_city(req.city)
     try:
         subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
-        return build_full_chart(subj)
+        return build_full_chart(subj, lang=req.lang)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chart calculation failed: {e}")
 
@@ -370,8 +410,8 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
 
     ru = req.lang == "ru"
     pkeys = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"]
-    natal_planets = [_extract_planet(natal, k) for k in pkeys]
-    transit_planets = [_extract_planet(transit, k) for k in pkeys]
+    natal_planets = [_extract_planet(natal, k, lang=req.lang) for k in pkeys]
+    transit_planets = [_extract_planet(transit, k, lang=req.lang) for k in pkeys]
 
     active = []
     for tp in transit_planets:
@@ -382,8 +422,8 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
                 orb = abs(diff - angle)
                 if orb <= 3:
                     active.append({
-                        "transit_planet": tp["name_ru"] if ru else tp["name_en"], "transit_sign": tp["sign_ru"],
-                        "natal_planet": np["name_ru"] if ru else np["name_en"], "natal_sign": np["sign_ru"],
+                        "transit_planet": tp["name_local"], "transit_sign": tp["sign_local"],
+                        "natal_planet": np["name_local"], "natal_sign": np["sign_local"],
                         "aspect": name_ru if ru else name_en, "aspect_symbol": symbol, "orb": round(orb, 1),
                     })
                     break
@@ -489,7 +529,10 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
 
     try:
         subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
-        chart = build_full_chart(subj)
+        # lang is threaded through purely so the chart's planet/sign fields are
+        # internally consistent; the prompt templates below are still ru/en-only
+        # (TZ-080 Module 5, handled separately) and don't read the new fields.
+        chart = build_full_chart(subj, lang=req.lang)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chart calculation failed: {e}")
 

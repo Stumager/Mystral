@@ -24,3 +24,19 @@ def pick(base: dict, field: str, lang: str, i18n_module: dict | None = None, key
     if lang == "en" or i18n_module is None or key is None:
         return en_value
     return localized_field(i18n_module, lang, key, field, en_value)
+
+
+def pick_list(base: dict, field: str, lang: str, i18n_module: dict | None = None, key: str | None = None) -> list[str]:
+    """Same as pick(), but for a list-valued field (e.g. NUMBER_DATA's
+    strengths/challenges/famous). Each list item is translated as its own
+    scalar item (field name suffixed "_0", "_1", ...) since the translate
+    script only handles single strings — the item count always follows the
+    English list, so a translation gap only ever costs one item, not the
+    whole list."""
+    if lang == "ru":
+        return base[f"{field}_ru"]
+    en_list = base[f"{field}_en"]
+    if lang == "en" or i18n_module is None or key is None:
+        return en_list
+    return [localized_field(i18n_module, lang, key, f"{field}_{i}", en_value)
+            for i, en_value in enumerate(en_list)]

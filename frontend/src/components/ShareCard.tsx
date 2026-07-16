@@ -7,7 +7,7 @@ interface ShareCardProps {
   type: "tarot" | "runes" | "numerology" | "natal" | "compat" | "lunar" | "composite";
   title: string;
   subtitle?: string;
-  cards?: { id: number; name: string; name_ru: string; reversed: boolean }[];
+  cards?: { id: number; name: string; name_ru: string; name_display?: string; reversed: boolean }[];
   runes?: { id: string; name: string; symbol: string; reversed: boolean }[];
   number?: number;
   numberLabel?: string;
@@ -104,7 +104,7 @@ export function ShareCard({
                 style={{ borderRadius: 6, border: "1px solid rgba(201,168,76,.2)", transform: card.reversed ? "rotate(180deg)" : undefined, display: "block" }}
                 alt={card.name} crossOrigin="anonymous" />
               <div className="font-cinzel" style={{ fontSize: cardW > 70 ? 8 : 7, color: card.reversed ? "#D98A8A" : "#C9A84C", marginTop: 3, lineHeight: 1.15 }}>
-                {lang === "ru" ? card.name_ru : card.name}
+                {card.name_display || (lang === "ru" ? card.name_ru : card.name)}
               </div>
             </div>
           ))}

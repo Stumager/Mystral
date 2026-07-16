@@ -2,6 +2,16 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from app.core.structural_i18n import localized_field, pick, pick_list
+from app.data.numerology_i18n import (
+    ANGEL_NUMBERS_I18N,
+    CELL_LEVELS_I18N,
+    CELL_NAMES_I18N,
+    KARMIC_I18N,
+    LINE_DEFS_I18N,
+    NUMBER_DATA_I18N,
+)
+
 # ---------------------------------------------------------------------------
 # Pythagorean letter tables (TZ-030 spec)
 # ---------------------------------------------------------------------------
@@ -92,6 +102,15 @@ KARMIC_DESCRIPTIONS_EN = {
     16: "Karmic debt 16 — ego destruction. Lesson of humility, spiritual growth through loss and rebuilding.",
     19: "Karmic debt 19 — abuse of power. Lesson of independence without suppressing others.",
 }
+
+
+def karmic_description(number: int, lang: str = "ru") -> str:
+    if lang == "ru":
+        return KARMIC_DESCRIPTIONS_RU.get(number, "")
+    en_value = KARMIC_DESCRIPTIONS_EN.get(number, "")
+    if lang == "en":
+        return en_value
+    return localized_field(KARMIC_I18N, lang, str(number), "description", en_value)
 
 
 def karmic_numbers(birth_date: date) -> list[dict]:
@@ -204,8 +223,18 @@ def pythagoras_square(birth_date: date, lang: str = "ru") -> dict:
             matrix[d] += 1
 
     ru = lang == "ru"
-    names = CELL_NAMES_RU if ru else CELL_NAMES_EN
-    levels = CELL_LEVELS_RU if ru else CELL_LEVELS_EN
+
+    def cell_name(n: int) -> str:
+        if ru:
+            return CELL_NAMES_RU[n]
+        en_value = CELL_NAMES_EN[n]
+        return en_value if lang == "en" else localized_field(CELL_NAMES_I18N, lang, str(n), "name", en_value)
+
+    def cell_level(strength_key: int) -> str:
+        if ru:
+            return CELL_LEVELS_RU[strength_key]
+        en_value = CELL_LEVELS_EN[strength_key]
+        return en_value if lang == "en" else localized_field(CELL_LEVELS_I18N, lang, str(strength_key), "description", en_value)
 
     cells = []
     for n in range(1, 10):
@@ -216,19 +245,25 @@ def pythagoras_square(birth_date: date, lang: str = "ru") -> dict:
             "number": n,
             "count": cnt,
             "strength": strength_label,
-            "name": names[n],
-            "description": levels[strength_key],
+            "name": cell_name(n),
+            "description": cell_level(strength_key),
         })
 
+    def line_field(ld: dict, field: str, idx: int) -> str:
+        if ru:
+            return ld[f"{field}_ru"]
+        en_value = ld[f"{field}_en"]
+        return en_value if lang == "en" else localized_field(LINE_DEFS_I18N, lang, str(idx), field, en_value)
+
     lines = []
-    for ld in LINE_DEFS:
+    for idx, ld in enumerate(LINE_DEFS):
         total = sum(matrix[c] for c in ld["cells"])
         lines.append({
             "cells": ld["cells"],
             "total": total,
             "filled": total >= 3,
-            "title": ld["title_ru"] if ru else ld["title_en"],
-            "description": ld["desc_ru"] if ru else ld["desc_en"],
+            "title": line_field(ld, "title", idx),
+            "description": line_field(ld, "desc", idx),
         })
 
     return {
@@ -256,7 +291,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Entrepreneurship, leadership, innovation, freelance.",
         "love_ru": "Нужен партнёр, который уважает вашу независимость. Избегайте подавления второй половинки.",
         "love_en": "Need a partner who respects your independence. Avoid dominating your partner.",
-        "famous": ["Наполеон Бонапарт", "Стив Джобс", "Мартин Лютер Кинг"],
+        "famous_ru": ["Наполеон Бонапарт", "Стив Джобс", "Мартин Лютер Кинг"],
+        "famous_en": ["Napoleon Bonaparte", "Steve Jobs", "Martin Luther King Jr."],
     },
     2: {
         "name_ru": "Двойка", "name_en": "Two",
@@ -271,7 +307,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Mediation, psychology, art, teamwork, HR.",
         "love_ru": "Романтик, ищет глубокую эмоциональную связь. Избегайте растворения в партнёре.",
         "love_en": "Romantic, seeking deep emotional connection. Avoid losing yourself in a partner.",
-        "famous": ["Барак Обама", "Мадонна", "Рональд Рейган"],
+        "famous_ru": ["Барак Обама", "Мадонна", "Рональд Рейган"],
+        "famous_en": ["Barack Obama", "Madonna", "Ronald Reagan"],
     },
     3: {
         "name_ru": "Тройка", "name_en": "Three",
@@ -286,7 +323,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Art, media, marketing, teaching, entertainment.",
         "love_ru": "Лёгкий и весёлый партнёр, но нужно учиться глубине отношений.",
         "love_en": "Fun and easy partner, but needs to learn depth in relationships.",
-        "famous": ["Джим Керри", "Кристина Агилера", "Джон Траволта"],
+        "famous_ru": ["Джим Керри", "Кристина Агилера", "Джон Траволта"],
+        "famous_en": ["Jim Carrey", "Christina Aguilera", "John Travolta"],
     },
     4: {
         "name_ru": "Четвёрка", "name_en": "Four",
@@ -301,7 +339,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Engineering, construction, finance, project management.",
         "love_ru": "Верный и надёжный партнёр. Нужно учиться спонтанности и романтике.",
         "love_en": "Loyal and reliable partner. Needs to learn spontaneity and romance.",
-        "famous": ["Билл Гейтс", "Опра Уинфри", "Элтон Джон"],
+        "famous_ru": ["Билл Гейтс", "Опра Уинфри", "Элтон Джон"],
+        "famous_en": ["Bill Gates", "Oprah Winfrey", "Elton John"],
     },
     5: {
         "name_ru": "Пятёрка", "name_en": "Five",
@@ -316,7 +355,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Travel, journalism, sales, startups, consulting.",
         "love_ru": "Нужна свобода в отношениях. Партнёр не должен быть клеткой.",
         "love_en": "Needs freedom in relationships. A partner shouldn't be a cage.",
-        "famous": ["Авраам Линкольн", "Анджелина Джоли", "Мик Джаггер"],
+        "famous_ru": ["Авраам Линкольн", "Анджелина Джоли", "Мик Джаггер"],
+        "famous_en": ["Abraham Lincoln", "Angelina Jolie", "Mick Jagger"],
     },
     6: {
         "name_ru": "Шестёрка", "name_en": "Six",
@@ -331,7 +371,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Medicine, education, design, social work, culinary arts.",
         "love_ru": "Идеальный семьянин, но нужно не забывать о себе.",
         "love_en": "Ideal family person, but don't forget about yourself.",
-        "famous": ["Альберт Эйнштейн", "Джон Леннон", "Галилео Галилей"],
+        "famous_ru": ["Альберт Эйнштейн", "Джон Леннон", "Галилео Галилей"],
+        "famous_en": ["Albert Einstein", "John Lennon", "Galileo Galilei"],
     },
     7: {
         "name_ru": "Семёрка", "name_en": "Seven",
@@ -346,7 +387,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Science, research, IT, philosophy, psychology.",
         "love_ru": "Нужен интеллектуальный партнёр. Учитесь открывать чувства.",
         "love_en": "Need an intellectual partner. Learn to open up emotionally.",
-        "famous": ["Никола Тесла", "Принцесса Диана", "Владимир Путин"],
+        "famous_ru": ["Никола Тесла", "Принцесса Диана", "Владимир Путин"],
+        "famous_en": ["Nikola Tesla", "Princess Diana", "Vladimir Putin"],
     },
     8: {
         "name_ru": "Восьмёрка", "name_en": "Eight",
@@ -361,7 +403,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Business, finance, real estate, management, law.",
         "love_ru": "Статусный партнёр. Но не превращайте отношения в сделку.",
         "love_en": "Status-oriented partner. But don't turn relationships into deals.",
-        "famous": ["Нельсон Мандела", "Пабло Пикассо", "Сандра Буллок"],
+        "famous_ru": ["Нельсон Мандела", "Пабло Пикассо", "Сандра Буллок"],
+        "famous_en": ["Nelson Mandela", "Pablo Picasso", "Sandra Bullock"],
     },
     9: {
         "name_ru": "Девятка", "name_en": "Nine",
@@ -376,7 +419,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Charity, art, medicine, spiritual practices.",
         "love_ru": "Безусловная любовь — ваш дар. Не бойтесь отпускать.",
         "love_en": "Unconditional love is your gift. Don't be afraid to let go.",
-        "famous": ["Махатма Ганди", "Мать Тереза", "Джими Хендрикс"],
+        "famous_ru": ["Махатма Ганди", "Мать Тереза", "Джими Хендрикс"],
+        "famous_en": ["Mahatma Gandhi", "Mother Teresa", "Jimi Hendrix"],
     },
     11: {
         "name_ru": "Мастер-число 11", "name_en": "Master Number 11",
@@ -391,7 +435,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Spiritual mentorship, art, psychology, invention.",
         "love_ru": "Глубокая духовная связь важнее всего. Ищите родственную душу.",
         "love_en": "Deep spiritual connection matters most. Seek a kindred soul.",
-        "famous": ["Вольфганг Моцарт", "Барак Обама", "Эдгар Аллан По"],
+        "famous_ru": ["Вольфганг Моцарт", "Барак Обама", "Эдгар Аллан По"],
+        "famous_en": ["Wolfgang Amadeus Mozart", "Barack Obama", "Edgar Allan Poe"],
     },
     22: {
         "name_ru": "Мастер-число 22", "name_en": "Master Number 22",
@@ -406,7 +451,8 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Architecture, large business, politics, international projects.",
         "love_ru": "Нужен равный партнёр, который разделяет ваши амбиции.",
         "love_en": "Need an equal partner who shares your ambitions.",
-        "famous": ["Пол Маккартни", "Далай-лама", "Ричард Брэнсон"],
+        "famous_ru": ["Пол Маккартни", "Далай-лама", "Ричард Брэнсон"],
+        "famous_en": ["Paul McCartney", "Dalai Lama", "Richard Branson"],
     },
     33: {
         "name_ru": "Мастер-число 33", "name_en": "Master Number 33",
@@ -421,27 +467,27 @@ NUMBER_DATA: dict[int, dict] = {
         "career_en": "Healing, spiritual practices, education, charity.",
         "love_ru": "Ваша любовь безгранична, но не забывайте любить себя.",
         "love_en": "Your love is boundless, but don't forget to love yourself.",
-        "famous": ["Альберт Эйнштейн", "Фрэнсис Бэкон", "Стивен Кинг"],
+        "famous_ru": ["Альберт Эйнштейн", "Фрэнсис Бэкон", "Стивен Кинг"],
+        "famous_en": ["Albert Einstein", "Francis Bacon", "Stephen King"],
     },
 }
 
 
 def get_number_data(n: int, lang: str = "ru") -> dict | None:
-    nd = NUMBER_DATA.get(n)
-    if not nd:
-        nd = NUMBER_DATA.get(reduce(n))
+    resolved_n = n if n in NUMBER_DATA else reduce(n)
+    nd = NUMBER_DATA.get(resolved_n)
     if not nd:
         return None
-    ru = lang == "ru"
+    key = str(resolved_n)
     return {
-        "name": nd["name_ru"] if ru else nd["name_en"],
-        "title": nd["title_ru"] if ru else nd["title_en"],
-        "description": nd["description_ru"] if ru else nd["description_en"],
-        "strengths": nd["strengths_ru"] if ru else nd["strengths_en"],
-        "challenges": nd["challenges_ru"] if ru else nd["challenges_en"],
-        "career": nd["career_ru"] if ru else nd["career_en"],
-        "love": nd["love_ru"] if ru else nd["love_en"],
-        "famous": nd["famous"],
+        "name": pick(nd, "name", lang, NUMBER_DATA_I18N, key),
+        "title": pick(nd, "title", lang, NUMBER_DATA_I18N, key),
+        "description": pick(nd, "description", lang, NUMBER_DATA_I18N, key),
+        "strengths": pick_list(nd, "strengths", lang, NUMBER_DATA_I18N, key),
+        "challenges": pick_list(nd, "challenges", lang, NUMBER_DATA_I18N, key),
+        "career": pick(nd, "career", lang, NUMBER_DATA_I18N, key),
+        "love": pick(nd, "love", lang, NUMBER_DATA_I18N, key),
+        "famous": pick_list(nd, "famous", lang, NUMBER_DATA_I18N, key),
     }
 
 

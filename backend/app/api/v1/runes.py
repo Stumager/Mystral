@@ -15,8 +15,10 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.structural_i18n import pick, pick_list
 from app.data.numerology import life_path as calc_life_path
 from app.data.runes import RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
+from app.data.runes_i18n import RUNES_I18N, SPREADS_RUNES_I18N, STAVES_I18N
 from app.data.staves import STAVES
 from app.models.user import RuneReading, User, UserProfile
 
@@ -25,26 +27,38 @@ redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 
 def _rune_out(rune: dict, lang: str, reversed: bool = False) -> dict:
-    ru = lang == "ru"
+    key = rune["id"]
+    meaning_field = "reversed_meaning" if (reversed and rune["can_reverse"]) else "meaning"
     return {
         "id": rune["id"],
         "index": rune["index"],
-        "name": rune["name_ru"] if ru else rune["name_en"],
+        "name": pick(rune, "name", lang, RUNES_I18N, key),
         "symbol": rune["symbol"],
-        "keyword": rune["keyword_ru"] if ru else rune["keyword_en"],
-        "meaning": (rune["reversed_meaning_ru"] if ru else rune["reversed_meaning_en"]) if reversed and rune["can_reverse"]
-                   else (rune["meaning_ru"] if ru else rune["meaning_en"]),
+        "keyword": pick(rune, "keyword", lang, RUNES_I18N, key),
+        "meaning": pick(rune, meaning_field, lang, RUNES_I18N, key),
         "reversed": reversed,
         "can_reverse": rune["can_reverse"],
         "aett": rune["aett"],
         "element": rune["element"],
-        "deity": rune["deity_ru"] if ru else rune["deity_en"],
-        "love": rune["love_ru"] if ru else rune["love_en"],
-        "career": rune["career_ru"] if ru else rune["career_en"],
-        "health": rune["health_ru"] if ru else rune["health_en"],
-        "magic": rune["magic_ru"] if ru else rune["magic_en"],
-        "as_amulet": rune["as_amulet_ru"] if ru else rune["as_amulet_en"],
+        "deity": pick(rune, "deity", lang, RUNES_I18N, key),
+        "love": pick(rune, "love", lang, RUNES_I18N, key),
+        "career": pick(rune, "career", lang, RUNES_I18N, key),
+        "health": pick(rune, "health", lang, RUNES_I18N, key),
+        "magic": pick(rune, "magic", lang, RUNES_I18N, key),
+        "as_amulet": pick(rune, "as_amulet", lang, RUNES_I18N, key),
     }
+
+
+def _spread_name(spread_id: str, spread: dict, lang: str) -> str:
+    return pick(spread, "name", lang, SPREADS_RUNES_I18N, spread_id)
+
+
+def _spread_desc(spread_id: str, spread: dict, lang: str) -> str:
+    return pick(spread, "desc", lang, SPREADS_RUNES_I18N, spread_id)
+
+
+def _spread_positions(spread_id: str, spread: dict, lang: str) -> list[str]:
+    return pick_list(spread, "positions", lang, SPREADS_RUNES_I18N, spread_id)
 
 
 class DrawRequest(BaseModel):
@@ -80,9 +94,8 @@ async def draw(
         finally:
             await r.close()
 
-    ru = req.lang == "ru"
     drawn = draw_runes(spread["count"])
-    positions = spread["positions_ru"] if ru else spread["positions_en"]
+    positions = _spread_positions(req.spread_type, spread, req.lang)
 
     result_runes = []
     for i, d in enumerate(drawn):
@@ -102,7 +115,7 @@ async def draw(
 
     return {
         "spread_type": req.spread_type,
-        "spread_name": spread["name_ru"] if ru else spread["name_en"],
+        "spread_name": _spread_name(req.spread_type, spread, req.lang),
         "positions": positions,
         "drawn_runes": result_runes,
         "question": req.question,
@@ -259,16 +272,15 @@ async def get_personal_rune(
 
 @router.get("/runes/staves")
 async def get_staves(lang: str = "ru"):
-    ru = lang == "ru"
     return [
         {
             "id": s["id"],
-            "name": s["name_ru"] if ru else s["name_en"],
+            "name": pick(s, "name", lang, STAVES_I18N, s["id"]),
             "symbols": s["symbols"],
             "runes_used": s["runes_used"],
-            "purpose": s["purpose_ru"] if ru else s["purpose_en"],
-            "description": s["description_ru"] if ru else s["description_en"],
-            "how_to_use": s["how_to_use_ru"] if ru else s["how_to_use_en"],
+            "purpose": pick(s, "purpose", lang, STAVES_I18N, s["id"]),
+            "description": pick(s, "description", lang, STAVES_I18N, s["id"]),
+            "how_to_use": pick(s, "how_to_use", lang, STAVES_I18N, s["id"]),
         }
         for s in STAVES
     ]
@@ -276,16 +288,15 @@ async def get_staves(lang: str = "ru"):
 
 @router.get("/runes/spreads")
 async def get_spreads(lang: str = "ru"):
-    ru = lang == "ru"
     return [
         {
             "id": k,
-            "name": s["name_ru"] if ru else s["name_en"],
-            "description": s["desc_ru"] if ru else s["desc_en"],
+            "name": _spread_name(k, s, lang),
+            "description": _spread_desc(k, s, lang),
             "icon": s["icon"],
             "count": s["count"],
             "tier": s["tier"],
-            "positions": s["positions_ru"] if ru else s["positions_en"],
+            "positions": _spread_positions(k, s, lang),
         }
         for k, s in SPREADS_RUNES.items()
     ]
@@ -304,7 +315,6 @@ async def get_history(
     )
     readings = result_q.all()
     lang = current_user.lang or "ru"
-    ru = lang == "ru"
 
     out = []
     for r in readings:
@@ -314,7 +324,7 @@ async def get_history(
         out.append({
             "id": str(r.id),
             "spread_type": r.spread_type,
-            "spread_name": spread.get("name_ru" if ru else "name_en", r.spread_type),
+            "spread_name": _spread_name(r.spread_type, spread, lang) if spread else r.spread_type,
             "question": r.question,
             "rune_preview": preview,
             "created_at": r.created_at.isoformat() if r.created_at else None,

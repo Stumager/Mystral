@@ -84,7 +84,142 @@
     "interpret": "Get interpretation",
     "interpretation_label": "Interpretation · AI",
     "new_spread": "New spread",
-    "error": "Connection error. Try again."
+    "error": "Connection error. Try again.",
+    "spreads": {
+      "card_of_day": {
+        "name": "Card of the Day",
+        "desc": "One card for the whole day",
+        "positions": [
+          "Card of the Day"
+        ]
+      },
+      "three_cards": {
+        "name": "Three Cards",
+        "desc": "Classic 3-card spread",
+        "positions": [
+          "Past",
+          "Present",
+          "Future"
+        ],
+        "schemes": [
+          [
+            "Past",
+            "Present",
+            "Future"
+          ],
+          [
+            "Situation",
+            "Action",
+            "Outcome"
+          ],
+          [
+            "Body",
+            "Mind",
+            "Spirit"
+          ],
+          [
+            "Yes",
+            "No",
+            "Advice"
+          ]
+        ]
+      },
+      "celtic_cross": {
+        "name": "Celtic Cross",
+        "desc": "Deep situation analysis — 10 cards",
+        "positions": [
+          "Core",
+          "Challenge",
+          "Foundation",
+          "Past",
+          "Possible Future",
+          "Near Future",
+          "You Now",
+          "Environment",
+          "Hopes/Fears",
+          "Outcome"
+        ]
+      },
+      "horseshoe": {
+        "name": "Horseshoe",
+        "desc": "7 cards — overview and advice",
+        "positions": [
+          "Past",
+          "Present",
+          "Hidden Influences",
+          "Obstacles",
+          "Environment",
+          "Advice",
+          "Outcome"
+        ]
+      },
+      "relationship": {
+        "name": "Relationship",
+        "desc": "7 cards — couple analysis",
+        "positions": [
+          "You",
+          "Partner",
+          "Connection",
+          "Foundation",
+          "External Influence",
+          "Advice",
+          "Future of the Couple"
+        ]
+      },
+      "yes_no": {
+        "name": "Yes / No",
+        "desc": "5 cards — clear answer to a question",
+        "positions": [
+          "Card 1",
+          "Card 2",
+          "Card 3",
+          "Card 4",
+          "Card 5"
+        ]
+      },
+      "two_choices": {
+        "name": "Two Paths",
+        "desc": "6 cards — compare two options",
+        "positions": [
+          "Path A: now",
+          "Path A: process",
+          "Path A: outcome",
+          "Path B: now",
+          "Path B: process",
+          "Path B: outcome"
+        ]
+      },
+      "person": {
+        "name": "About a Person",
+        "desc": "5 cards — character and intentions",
+        "positions": [
+          "Personality",
+          "Thoughts",
+          "Feelings",
+          "Intentions",
+          "Outcome"
+        ]
+      },
+      "year": {
+        "name": "Year Ahead",
+        "desc": "13 cards — each month + yearly theme",
+        "positions": [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+          "Yearly Theme"
+        ]
+      }
+    }
   },
   "natal": {
     "title": "Natal Chart",

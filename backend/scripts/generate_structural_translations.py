@@ -38,6 +38,26 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Same stub as tests/conftest.py: kerykeion needs a C extension (pyswisseph)
+# with no Windows wheel. natal.py imports it at module level, so importing
+# the natal registry below would fail on a local Windows dev box even
+# though this script never touches astro math (only the plain-dict
+# PLANET_NAMES/SIGN_ORDER tables) — the real container always has it.
+try:
+    import kerykeion  # noqa: F401
+except ImportError:
+    import types
+
+    _stub = types.ModuleType("kerykeion")
+
+    class _StubSubject:  # pragma: no cover — never actually used here
+        def __init__(self, *a, **k):
+            raise RuntimeError("kerykeion stub: astro math not available in local runs")
+
+    _stub.AstrologicalSubject = _StubSubject
+    _stub.KerykeionChartSVG = _StubSubject
+    sys.modules["kerykeion"] = _stub
+
 STRUCTURAL_LANGS = ("es", "pt", "tr", "uk")  # unlike SEO's PREFIX_LANGS, "en" is never a target here
 
 BACKOFF_STEPS = (30, 60, 120)
@@ -67,10 +87,178 @@ def _compatibility_registry() -> dict[str, list[TranslationItem]]:
     }
 
 
-# Extend with "tarot", "natal", "numerology", "runes", "lunar" as each
-# section gets wired up to read from its own <section>_i18n.py module.
+def _tarot_registry() -> dict[str, list[TranslationItem]]:
+    """All 78 tarot card names, translated as whole strings rather than
+    composed from separate suit+rank parts — rank/suit word order and
+    grammatical case vary by language, so a generic template would produce
+    incorrect minor-arcana names in several of the 4 target languages."""
+    from app.api.v1.tarot import CARD_NAMES, CARD_NAMES_RU
+    return {
+        "CARD_NAMES_I18N": [
+            (str(cid), "name", CARD_NAMES_RU[cid], CARD_NAMES[cid])
+            for cid in sorted(CARD_NAMES)
+        ],
+    }
+
+
+def _natal_registry() -> dict[str, list[TranslationItem]]:
+    """Planet names and zodiac sign names in natal.py. Aspect names
+    (ASPECT_TYPES) already have ru/en from TZ-076/079 and aren't part of
+    this section; the 5 long interpretation prompt templates are handled
+    separately (TZ-080 Module 5)."""
+    from app.api.v1.natal import PLANET_NAMES_EN, PLANET_NAMES_RU, SIGN_ORDER, SIGNS_RU
+    return {
+        "PLANET_NAMES_I18N": [
+            (key, "name", PLANET_NAMES_RU[key], en) for key, en in PLANET_NAMES_EN.items()
+        ],
+        "SIGNS_I18N": [
+            (sign, "name", SIGNS_RU[sign], sign) for sign in SIGN_ORDER
+        ],
+    }
+
+
+def _numerology_registry() -> dict[str, list[TranslationItem]]:
+    """Number meanings, karmic debt descriptions, Pythagoras square cell
+    names/levels and line meanings, and angel number meanings. List-valued
+    fields (strengths/challenges/famous) are split into indexed scalar
+    items ("strengths_0", "strengths_1", ...), matching pick_list()'s
+    read-side convention — the translate step only handles single strings."""
+    from app.data.numerology import (
+        ANGEL_NUMBERS, CELL_LEVELS_EN, CELL_LEVELS_RU, CELL_NAMES_EN, CELL_NAMES_RU,
+        KARMIC_DESCRIPTIONS_EN, KARMIC_DESCRIPTIONS_RU, LINE_DEFS, NUMBER_DATA,
+    )
+
+    number_items: list[TranslationItem] = []
+    for num, nd in NUMBER_DATA.items():
+        key = str(num)
+        for field in ("name", "title", "description", "career", "love"):
+            number_items.append((key, field, nd[f"{field}_ru"], nd[f"{field}_en"]))
+        for field in ("strengths", "challenges", "famous"):
+            for i, (ru_v, en_v) in enumerate(zip(nd[f"{field}_ru"], nd[f"{field}_en"])):
+                number_items.append((key, f"{field}_{i}", ru_v, en_v))
+
+    return {
+        "NUMBER_DATA_I18N": number_items,
+        "KARMIC_I18N": [
+            (str(num), "description", KARMIC_DESCRIPTIONS_RU[num], KARMIC_DESCRIPTIONS_EN[num])
+            for num in KARMIC_DESCRIPTIONS_RU
+        ],
+        "CELL_NAMES_I18N": [
+            (str(num), "name", CELL_NAMES_RU[num], CELL_NAMES_EN[num]) for num in CELL_NAMES_RU
+        ],
+        "CELL_LEVELS_I18N": [
+            (str(num), "description", CELL_LEVELS_RU[num], CELL_LEVELS_EN[num]) for num in CELL_LEVELS_RU
+        ],
+        "LINE_DEFS_I18N": [
+            (str(idx), field, ld[f"{field}_ru"], ld[f"{field}_en"])
+            for idx, ld in enumerate(LINE_DEFS) for field in ("title", "desc")
+        ],
+        "ANGEL_NUMBERS_I18N": [
+            (num, "meaning", entry["meaning_ru"], entry["meaning_en"])
+            for num, entry in ANGEL_NUMBERS.items()
+        ],
+    }
+
+
+_RUNE_SCALAR_FIELDS = ("name", "keyword", "meaning", "deity", "love", "career", "health", "magic", "as_amulet")
+
+
+def _runes_registry() -> dict[str, list[TranslationItem]]:
+    """Runes, rune spreads, and staves — this is one of the two BATCHED
+    sections (see BATCHED_SECTIONS below): all fields of one rune/spread/
+    stave go out in a single API call, not one call per field, since this
+    section alone is ~340 individual strings. `areas` is deliberately
+    excluded — it's dead data, never read by the API."""
+    from app.data.runes import RUNES, SPREADS_RUNES
+    from app.data.staves import STAVES
+
+    rune_items: list[TranslationItem] = []
+    for r in RUNES:
+        key = r["id"]
+        for field in _RUNE_SCALAR_FIELDS:
+            rune_items.append((key, field, r[f"{field}_ru"], r[f"{field}_en"]))
+        if r["reversed_meaning_ru"] is not None:
+            rune_items.append((key, "reversed_meaning", r["reversed_meaning_ru"], r["reversed_meaning_en"]))
+
+    spread_items: list[TranslationItem] = []
+    for key, s in SPREADS_RUNES.items():
+        spread_items.append((key, "name", s["name_ru"], s["name_en"]))
+        spread_items.append((key, "desc", s["desc_ru"], s["desc_en"]))
+        for i, (ru_v, en_v) in enumerate(zip(s["positions_ru"], s["positions_en"])):
+            spread_items.append((key, f"positions_{i}", ru_v, en_v))
+
+    stave_items: list[TranslationItem] = [
+        (s["id"], field, s[f"{field}_ru"], s[f"{field}_en"])
+        for s in STAVES for field in ("name", "purpose", "description", "how_to_use")
+    ]
+
+    return {
+        "RUNES_I18N": rune_items,
+        "SPREADS_RUNES_I18N": spread_items,
+        "STAVES_I18N": stave_items,
+    }
+
+
+_LUNAR_DAY_SCALAR_FIELDS = ("symbol", "title", "desc", "health", "beauty", "money",
+                            "love", "work", "spiritual", "dreams", "stones")
+_LUNAR_DAY_LIST_FIELDS = ("favorable", "unfavorable")
+_MOON_SIGN_SCALAR_FIELDS = ("desc", "work", "love", "health", "beauty")
+_MOON_SIGN_LIST_FIELDS = ("favorable", "unfavorable")
+
+
+def _lunar_registry() -> dict[str, list[TranslationItem]]:
+    """The biggest section (~640 strings): 30 lunar days, 12 moon signs,
+    6 lunar events, 8 moon phase names. Batched like runes — all fields of
+    one day/sign/event go out in a single API call. The moon sign *name*
+    itself isn't included here — it's the same 12 zodiac names natal.py
+    already translates (natal_i18n.SIGNS_I18N), reused via
+    app.api.v1.lunar._sign_name rather than translated twice."""
+    from app.api.v1.lunar import EVENT_DATA, PHASE_NAMES_EN, PHASE_NAMES_RU
+    from app.data.lunar_days import LUNAR_DAYS
+    from app.data.moon_signs import MOON_SIGNS
+
+    day_items: list[TranslationItem] = []
+    for day_num, dd in LUNAR_DAYS.items():
+        key = str(day_num)
+        for field in _LUNAR_DAY_SCALAR_FIELDS:
+            day_items.append((key, field, dd[f"{field}_ru"], dd[f"{field}_en"]))
+        for field in _LUNAR_DAY_LIST_FIELDS:
+            for i, (ru_v, en_v) in enumerate(zip(dd[f"{field}_ru"], dd[f"{field}_en"])):
+                day_items.append((key, f"{field}_{i}", ru_v, en_v))
+
+    sign_items: list[TranslationItem] = []
+    for sign_key, sd in MOON_SIGNS.items():
+        for field in _MOON_SIGN_SCALAR_FIELDS:
+            sign_items.append((sign_key, field, sd[f"{field}_ru"], sd[f"{field}_en"]))
+        for field in _MOON_SIGN_LIST_FIELDS:
+            for i, (ru_v, en_v) in enumerate(zip(sd[f"{field}_ru"], sd[f"{field}_en"])):
+                sign_items.append((sign_key, f"{field}_{i}", ru_v, en_v))
+
+    event_items: list[TranslationItem] = [
+        (event_key, field, ed[f"{field}_ru"], ed[f"{field}_en"])
+        for event_key, ed in EVENT_DATA.items() for field in ("title", "desc")
+    ]
+
+    phase_items: list[TranslationItem] = [
+        (str(i), "name", ru_name, en_name)
+        for i, (ru_name, en_name) in enumerate(zip(PHASE_NAMES_RU, PHASE_NAMES_EN))
+    ]
+
+    return {
+        "LUNAR_DAYS_I18N": day_items,
+        "MOON_SIGNS_I18N": sign_items,
+        "EVENT_DATA_I18N": event_items,
+        "PHASE_NAMES_I18N": phase_items,
+    }
+
+
 SECTION_REGISTRY = {
     "compatibility": _compatibility_registry,
+    "tarot": _tarot_registry,
+    "natal": _natal_registry,
+    "numerology": _numerology_registry,
+    "runes": _runes_registry,
+    "lunar": _lunar_registry,
 }
 
 _LANG_NAME = {"es": "Spanish", "pt": "Brazilian Portuguese", "tr": "Turkish", "uk": "Ukrainian"}
@@ -140,6 +328,54 @@ async def _translate_one(ru_value: str, en_value: str, lang: str) -> str | None:
     return translation.strip() if isinstance(translation, str) else None
 
 
+# Sections large enough that one-call-per-field would mean thousands of
+# round-trips (runes: ~340 items, lunar: ~640 items). Batching every field
+# of one entity (e.g. all 9 fields of one rune) into a single JSON response
+# cuts both cost overhead and wall-clock time roughly by the average field
+# count per entity, without moving materially more tokens.
+BATCHED_SECTIONS = {"runes", "lunar"}
+
+
+def _build_batch_prompt(fields: dict[str, tuple[str, str]], lang: str) -> str:
+    lines = [
+        f'- "{field}" — Russian: "{ru_value}" | English: "{en_value}"'
+        for field, (ru_value, en_value) in fields.items()
+    ]
+    return (
+        f"Translate each of the following fields into {_LANG_NAME[lang]}, preserving each one's "
+        f"exact meaning and terminology. Each field is independent — translate it on its own, do "
+        f"not merge, summarize, or cross-reference fields. This is a literal but natural-sounding "
+        f"translation, not new independent text.\n"
+        + "\n".join(lines) +
+        f'\nRespond with a single JSON object whose keys are exactly the field names above and '
+        f'whose values are their translations, e.g. {{"field_name": "translation", ...}}'
+    )
+
+
+async def _translate_batch(fields: dict[str, tuple[str, str]], lang: str) -> dict[str, str] | None:
+    from app.core.groq_client import _get_async_client
+    client = _get_async_client()
+    resp = await client.chat.completions.create(
+        model="deepseek/deepseek-v4-flash",
+        messages=[
+            {"role": "system", "content": SYSTEM_TRANSLATE},
+            {"role": "user", "content": _build_batch_prompt(fields, lang)},
+        ],
+        max_tokens=200 * len(fields) + 200,
+        temperature=0.3,
+        response_format={"type": "json_object"},
+    )
+    raw = resp.choices[0].message.content or ""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        import json_repair
+        parsed = json_repair.loads(raw)
+    if not isinstance(parsed, dict):
+        return None
+    return {k: v.strip() for k, v in parsed.items() if isinstance(v, str) and v.strip()}
+
+
 def _default_header(section: str) -> str:
     return (
         f'"""ES/PT/TR/UK labels for {section}.py (TZ-080).\n\n'
@@ -185,66 +421,146 @@ def _write_i18n_module(section: str, dicts: dict[str, dict]) -> None:
     path.write_text(header + "\n" + body + "\n", encoding="utf-8")
 
 
+class _Progress:
+    """Shared counters + the write-after-every-success durability rule, so
+    an interrupted run loses at most one in-flight item/batch either way."""
+
+    def __init__(self, section: str, existing: dict[str, dict]):
+        self.section = section
+        self.existing = existing
+        self.planned = self.generated = self.skipped = 0
+        self.failed: list[str] = []
+        self.started = time.monotonic()
+
+    def persist(self) -> None:
+        _write_i18n_module(self.section, self.existing)
+
+    def log_ok(self, label: str, count: int) -> None:
+        self.generated += count
+        elapsed = time.monotonic() - self.started
+        print(f"OK {label} ({self.generated} done, {self.skipped} skipped, "
+              f"{elapsed / 60:.1f} min elapsed)", flush=True)
+
+
+async def _run_per_field(dict_name: str, items: list[TranslationItem], lang: str,
+                         keys: list[str] | None, force: bool, delay: float,
+                         dry_run: bool, section: str, progress: _Progress) -> None:
+    bucket_all = progress.existing.setdefault(dict_name, {}).setdefault(lang, {})
+    for key, field, ru_value, en_value in items:
+        if keys and key not in keys:
+            continue
+        label = f"{section}.{dict_name}[{key}].{field}/{lang}"
+        if key in bucket_all and field in bucket_all[key] and not force:
+            progress.skipped += 1
+            continue
+        progress.planned += 1
+        if dry_run:
+            print(f"[dry-run] would translate {label}", flush=True)
+            continue
+
+        translation = None
+        for attempt, backoff in enumerate((0,) + BACKOFF_STEPS):
+            if backoff:
+                print(f"  retry {attempt} for {label} in {backoff}s", flush=True)
+                await asyncio.sleep(backoff)
+            try:
+                translation = await _translate_one(ru_value, en_value, lang)
+            except Exception as e:  # network layers can still leak
+                print(f"  error for {label}: {e}", flush=True)
+                translation = None
+                continue
+            ok, reason = _heuristic_ok(translation or "", ru_value, en_value)
+            if ok:
+                break
+            print(f"  rejected {label}: {reason} -> {translation!r}", flush=True)
+            translation = None
+
+        if translation is None:
+            progress.failed.append(label)
+            print(f"FAILED {label}", flush=True)
+        else:
+            bucket_all.setdefault(key, {})[field] = translation
+            progress.persist()
+            progress.log_ok(label, 1)
+        if not dry_run:
+            await asyncio.sleep(delay)
+
+
+async def _run_batched(dict_name: str, items: list[TranslationItem], lang: str,
+                       keys: list[str] | None, force: bool, delay: float,
+                       dry_run: bool, section: str, progress: _Progress) -> None:
+    bucket_all = progress.existing.setdefault(dict_name, {}).setdefault(lang, {})
+
+    grouped: dict[str, dict[str, tuple[str, str]]] = {}
+    for key, field, ru_value, en_value in items:
+        if keys and key not in keys:
+            continue
+        grouped.setdefault(key, {})[field] = (ru_value, en_value)
+
+    for key, fields in grouped.items():
+        existing_entry = bucket_all.get(key, {})
+        pending = {f: v for f, v in fields.items() if force or f not in existing_entry}
+        progress.skipped += len(fields) - len(pending)
+        if not pending:
+            continue
+        label = f"{section}.{dict_name}[{key}]/{lang}"
+        progress.planned += len(pending)
+        if dry_run:
+            print(f"[dry-run] would translate {label} ({len(pending)} fields: {', '.join(pending)})", flush=True)
+            continue
+
+        succeeded: dict[str, str] = {}
+        for attempt, backoff in enumerate((0,) + BACKOFF_STEPS):
+            if not pending:
+                break
+            if backoff:
+                print(f"  retry {attempt} for {label} in {backoff}s ({len(pending)} fields left)", flush=True)
+                await asyncio.sleep(backoff)
+            try:
+                translations = await _translate_batch(pending, lang)
+            except Exception as e:  # network layers can still leak
+                print(f"  error for {label}: {e}", flush=True)
+                translations = None
+            if not translations:
+                continue
+            for field, (ru_value, en_value) in list(pending.items()):
+                candidate = translations.get(field)
+                if candidate is None:
+                    continue
+                ok, reason = _heuristic_ok(candidate, ru_value, en_value)
+                if ok:
+                    succeeded[field] = candidate
+                    del pending[field]
+                else:
+                    print(f"  rejected {label}.{field}: {reason} -> {candidate!r}", flush=True)
+
+        if succeeded:
+            bucket_all.setdefault(key, {}).update(succeeded)
+            progress.persist()
+            progress.log_ok(f"{label} ({len(succeeded)}/{len(fields)} fields)", len(succeeded))
+        for field in pending:
+            progress.failed.append(f"{label}.{field}")
+            print(f"FAILED {label}.{field}", flush=True)
+        if not dry_run:
+            await asyncio.sleep(delay)
+
+
 async def run(section: str, langs: list[str], keys: list[str] | None,
               force: bool, delay: float, dry_run: bool) -> int:
     items_by_dict = SECTION_REGISTRY[section]()
     existing = _load_existing_dicts(section, list(items_by_dict.keys()))
-
-    planned = generated = skipped = 0
-    failed: list[str] = []
-    started = time.monotonic()
+    progress = _Progress(section, existing)
+    runner = _run_batched if section in BATCHED_SECTIONS else _run_per_field
 
     for lang in langs:
         for dict_name, items in items_by_dict.items():
-            for key, field, ru_value, en_value in items:
-                if keys and key not in keys:
-                    continue
-                label = f"{section}.{dict_name}[{key}].{field}/{lang}"
-                bucket = existing.setdefault(dict_name, {}).setdefault(lang, {})
-                if key in bucket and field in bucket[key] and not force:
-                    skipped += 1
-                    continue
-                planned += 1
-                if dry_run:
-                    print(f"[dry-run] would translate {label}", flush=True)
-                    continue
+            await runner(dict_name, items, lang, keys, force, delay, dry_run, section, progress)
 
-                translation = None
-                for attempt, backoff in enumerate((0,) + BACKOFF_STEPS):
-                    if backoff:
-                        print(f"  retry {attempt} for {label} in {backoff}s", flush=True)
-                        await asyncio.sleep(backoff)
-                    try:
-                        translation = await _translate_one(ru_value, en_value, lang)
-                    except Exception as e:  # network layers can still leak
-                        print(f"  error for {label}: {e}", flush=True)
-                        translation = None
-                        continue
-                    ok, reason = _heuristic_ok(translation or "", ru_value, en_value)
-                    if ok:
-                        break
-                    print(f"  rejected {label}: {reason} -> {translation!r}", flush=True)
-                    translation = None
-
-                if translation is None:
-                    failed.append(label)
-                    print(f"FAILED {label}", flush=True)
-                else:
-                    bucket.setdefault(key, {})[field] = translation
-                    # Persist after every success (not just at the end) so an
-                    # interrupted run loses at most one in-flight item.
-                    _write_i18n_module(section, existing)
-                    generated += 1
-                    elapsed = time.monotonic() - started
-                    print(f"OK {label} ({generated} done, {skipped} skipped, "
-                          f"{elapsed / 60:.1f} min elapsed)", flush=True)
-                if not dry_run:
-                    await asyncio.sleep(delay)
-
-    print(f"\nDone: {generated} generated, {skipped} skipped, {len(failed)} failed (of {planned} planned)", flush=True)
-    if failed:
+    print(f"\nDone: {progress.generated} generated, {progress.skipped} skipped, "
+          f"{len(progress.failed)} failed (of {progress.planned} planned)", flush=True)
+    if progress.failed:
         print("Failed items (re-run with --keys, or re-run the whole section):", flush=True)
-        for label in failed:
+        for label in progress.failed:
             print(f"  {label}", flush=True)
         return 1
     return 0

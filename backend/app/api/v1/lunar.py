@@ -12,8 +12,13 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.structural_i18n import localized_field, pick, pick_list
 from app.data.lunar_days import LUNAR_DAYS
+from app.data.lunar_i18n import EVENT_DATA_I18N, LUNAR_DAYS_I18N, MOON_SIGNS_I18N, PHASE_NAMES_I18N
 from app.data.moon_signs import MOON_SIGNS
+# Reused rather than duplicated: SIGNS/SIGNS_RU below are the same 12 zodiac
+# names natal.py already has translations for (natal_i18n.SIGNS_I18N).
+from app.data.natal_i18n import SIGNS_I18N as ZODIAC_SIGNS_I18N
 from app.models.user import User
 
 router = APIRouter()
@@ -31,6 +36,28 @@ PHASE_NAMES_RU = ["Новолуние", "Молодой месяц", "Перва
 PHASE_NAMES_EN = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
                   "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"]
 PHASE_ICONS = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"]
+
+
+# TZ-080: every field below used to be a plain `RU if ru else EN` ternary,
+# which silently collapsed ES/PT/TR/UK to English. These route through the
+# i18n modules so those four languages get real content once generated,
+# with English as the fallback until then.
+def _sign_name(idx: int, lang: str) -> str:
+    if lang == "ru":
+        return SIGNS_RU[idx]
+    sign = SIGNS[idx]
+    return sign if lang == "en" else localized_field(ZODIAC_SIGNS_I18N, lang, sign, "name", sign)
+
+
+def _phase_name(idx: int, lang: str) -> str:
+    if lang == "ru":
+        return PHASE_NAMES_RU[idx]
+    en_value = PHASE_NAMES_EN[idx]
+    return en_value if lang == "en" else localized_field(PHASE_NAMES_I18N, lang, str(idx), "name", en_value)
+
+
+def _event_field(event: dict, field: str, key: str, lang: str) -> str:
+    return pick(event, field, lang, EVENT_DATA_I18N, key)
 
 
 def _calc_lunar(dt: datetime) -> dict:
@@ -72,7 +99,6 @@ EVENT_DATA = {
 
 def get_upcoming_events(days: int = 14, lang: str = "ru") -> list[dict]:
     now = datetime.utcnow()
-    ru = lang == "ru"
     events = []
 
     days_since_ref = (now - NEW_MOON_REF).total_seconds() / 86400
@@ -91,8 +117,8 @@ def get_upcoming_events(days: int = 14, lang: str = "ru") -> list[dict]:
                     "type": event_type,
                     "date": event_dt.strftime("%Y-%m-%d"),
                     "icon": ed.get("icon", ""),
-                    "title": ed.get("title_ru" if ru else "title_en", ""),
-                    "description": ed.get("desc_ru" if ru else "desc_en", ""),
+                    "title": _event_field(ed, "title", event_type, lang) if ed else "",
+                    "description": _event_field(ed, "desc", event_type, lang) if ed else "",
                     "days_until": round(diff),
                 })
 
@@ -108,14 +134,14 @@ def get_upcoming_events(days: int = 14, lang: str = "ru") -> list[dict]:
             if m1_retro and not m2_retro:
                 ed = EVENT_DATA["mercury_direct"]
                 events.append({"type": "mercury_direct", "date": dt2.strftime("%Y-%m-%d"),
-                                "icon": ed["icon"], "title": ed.get("title_ru" if ru else "title_en", ""),
-                                "description": ed.get("desc_ru" if ru else "desc_en", ""), "days_until": day_offset + 1})
+                                "icon": ed["icon"], "title": _event_field(ed, "title", "mercury_direct", lang),
+                                "description": _event_field(ed, "desc", "mercury_direct", lang), "days_until": day_offset + 1})
                 break
             if not m1_retro and m2_retro:
                 ed = EVENT_DATA["mercury_retro"]
                 events.append({"type": "mercury_retro", "date": dt2.strftime("%Y-%m-%d"),
-                                "icon": ed["icon"], "title": ed.get("title_ru" if ru else "title_en", ""),
-                                "description": ed.get("desc_ru" if ru else "desc_en", ""), "days_until": day_offset + 1})
+                                "icon": ed["icon"], "title": _event_field(ed, "title", "mercury_retro", lang),
+                                "description": _event_field(ed, "desc", "mercury_retro", lang), "days_until": day_offset + 1})
                 break
     except Exception:
         pass
@@ -130,12 +156,27 @@ def get_upcoming_events(days: int = 14, lang: str = "ru") -> list[dict]:
     return unique
 
 
+def _day_field(day_data: dict, field: str, day_key: int, lang: str) -> str:
+    return pick(day_data, field, lang, LUNAR_DAYS_I18N, str(day_key))
+
+
+def _day_list(day_data: dict, field: str, day_key: int, lang: str) -> list[str]:
+    return pick_list(day_data, field, lang, LUNAR_DAYS_I18N, str(day_key))
+
+
+def _sign_field(sign_data: dict, field: str, sign_key: str, lang: str) -> str:
+    return pick(sign_data, field, lang, MOON_SIGNS_I18N, sign_key) if sign_data else ""
+
+
+def _sign_list(sign_data: dict, field: str, sign_key: str, lang: str) -> list[str]:
+    return pick_list(sign_data, field, lang, MOON_SIGNS_I18N, sign_key) if sign_data else []
+
+
 def get_lunar_today_data(lang: str = "ru") -> dict:
     info = _calc_lunar(datetime.utcnow())
     pi = info["phase_index"]
     si = info["sign_index"]
     ld = min(info["lunar_day"], 30)
-    ru = lang == "ru"
 
     day_data = LUNAR_DAYS.get(ld, LUNAR_DAYS[1])
     sign_key = SIGNS[si]
@@ -143,30 +184,30 @@ def get_lunar_today_data(lang: str = "ru") -> dict:
 
     return {
         "lunar_day": ld,
-        "phase_name": PHASE_NAMES_RU[pi] if ru else PHASE_NAMES_EN[pi],
+        "phase_name": _phase_name(pi, lang),
         "phase_icon": PHASE_ICONS[pi],
-        "moon_sign": SIGNS_RU[si] if ru else SIGNS[si],
+        "moon_sign": _sign_name(si, lang),
         "moon_sign_key": sign_key,
         "illumination": info["illumination"],
         "energy": day_data.get("energy", "neutral"),
-        "day_symbol": day_data.get("symbol_ru" if ru else "symbol_en", ""),
-        "day_title": day_data.get("title_ru" if ru else "title_en", ""),
-        "day_desc": day_data.get("desc_ru" if ru else "desc_en", ""),
-        "favorable": day_data.get("favorable_ru" if ru else "favorable_en", []),
-        "unfavorable": day_data.get("unfavorable_ru" if ru else "unfavorable_en", []),
-        "health": day_data.get("health_ru" if ru else "health_en", ""),
-        "beauty": day_data.get("beauty_ru" if ru else "beauty_en", ""),
-        "money": day_data.get("money_ru" if ru else "money_en", ""),
-        "love": day_data.get("love_ru" if ru else "love_en", ""),
-        "work": day_data.get("work_ru" if ru else "work_en", ""),
-        "spiritual": day_data.get("spiritual_ru" if ru else "spiritual_en", ""),
-        "dreams": day_data.get("dreams_ru" if ru else "dreams_en", ""),
-        "stones": day_data.get("stones_ru" if ru else "stones_en", ""),
-        "sign_desc": sign_data.get("desc_ru" if ru else "desc_en", ""),
-        "sign_favorable": sign_data.get("favorable_ru" if ru else "favorable_en", []),
-        "sign_unfavorable": sign_data.get("unfavorable_ru" if ru else "unfavorable_en", []),
-        "sign_beauty": sign_data.get("beauty_ru" if ru else "beauty_en", ""),
-        "sign_health": sign_data.get("health_ru" if ru else "health_en", ""),
+        "day_symbol": _day_field(day_data, "symbol", ld, lang),
+        "day_title": _day_field(day_data, "title", ld, lang),
+        "day_desc": _day_field(day_data, "desc", ld, lang),
+        "favorable": _day_list(day_data, "favorable", ld, lang),
+        "unfavorable": _day_list(day_data, "unfavorable", ld, lang),
+        "health": _day_field(day_data, "health", ld, lang),
+        "beauty": _day_field(day_data, "beauty", ld, lang),
+        "money": _day_field(day_data, "money", ld, lang),
+        "love": _day_field(day_data, "love", ld, lang),
+        "work": _day_field(day_data, "work", ld, lang),
+        "spiritual": _day_field(day_data, "spiritual", ld, lang),
+        "dreams": _day_field(day_data, "dreams", ld, lang),
+        "stones": _day_field(day_data, "stones", ld, lang),
+        "sign_desc": _sign_field(sign_data, "desc", sign_key, lang),
+        "sign_favorable": _sign_list(sign_data, "favorable", sign_key, lang),
+        "sign_unfavorable": _sign_list(sign_data, "unfavorable", sign_key, lang),
+        "sign_beauty": _sign_field(sign_data, "beauty", sign_key, lang),
+        "sign_health": _sign_field(sign_data, "health", sign_key, lang),
         "upcoming_events": get_upcoming_events(14, lang),
     }
 
@@ -199,7 +240,6 @@ async def lunar_today(lang: str = "ru"):
 async def lunar_month(lang: str = "ru"):
     today = date.today()
     _, days_in_month = monthrange(today.year, today.month)
-    ru = lang == "ru"
     result = []
     for d in range(1, days_in_month + 1):
         dt = datetime(today.year, today.month, d, 12, 0)
@@ -210,7 +250,7 @@ async def lunar_month(lang: str = "ru"):
             "date": f"{today.year}-{today.month:02d}-{d:02d}",
             "lunar_day": ld,
             "phase_icon": PHASE_ICONS[info["phase_index"]],
-            "moon_sign": SIGNS_RU[info["sign_index"]] if ru else SIGNS[info["sign_index"]],
+            "moon_sign": _sign_name(info["sign_index"], lang),
             "energy": day_data.get("energy", "neutral"),
         })
     return result

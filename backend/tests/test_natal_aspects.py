@@ -66,11 +66,12 @@ class TestNatalTransitsAspectLanguage:
     (unlike build_full_chart's aspects list), so it must pick ru/en itself."""
 
     def _mock_extract(self, natal_subj, transit_subj):
-        def fake_extract(subj, key, ptype="planet"):
+        def fake_extract(subj, key, ptype="planet", lang="ru"):
             pos = 0.0 if subj is natal_subj else (120.0 if key == "sun" else 50.0)
+            name_local = key if lang == "ru" else key.upper()
             return {
-                "name": key, "name_ru": key, "name_en": key, "symbol": "?",
-                "sign": "Aries", "sign_ru": "Овен", "degree": pos % 30, "abs_pos": pos,
+                "name": key, "name_ru": key, "name_en": key, "name_local": name_local, "symbol": "?",
+                "sign": "Aries", "sign_ru": "Овен", "sign_local": "Aries", "degree": pos % 30, "abs_pos": pos,
                 "house": 1, "retrograde": False, "type": ptype,
             }
         return fake_extract

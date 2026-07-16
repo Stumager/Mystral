@@ -12,30 +12,30 @@ import { validateDay, validateMonth, validateYear, validateDateExists, validateN
 interface NatalChartProps { onNavigate: (page: string) => void; }
 
 interface PlanetData {
-  name: string; name_ru: string; name_en: string; symbol: string;
-  sign: string; sign_ru: string; degree: number; abs_pos: number;
+  name: string; name_ru: string; name_en: string; name_local: string; symbol: string;
+  sign: string; sign_ru: string; sign_local: string; degree: number; abs_pos: number;
   house: number | null; retrograde: boolean; type?: string;
 }
-interface HouseData { number: number; sign: string; sign_ru: string; degree: number; abs_pos: number; }
+interface HouseData { number: number; sign: string; sign_ru: string; sign_local: string; degree: number; abs_pos: number; }
 interface AspectData {
   planet1: string; planet2: string; planet1_ru: string; planet2_ru: string;
-  planet1_en: string; planet2_en: string;
+  planet1_en: string; planet2_en: string; planet1_local: string; planet2_local: string;
   type: string; name_ru: string; name_en: string; symbol: string; orb: number; harmony: boolean;
 }
 interface Stellium {
-  type: string; name_ru: string; name_en: string;
-  planets_ru: string[]; planets_en: string[];
+  type: string; name_ru: string; name_en: string; name_local: string;
+  planets_ru: string[]; planets_en: string[]; planets_local: string[];
 }
 interface ChartResult {
   planets: PlanetData[]; extra_points: PlanetData[]; houses: HouseData[];
   aspects: AspectData[];
-  ascendant: { sign: string; sign_ru: string; degree: number };
-  midheaven: { sign: string; sign_ru: string; degree: number };
-  part_of_fortune: { sign: string; sign_ru: string; degree: number; house: number | null };
+  ascendant: { sign: string; sign_ru: string; sign_local: string; degree: number };
+  midheaven: { sign: string; sign_ru: string; sign_local: string; degree: number };
+  part_of_fortune: { sign: string; sign_ru: string; sign_local: string; degree: number; house: number | null };
   stelliums: Stellium[];
   element_balance: { fire: number; earth: number; air: number; water: number };
   modality_balance: { cardinal: number; fixed: number; mutable: number };
-  dominant_sign: string; dominant_sign_ru: string;
+  dominant_sign: string; dominant_sign_ru: string; dominant_sign_local: string;
 }
 
 const SECTIONS = ["personality", "planets", "houses", "aspects", "transits"] as const;
@@ -205,9 +205,9 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     : { personality: "Personality", planets: "Planets", houses: "Houses", aspects: "Aspects", transits: "Transits" };
 
   const bigThreeForShare = chart ? [
-    { label: lang === "ru" ? "Солнце" : "Sun", sign: lang === "ru" ? chart.planets[0].sign_ru : chart.planets[0].sign, degree: chart.planets[0].degree },
-    { label: lang === "ru" ? "Луна" : "Moon", sign: lang === "ru" ? chart.planets[1].sign_ru : chart.planets[1].sign, degree: chart.planets[1].degree },
-    { label: lang === "ru" ? "Асцендент" : "Ascendant", sign: lang === "ru" ? chart.ascendant.sign_ru : chart.ascendant.sign, degree: chart.ascendant.degree },
+    { label: chart.planets[0].name_local, sign: chart.planets[0].sign_local, degree: chart.planets[0].degree },
+    { label: chart.planets[1].name_local, sign: chart.planets[1].sign_local, degree: chart.planets[1].degree },
+    { label: lang === "ru" ? "Асцендент" : "Ascendant", sign: chart.ascendant.sign_local, degree: chart.ascendant.degree },
   ] : [];
 
   // NatalWheel matches aspects.planet1/planet2 (raw keys like "sun") against
@@ -303,9 +303,9 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {chart.stelliums.length > 0 && chart.stelliums.map((s, i) => (
               <div key={i} className="rounded-xl px-4 py-3" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)" }}>
                 <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
-                  * {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {lang === "ru" ? s.name_ru : s.name_en}
+                  * {lang === "ru" ? "Стеллиум" : "Stellium"} {s.type === "sign" ? (lang === "ru" ? "в" : "in") : ""} {s.name_local}
                 </span>
-                <p className="text-text-muted text-xs mt-1">{(lang === "ru" ? s.planets_ru : s.planets_en).join(", ")}</p>
+                <p className="text-text-muted text-xs mt-1">{s.planets_local.join(", ")}</p>
               </div>
             ))}
 
@@ -314,17 +314,17 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("natal.big_three")}</p>
               <div className="flex flex-col gap-2.5">
                 {[
-                  { label: lang === "ru" ? "Солнце" : "Sun", data: chart.planets[0] },
-                  { label: lang === "ru" ? "Луна" : "Moon", data: chart.planets[1] },
+                  { label: chart.planets[0].name_local, data: chart.planets[0] },
+                  { label: chart.planets[1].name_local, data: chart.planets[1] },
                   { label: lang === "ru" ? "Асцендент" : "Ascendant",
-                    data: { sign_ru: chart.ascendant.sign_ru, sign: chart.ascendant.sign, degree: chart.ascendant.degree } },
+                    data: { sign_local: chart.ascendant.sign_local, degree: chart.ascendant.degree } },
                   { label: lang === "ru" ? "MC (Середина Неба)" : "MC (Midheaven)",
-                    data: { sign_ru: chart.midheaven.sign_ru, sign: chart.midheaven.sign, degree: chart.midheaven.degree } },
+                    data: { sign_local: chart.midheaven.sign_local, degree: chart.midheaven.degree } },
                 ].map(({ label, data }) => (
                   <div key={label} className="flex items-center justify-between">
                     <span className="text-text-muted text-sm">{label}</span>
                     <span className="font-display text-sm" style={{ color: "#C9A84C" }}>
-                      {lang === "ru" ? data.sign_ru : data.sign} <span className="text-text-faint text-xs">{data.degree}°</span>
+                      {data.sign_local} <span className="text-text-faint text-xs">{data.degree}°</span>
                     </span>
                   </div>
                 ))}
@@ -338,11 +338,11 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 {chart.planets.map(p => (
                   <div key={p.name} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                     <span className="text-text-muted">
-                      {p.symbol} {lang === "ru" ? p.name_ru : p.name_en}
+                      {p.symbol} {p.name_local}
                       {p.retrograde && <span className="text-red-400 ml-1">R</span>}
                     </span>
                     <span className="text-text-primary">
-                      {lang === "ru" ? p.sign_ru : p.sign} {p.degree}°
+                      {p.sign_local} {p.degree}°
                       {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}
                     </span>
                   </div>
@@ -359,9 +359,9 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 <div className="flex flex-col gap-1.5">
                   {chart.extra_points.map(p => (
                     <div key={p.name} className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">{p.symbol} {lang === "ru" ? p.name_ru : p.name_en}</span>
+                      <span className="text-text-muted">{p.symbol} {p.name_local}</span>
                       <span className="text-text-primary">
-                        {lang === "ru" ? p.sign_ru : p.sign} {p.degree}°
+                        {p.sign_local} {p.degree}°
                         {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}
                       </span>
                     </div>
@@ -370,7 +370,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-text-muted">⊕ {lang === "ru" ? "Часть Фортуны" : "Part of Fortune"}</span>
                       <span className="text-text-primary">
-                        {lang === "ru" ? chart.part_of_fortune.sign_ru : chart.part_of_fortune.sign} {chart.part_of_fortune.degree}°
+                        {chart.part_of_fortune.sign_local} {chart.part_of_fortune.degree}°
                         {chart.part_of_fortune.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {chart.part_of_fortune.house})</span>}
                       </span>
                     </div>
@@ -388,7 +388,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 {chart.houses.map(h => (
                   <div key={h.number} className="flex items-center justify-between text-xs py-0.5">
                     <span className="text-text-muted">{lang === "ru" ? "Дом" : "House"} {h.number}</span>
-                    <span className="text-text-primary">{lang === "ru" ? h.sign_ru : h.sign} {h.degree}°</span>
+                    <span className="text-text-primary">{h.sign_local} {h.degree}°</span>
                   </div>
                 ))}
               </div>
@@ -411,7 +411,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                 ))}
               </div>
               <p className="text-text-faint text-[10px] mt-2">
-                {lang === "ru" ? "Доминантный знак" : "Dominant"}: <span style={{ color: "#C9A84C" }}>{chart.dominant_sign_ru || chart.dominant_sign}</span>
+                {lang === "ru" ? "Доминантный знак" : "Dominant"}: <span style={{ color: "#C9A84C" }}>{chart.dominant_sign_local || chart.dominant_sign}</span>
               </p>
             </Card>
 
@@ -427,7 +427,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                       : a.harmony ? "#6E9A8A" : "#D98A8A";
                     return (
                       <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
-                        <span className="text-text-muted">{lang === "ru" ? a.planet1_ru : a.planet1_en} {a.symbol} {lang === "ru" ? a.planet2_ru : a.planet2_en}</span>
+                        <span className="text-text-muted">{a.planet1_local} {a.symbol} {a.planet2_local}</span>
                         <span style={{ color: aspectColor }}>
                           {lang === "ru" ? a.name_ru : a.name_en} <span className="text-text-faint">{a.orb}°</span>
                         </span>

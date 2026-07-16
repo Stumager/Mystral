@@ -15,14 +15,14 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.structural_i18n import localized_field
 from app.data.numerology import (
     ANGEL_NUMBERS,
-    KARMIC_DESCRIPTIONS_EN,
-    KARMIC_DESCRIPTIONS_RU,
     NUMBER_DATA,
     birthday_number,
     destiny_number,
     get_number_data,
+    karmic_description,
     karmic_numbers,
     life_path,
     missing_numbers,
@@ -34,6 +34,7 @@ from app.data.numerology import (
     reduce,
     soul_number,
 )
+from app.data.numerology_i18n import ANGEL_NUMBERS_I18N
 from app.models.user import User, UserProfile
 
 router = APIRouter()
@@ -64,7 +65,6 @@ async def numerology_profile(
 
     bd = profile.birth_date
     lang = current_user.lang or "ru"
-    ru = lang == "ru"
     today = date.today()
     fn = profile.full_name
 
@@ -96,9 +96,8 @@ async def numerology_profile(
         result["personality"] = None
 
     kn = karmic_numbers(bd)
-    descs = KARMIC_DESCRIPTIONS_RU if ru else KARMIC_DESCRIPTIONS_EN
     for k in kn:
-        k["description"] = descs.get(k["number"], "")
+        k["description"] = karmic_description(k["number"], lang)
     result["karmic_numbers"] = kn
 
     mn = missing_numbers(bd)
@@ -118,11 +117,19 @@ async def numerology_profile(
 
 
 @router.get("/numerology/angel/{number}")
-async def angel_number(number: str):
+async def angel_number(number: str, lang: str = "ru"):
     entry = ANGEL_NUMBERS.get(number)
     if not entry:
         raise HTTPException(404, "Angel number not found")
-    return entry
+    # TZ-080: this used to return both meaning_ru/meaning_en unconditionally
+    # and let the frontend pick between just those two — ES/PT/TR/UK always
+    # got the English meaning. Resolve a single localized field instead.
+    if lang == "ru":
+        meaning = entry["meaning_ru"]
+    else:
+        en_value = entry["meaning_en"]
+        meaning = en_value if lang == "en" else localized_field(ANGEL_NUMBERS_I18N, lang, number, "meaning", en_value)
+    return {**entry, "meaning": meaning}
 
 
 class InterpretRequest(BaseModel):

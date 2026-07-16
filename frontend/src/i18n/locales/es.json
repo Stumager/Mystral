@@ -84,7 +84,142 @@
     "interpret": "Obtener interpretación",
     "interpretation_label": "Interpretación · AI",
     "new_spread": "Nueva tirada",
-    "error": "Error de conexión. Inténtalo de nuevo."
+    "error": "Error de conexión. Inténtalo de nuevo.",
+    "spreads": {
+      "card_of_day": {
+        "name": "Carta del Día",
+        "desc": "Una carta para todo el día",
+        "positions": [
+          "Carta del Día"
+        ]
+      },
+      "three_cards": {
+        "name": "Tres Cartas",
+        "desc": "Tirada clásica de 3 cartas",
+        "positions": [
+          "Pasado",
+          "Presente",
+          "Futuro"
+        ],
+        "schemes": [
+          [
+            "Pasado",
+            "Presente",
+            "Futuro"
+          ],
+          [
+            "Situación",
+            "Acción",
+            "Resultado"
+          ],
+          [
+            "Cuerpo",
+            "Mente",
+            "Espíritu"
+          ],
+          [
+            "Sí",
+            "No",
+            "Consejo"
+          ]
+        ]
+      },
+      "celtic_cross": {
+        "name": "Cruz Celta",
+        "desc": "Análisis profundo de la situación — 10 cartas",
+        "positions": [
+          "Esencia",
+          "Desafío",
+          "Base",
+          "Pasado",
+          "Futuro Posible",
+          "Futuro Cercano",
+          "Tú Ahora",
+          "Entorno",
+          "Esperanzas/Miedos",
+          "Resultado"
+        ]
+      },
+      "horseshoe": {
+        "name": "Herradura",
+        "desc": "7 cartas — panorama y consejo",
+        "positions": [
+          "Pasado",
+          "Presente",
+          "Influencias Ocultas",
+          "Obstáculos",
+          "Entorno",
+          "Consejo",
+          "Resultado"
+        ]
+      },
+      "relationship": {
+        "name": "Relación",
+        "desc": "7 cartas — análisis de pareja",
+        "positions": [
+          "Tú",
+          "Pareja",
+          "Conexión",
+          "Base",
+          "Influencia Externa",
+          "Consejo",
+          "Futuro de la Pareja"
+        ]
+      },
+      "yes_no": {
+        "name": "Sí / No",
+        "desc": "5 cartas — respuesta clara a una pregunta",
+        "positions": [
+          "Carta 1",
+          "Carta 2",
+          "Carta 3",
+          "Carta 4",
+          "Carta 5"
+        ]
+      },
+      "two_choices": {
+        "name": "Dos Caminos",
+        "desc": "6 cartas — comparar dos opciones",
+        "positions": [
+          "Camino A: ahora",
+          "Camino A: proceso",
+          "Camino A: resultado",
+          "Camino B: ahora",
+          "Camino B: proceso",
+          "Camino B: resultado"
+        ]
+      },
+      "person": {
+        "name": "Sobre una Persona",
+        "desc": "5 cartas — carácter e intenciones",
+        "positions": [
+          "Personalidad",
+          "Pensamientos",
+          "Sentimientos",
+          "Intenciones",
+          "Resultado"
+        ]
+      },
+      "year": {
+        "name": "Año por Delante",
+        "desc": "13 cartas — cada mes + tema del año",
+        "positions": [
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Septiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre",
+          "Tema del Año"
+        ]
+      }
+    }
   },
   "natal": {
     "title": "Carta natal",

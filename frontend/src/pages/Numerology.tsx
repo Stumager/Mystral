@@ -104,10 +104,10 @@ export function Numerology({ onNavigate }: NumerologyProps) {
     if (!q) return;
     setAngelLoading(true); setAngelResult(null);
     try {
-      const r = await fetch(`/api/v1/numerology/angel/${encodeURIComponent(q)}`);
+      const r = await fetch(`/api/v1/numerology/angel/${encodeURIComponent(q)}?lang=${lang}`);
       if (!r.ok) { setAngelResult(ru ? "Число не найдено" : "Number not found"); return; }
       const d = await r.json();
-      setAngelResult(ru ? d.meaning_ru : d.meaning_en);
+      setAngelResult(d.meaning);
     } catch { setAngelResult(ru ? "Ошибка" : "Error"); }
     finally { setAngelLoading(false); }
   }

@@ -84,7 +84,142 @@
     "interpret": "Yorum al",
     "interpretation_label": "Yorum · AI",
     "new_spread": "Yeni açılım",
-    "error": "Bağlantı hatası. Tekrar dene."
+    "error": "Bağlantı hatası. Tekrar dene.",
+    "spreads": {
+      "card_of_day": {
+        "name": "Günün Kartı",
+        "desc": "Bütün gün için tek kart",
+        "positions": [
+          "Günün Kartı"
+        ]
+      },
+      "three_cards": {
+        "name": "Üç Kart",
+        "desc": "Klasik 3 kart açılımı",
+        "positions": [
+          "Geçmiş",
+          "Şimdi",
+          "Gelecek"
+        ],
+        "schemes": [
+          [
+            "Geçmiş",
+            "Şimdi",
+            "Gelecek"
+          ],
+          [
+            "Durum",
+            "Eylem",
+            "Sonuç"
+          ],
+          [
+            "Beden",
+            "Zihin",
+            "Ruh"
+          ],
+          [
+            "Evet",
+            "Hayır",
+            "Tavsiye"
+          ]
+        ]
+      },
+      "celtic_cross": {
+        "name": "Kelt Haçı",
+        "desc": "Durumun derinlemesine analizi — 10 kart",
+        "positions": [
+          "Öz",
+          "Engel",
+          "Temel",
+          "Geçmiş",
+          "Olası Gelecek",
+          "Yakın Gelecek",
+          "Şu An Sen",
+          "Çevre",
+          "Umutlar/Korkular",
+          "Sonuç"
+        ]
+      },
+      "horseshoe": {
+        "name": "Nal",
+        "desc": "7 kart — genel bakış ve tavsiye",
+        "positions": [
+          "Geçmiş",
+          "Şimdi",
+          "Gizli Etkiler",
+          "Engeller",
+          "Çevre",
+          "Tavsiye",
+          "Sonuç"
+        ]
+      },
+      "relationship": {
+        "name": "İlişki",
+        "desc": "7 kart — çift analizi",
+        "positions": [
+          "Sen",
+          "Partner",
+          "Bağ",
+          "Temel",
+          "Dış Etki",
+          "Tavsiye",
+          "Çiftin Geleceği"
+        ]
+      },
+      "yes_no": {
+        "name": "Evet / Hayır",
+        "desc": "5 kart — soruya net cevap",
+        "positions": [
+          "Kart 1",
+          "Kart 2",
+          "Kart 3",
+          "Kart 4",
+          "Kart 5"
+        ]
+      },
+      "two_choices": {
+        "name": "İki Yol",
+        "desc": "6 kart — iki seçeneği karşılaştır",
+        "positions": [
+          "Yol A: şimdi",
+          "Yol A: süreç",
+          "Yol A: sonuç",
+          "Yol B: şimdi",
+          "Yol B: süreç",
+          "Yol B: sonuç"
+        ]
+      },
+      "person": {
+        "name": "Bir Kişi Hakkında",
+        "desc": "5 kart — karakter ve niyetler",
+        "positions": [
+          "Kişilik",
+          "Düşünceler",
+          "Duygular",
+          "Niyetler",
+          "Sonuç"
+        ]
+      },
+      "year": {
+        "name": "Önümüzdeki Yıl",
+        "desc": "13 kart — her ay + yıl teması",
+        "positions": [
+          "Ocak",
+          "Şubat",
+          "Mart",
+          "Nisan",
+          "Mayıs",
+          "Haziran",
+          "Temmuz",
+          "Ağustos",
+          "Eylül",
+          "Ekim",
+          "Kasım",
+          "Aralık",
+          "Yıl Teması"
+        ]
+      }
+    }
   },
   "natal": {
     "title": "Doğum haritası",
