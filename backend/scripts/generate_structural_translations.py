@@ -288,7 +288,19 @@ def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool,
     the model just echoing the English reference back untranslated. Proper
     names (rune/card names) are expected to resemble the English spelling,
     so this only flags a *verbatim* copy of the whole reference, not shared
-    substrings."""
+    substrings.
+
+    The identical-to-English check is skipped for <=2-word values: a real
+    false positive on compatibility.SIGNS_I18N[0].name/es showed that short
+    reference strings are frequently proper nouns or established
+    astrological terms (zodiac signs, some tarot names) that are correctly
+    identical across languages — Spanish "Aries" is still "Aries", not an
+    untranslated leftover. Whether that identity is actually correct for a
+    given short value isn't something this script can verify automatically
+    either way, so for the short case we accept rather than burn retries
+    that would just reproduce the same (correct) answer. A whole phrase or
+    sentence copied verbatim from English remains a strong signal of a
+    lazy/stuck translation and is still flagged."""
     if not translation or not translation.strip():
         return False, "empty translation"
     ref_len = max(len(ru_value), len(en_value))
@@ -298,7 +310,8 @@ def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool,
             return False, f"suspiciously short ({ratio:.0%} of reference length)"
         if ratio > 3.0:
             return False, f"suspiciously long ({ratio:.0%} of reference length)"
-    if len(en_value) > 3 and en_value.strip().lower() == translation.strip().lower():
+    is_short_value = len(en_value.split()) <= 2
+    if not is_short_value and len(en_value) > 3 and en_value.strip().lower() == translation.strip().lower():
         return False, "identical to the English reference — looks untranslated"
     return True, ""
 

@@ -36,20 +36,47 @@ class TestHeuristicCheck:
         ok, reason = _heuristic_ok(long_text, "Овен", "Aries")
         assert not ok and "long" in reason
 
-    def test_verbatim_english_echo_rejected(self):
-        ok, reason = _heuristic_ok("Aries", "Овен", "Aries")
+    def test_long_verbatim_english_echo_rejected(self):
+        # A whole phrase copied verbatim from English (not a short proper
+        # noun) is still a strong "model gave up translating" signal.
+        en = "A harmonious pair with deep mutual understanding and trust"
+        ru = "Гармоничная пара с глубоким взаимопониманием и доверием"
+        ok, reason = _heuristic_ok(en, ru, en)
         assert not ok and "untranslated" in reason
 
-    def test_verbatim_echo_is_case_insensitive(self):
-        ok, _ = _heuristic_ok("ARIES", "Овен", "Aries")
+    def test_long_verbatim_echo_is_case_insensitive(self):
+        en = "A harmonious pair with deep mutual understanding and trust"
+        ru = "Гармоничная пара с глубоким взаимопониманием и доверием"
+        ok, _ = _heuristic_ok(en.upper(), ru, en)
         assert not ok
 
     def test_short_proper_noun_resembling_english_is_fine(self):
         # Proper names (rune ids, card names) legitimately look similar to
-        # the English spelling in many languages - only an exact match is
-        # flagged, not "merely similar".
+        # the English spelling in many languages.
         ok, _ = _heuristic_ok("Ares", "Овен", "Aries")
         assert ok
+
+    def test_short_value_identical_to_english_is_accepted(self):
+        # Real false positive found in production on
+        # compatibility.SIGNS_I18N[0].name/es: short (<=2-word) reference
+        # strings are frequently proper nouns or established astrological
+        # terms that are correctly identical across languages - Spanish
+        # "Aries" is still "Aries", not an untranslated leftover. Whether
+        # that's actually correct for a given short value can't be verified
+        # automatically either way, so the short case is accepted rather
+        # than burned on retries that would just reproduce the same answer.
+        ok, reason = _heuristic_ok("Aries", "Овен", "Aries")
+        assert ok, reason
+
+    def test_short_value_identical_case_insensitive_is_accepted(self):
+        ok, _ = _heuristic_ok("ARIES", "Овен", "Aries")
+        assert ok
+
+    def test_short_value_exemption_does_not_bypass_length_ratio_checks(self):
+        # The exemption only applies to the identical-to-English check -
+        # a short value that's also a garbage length is still rejected.
+        ok, reason = _heuristic_ok("A", "Овен", "Aries")
+        assert not ok and "short" in reason
 
 
 class TestBuildPrompt:
@@ -229,14 +256,18 @@ class TestWriteAndResumeCycle:
             assert code2 == 0
 
     async def test_run_reports_failure_when_heuristic_never_passes(self, tmp_path):
+        # Long (>2-word) reference value, so the identical-to-English
+        # rejection actually applies (short values are exempt - see
+        # TestHeuristicCheck).
+        en = "A harmonious pair with deep mutual understanding and trust"
         fake_registry = {
-            "compatibility": lambda: {"SIGNS_I18N": [("0", "name", "Овен", "Aries")]},
+            "compatibility": lambda: {"SIGNS_I18N": [("0", "name", "Гармоничная пара с доверием", en)]},
         }
         with patch("scripts.generate_structural_translations.DATA_DIR", tmp_path), \
              patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
              patch("scripts.generate_structural_translations.BACKOFF_STEPS", ()), \
              patch("scripts.generate_structural_translations._translate_one",
-                   new=AsyncMock(return_value="Aries")):  # verbatim echo -> always rejected
+                   new=AsyncMock(return_value=en)):  # verbatim echo -> always rejected
             code = await run("compatibility", ["es"], None, force=False, delay=0, dry_run=False)
         assert code == 1
 
@@ -287,15 +318,19 @@ class TestBatchedSectionsRunThroughRunBatched:
     async def test_batched_section_salvages_partial_success(self, tmp_path):
         # One field passes the heuristic, the other is a verbatim echo and
         # must be retried/failed on its own, without discarding the good one.
+        # "meaning" uses a long (>2-word) reference value, since short
+        # values are exempt from the identical-to-English check (see
+        # TestHeuristicCheck) and would otherwise be accepted as-is.
+        meaning_en = "Material well-being and prosperity through new ventures"
         fake_registry = {
             "runes": lambda: {"RUNES_I18N": [
                 ("fehu", "keyword", "Богатство", "Wealth"),
-                ("fehu", "meaning", "Изобилие", "Abundance"),
+                ("fehu", "meaning", "Материальное благополучие через новые начинания", meaning_en),
             ]},
         }
 
         async def fake_batch(fields, lang):
-            return {"keyword": "Riqueza", "meaning": "Abundance"}  # meaning: untranslated echo
+            return {"keyword": "Riqueza", "meaning": meaning_en}  # meaning: untranslated echo
 
         with patch("scripts.generate_structural_translations.DATA_DIR", tmp_path), \
              patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
