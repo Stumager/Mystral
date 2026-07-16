@@ -38,7 +38,7 @@ def _rune_out(rune: dict, lang: str, reversed: bool = False) -> dict:
         "can_reverse": rune["can_reverse"],
         "aett": rune["aett"],
         "element": rune["element"],
-        "deity": rune["deity"],
+        "deity": rune["deity_ru"] if ru else rune["deity_en"],
         "love": rune["love_ru"] if ru else rune["love_en"],
         "career": rune["career_ru"] if ru else rune["career_en"],
         "health": rune["health_ru"] if ru else rune["health_en"],

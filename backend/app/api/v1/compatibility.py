@@ -15,6 +15,8 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
+from app.core.structural_i18n import localized_field
+from app.data.compatibility_i18n import CHINESE_I18N, ELEMENTS_I18N, SIGNS_I18N
 from app.models.user import User, UserPartner, UserProfile
 
 router = APIRouter()
@@ -33,6 +35,28 @@ CHINESE = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake",
 CHINESE_RU = ["Крыса", "Бык", "Тигр", "Кролик", "Дракон", "Змея",
               "Лошадь", "Коза", "Обезьяна", "Петух", "Собака", "Свинья"]
 CHINESE_EMOJI = ["🐀", "🐂", "🐅", "🐇", "🐉", "🐍", "🐎", "🐐", "🐒", "🐓", "🐕", "🐖"]
+
+
+# TZ-080: these used to be a plain `RU[idx] if ru else EN[idx]` ternary at
+# every call site, which silently collapsed ES/PT/TR/UK to English. Route
+# through the i18n modules so those four languages get real labels once
+# generated, with English as the fallback until then.
+def _sign_name(idx: int, lang: str) -> str:
+    if lang == "ru":
+        return SIGNS_RU[idx]
+    return localized_field(SIGNS_I18N, lang, str(idx), "name", SIGNS[idx])
+
+
+def _element_name(idx: int, lang: str) -> str:
+    if lang == "ru":
+        return ELEMENTS_RU[idx]
+    return localized_field(ELEMENTS_I18N, lang, str(idx), "name", ELEMENTS_EN[idx])
+
+
+def _chinese_name(idx: int, lang: str) -> str:
+    if lang == "ru":
+        return CHINESE_RU[idx]
+    return localized_field(CHINESE_I18N, lang, str(idx), "name", CHINESE[idx])
 
 SIGN_RANGES = [
     (9, 1, 1, 1, 19), (10, 1, 20, 2, 18), (11, 2, 19, 3, 20),
@@ -245,11 +269,10 @@ async def compat_signs(req: CompatTypeRequest, current_user: User = Depends(get_
     i1 = _sign_idx(prof.birth_date)
     i2 = _sign_idx(partner.birth_date)
     score = _sign_compat(i1, i2)
-    ru = req.lang == "ru"
     return {
         "type": "signs", "score": score,
-        "user_sign": SIGNS_RU[i1] if ru else SIGNS[i1], "user_symbol": SYMBOLS[i1],
-        "partner_sign": SIGNS_RU[i2] if ru else SIGNS[i2], "partner_symbol": SYMBOLS[i2],
+        "user_sign": _sign_name(i1, req.lang), "user_symbol": SYMBOLS[i1],
+        "partner_sign": _sign_name(i2, req.lang), "partner_symbol": SYMBOLS[i2],
         "partner_name": partner.label,
         "description": _desc(score, req.lang),
     }
@@ -262,11 +285,10 @@ async def compat_elements(req: CompatTypeRequest, current_user: User = Depends(g
     e1 = _element_idx(_sign_idx(prof.birth_date))
     e2 = _element_idx(_sign_idx(partner.birth_date))
     score = ELEMENT_MATRIX.get((e1, e2), 55)
-    ru = req.lang == "ru"
     return {
         "type": "elements", "score": score,
-        "user_element": ELEMENTS_RU[e1] if ru else ELEMENTS_EN[e1],
-        "partner_element": ELEMENTS_RU[e2] if ru else ELEMENTS_EN[e2],
+        "user_element": _element_name(e1, req.lang),
+        "partner_element": _element_name(e2, req.lang),
         "partner_name": partner.label,
         "description": _desc(score, req.lang),
     }
@@ -295,12 +317,11 @@ async def compat_chinese(req: CompatTypeRequest, current_user: User = Depends(ge
     c1 = _chinese_idx(prof.birth_date.year)
     c2 = _chinese_idx(partner.birth_date.year)
     score = CHINESE_COMPAT.get((c1, c2), 55)
-    ru = req.lang == "ru"
     return {
         "type": "chinese", "score": score,
-        "user_animal": CHINESE_RU[c1] if ru else CHINESE[c1],
+        "user_animal": _chinese_name(c1, req.lang),
         "user_emoji": CHINESE_EMOJI[c1],
-        "partner_animal": CHINESE_RU[c2] if ru else CHINESE[c2],
+        "partner_animal": _chinese_name(c2, req.lang),
         "partner_emoji": CHINESE_EMOJI[c2],
         "partner_name": partner.label,
         "description": _desc(score, req.lang),
@@ -336,11 +357,10 @@ async def compat_moon(req: CompatTypeRequest, current_user: User = Depends(get_c
         mi1 = SIGNS.index(_normalize_sign(s1.moon.sign)) if _normalize_sign(s1.moon.sign) in SIGNS else 0
         mi2 = SIGNS.index(_normalize_sign(s2.moon.sign)) if _normalize_sign(s2.moon.sign) in SIGNS else 0
         score = _sign_compat(mi1, mi2)
-        ru = req.lang == "ru"
         return {
             "type": "moon", "score": score,
-            "user_moon": SIGNS_RU[mi1] if ru else SIGNS[mi1],
-            "partner_moon": SIGNS_RU[mi2] if ru else SIGNS[mi2],
+            "user_moon": _sign_name(mi1, req.lang),
+            "partner_moon": _sign_name(mi2, req.lang),
             "partner_name": partner.label,
             "description": _desc(score, req.lang),
         }
@@ -357,7 +377,10 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
 
     try:
         from kerykeion import AstrologicalSubject
-        from app.api.v1.natal import _normalize_sign, ASPECT_TYPES as NATAL_ASPECTS, resolve_timezone
+        from app.api.v1.natal import (
+            PLANET_NAMES_EN, PLANET_NAMES_RU, _normalize_sign,
+            ASPECT_TYPES as NATAL_ASPECTS, resolve_timezone,
+        )
 
         lat1, lon1 = (prof.birth_lat or 55.75), (prof.birth_lng or 37.62)
         s1 = AstrologicalSubject("User", prof.birth_date.year, prof.birth_date.month, prof.birth_date.day,
@@ -368,9 +391,12 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
                                  partner.birth_time.hour if partner.birth_time else 12, partner.birth_time.minute if partner.birth_time else 0,
                                  lng=lon2, lat=lat2, tz_str=resolve_timezone(lat2, lon2), online=False)
 
+        # TZ-080: previously a local pnames_ru-only dict + always-Russian
+        # "aspect" field, regardless of req.lang. Reuse natal.py's existing
+        # bilingual PLANET_NAMES_* instead of duplicating a Russian-only copy.
+        ru = req.lang == "ru"
         pkeys = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
-        pnames_ru = {"sun": "Солнце", "moon": "Луна", "mercury": "Меркурий", "venus": "Венера",
-                     "mars": "Марс", "jupiter": "Юпитер", "saturn": "Сатурн"}
+        pnames = PLANET_NAMES_RU if ru else PLANET_NAMES_EN
         aspects = []
         for k1 in pkeys:
             p1 = getattr(s1, k1, None)
@@ -382,13 +408,13 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
                 a2 = getattr(p2, "abs_pos", p2.position)
                 diff = abs(float(a1) - float(a2))
                 if diff > 180: diff = 360 - diff
-                for angle, max_orb, atype, name_ru, _, sym in NATAL_ASPECTS:
+                for angle, max_orb, atype, name_ru, name_en, sym in NATAL_ASPECTS:
                     orb = abs(diff - angle)
                     if orb <= 6:
                         aspects.append({
-                            "user_planet": pnames_ru.get(k1, k1),
-                            "partner_planet": pnames_ru.get(k2, k2),
-                            "aspect": name_ru, "symbol": sym,
+                            "user_planet": pnames.get(k1, k1),
+                            "partner_planet": pnames.get(k2, k2),
+                            "aspect": name_ru if ru else name_en, "symbol": sym,
                             "orb": round(orb, 1),
                             "harmony": atype in ("trine", "sextile"),
                         })
@@ -419,12 +445,11 @@ async def compat_overall(req: CompatTypeRequest, current_user: User = Depends(ge
         "chinese": CHINESE_COMPAT.get((_chinese_idx(prof.birth_date.year), _chinese_idx(partner.birth_date.year)), 55),
     }
     overall = round(sum(scores.values()) / len(scores))
-    ru = req.lang == "ru"
     return {
         "type": "overall", "score": overall, "scores": scores,
         "partner_name": partner.label,
-        "user_sign": SIGNS_RU[i1] if ru else SIGNS[i1], "user_symbol": SYMBOLS[i1],
-        "partner_sign": SIGNS_RU[i2] if ru else SIGNS[i2], "partner_symbol": SYMBOLS[i2],
+        "user_sign": _sign_name(i1, req.lang), "user_symbol": SYMBOLS[i1],
+        "partner_sign": _sign_name(i2, req.lang), "partner_symbol": SYMBOLS[i2],
         "description": _desc(overall, req.lang),
     }
 

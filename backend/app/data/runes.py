@@ -6,7 +6,7 @@ from datetime import date
 RUNES: list[dict] = [
     {
         "index": 1, "id": "fehu", "name_ru": "Феху", "name_en": "Fehu", "symbol": "ᚠ",
-        "transliteration": "F", "aett": 1, "element": "fire", "deity": "Фрейя / Freya",
+        "transliteration": "F", "aett": 1, "element": "fire", "deity_ru": "Фрейя", "deity_en": "Freya",
         "keyword_ru": "Богатство", "keyword_en": "Wealth",
         "meaning_ru": "Материальное благополучие и процветание. Новые начинания приносят прибыль. Энергия приобретения и роста направлена в вашу сторону. Время инвестировать усилия.",
         "meaning_en": "Material well-being and prosperity. New ventures bring profit. Energy of acquisition and growth flows your way. Time to invest your efforts.",
@@ -27,7 +27,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 2, "id": "uruz", "name_ru": "Уруз", "name_en": "Uruz", "symbol": "ᚢ",
-        "transliteration": "U", "aett": 1, "element": "earth", "deity": "Тор / Thor",
+        "transliteration": "U", "aett": 1, "element": "earth", "deity_ru": "Тор", "deity_en": "Thor",
         "keyword_ru": "Сила", "keyword_en": "Strength",
         "meaning_ru": "Первобытная сила и здоровье. Физическая и ментальная выносливость на пике. Преодоление препятствий через упорство. Время действовать, а не ждать.",
         "meaning_en": "Primal strength and health. Physical and mental endurance at peak. Overcoming obstacles through persistence. Time to act, not wait.",
@@ -48,7 +48,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 3, "id": "thurisaz", "name_ru": "Турисаз", "name_en": "Thurisaz", "symbol": "ᚦ",
-        "transliteration": "Th", "aett": 1, "element": "fire", "deity": "Тор / Thor",
+        "transliteration": "Th", "aett": 1, "element": "fire", "deity_ru": "Тор", "deity_en": "Thor",
         "keyword_ru": "Врата", "keyword_en": "Gateway",
         "meaning_ru": "Защита и разрушение преград. Мощная сила, требующая контроля. Вы стоите перед вратами — решение изменит всё. Действуйте осознанно.",
         "meaning_en": "Protection and breaking barriers. Powerful force requiring control. You stand before a gateway — your decision changes everything. Act consciously.",
@@ -69,7 +69,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 4, "id": "ansuz", "name_ru": "Ансуз", "name_en": "Ansuz", "symbol": "ᚨ",
-        "transliteration": "A", "aett": 1, "element": "air", "deity": "Один / Odin",
+        "transliteration": "A", "aett": 1, "element": "air", "deity_ru": "Один", "deity_en": "Odin",
         "keyword_ru": "Мудрость", "keyword_en": "Wisdom",
         "meaning_ru": "Божественное вдохновение и мудрость. Получите важное послание — будьте внимательны к знакам. Общение, обучение и передача знаний благоприятны.",
         "meaning_en": "Divine inspiration and wisdom. You'll receive an important message — watch for signs. Communication, learning, and sharing knowledge are favored.",
@@ -90,7 +90,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 5, "id": "raido", "name_ru": "Райдо", "name_en": "Raido", "symbol": "ᚱ",
-        "transliteration": "R", "aett": 1, "element": "air", "deity": "Тор / Thor",
+        "transliteration": "R", "aett": 1, "element": "air", "deity_ru": "Тор", "deity_en": "Thor",
         "keyword_ru": "Путь", "keyword_en": "Journey",
         "meaning_ru": "Путешествие — физическое или духовное. Движение вперёд, прогресс, ритм жизни. Правильное направление выбрано — продолжайте.",
         "meaning_en": "Journey — physical or spiritual. Forward movement, progress, life rhythm. The right direction is chosen — keep going.",
@@ -111,7 +111,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 6, "id": "kenaz", "name_ru": "Кеназ", "name_en": "Kenaz", "symbol": "ᚲ",
-        "transliteration": "K", "aett": 1, "element": "fire", "deity": "Фрейя / Freya",
+        "transliteration": "K", "aett": 1, "element": "fire", "deity_ru": "Фрейя", "deity_en": "Freya",
         "keyword_ru": "Факел", "keyword_en": "Torch",
         "meaning_ru": "Свет знания и творческого огня. Прозрение, ясность мысли, вдохновение. Творческие проекты удаются. Время учиться и создавать.",
         "meaning_en": "Light of knowledge and creative fire. Insight, clarity of thought, inspiration. Creative projects succeed. Time to learn and create.",
@@ -132,7 +132,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 7, "id": "gebo", "name_ru": "Гебо", "name_en": "Gebo", "symbol": "ᚷ",
-        "transliteration": "G", "aett": 1, "element": "air", "deity": "Один / Odin",
+        "transliteration": "G", "aett": 1, "element": "air", "deity_ru": "Один", "deity_en": "Odin",
         "keyword_ru": "Дар", "keyword_en": "Gift",
         "meaning_ru": "Дар, партнёрство, равноценный обмен. Щедрость возвращается. Гармоничные отношения, основанные на взаимном уважении. Договоры и союзы благоприятны.",
         "meaning_en": "Gift, partnership, equal exchange. Generosity returns. Harmonious relationships based on mutual respect. Agreements and alliances are favored.",
@@ -151,7 +151,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 8, "id": "wunjo", "name_ru": "Вуньо", "name_en": "Wunjo", "symbol": "ᚹ",
-        "transliteration": "W", "aett": 1, "element": "earth", "deity": "Один / Odin",
+        "transliteration": "W", "aett": 1, "element": "earth", "deity_ru": "Один", "deity_en": "Odin",
         "keyword_ru": "Радость", "keyword_en": "Joy",
         "meaning_ru": "Радость, счастье, гармония. Желания исполняются. Период удовлетворения и эмоционального подъёма. Наслаждайтесь моментом.",
         "meaning_en": "Joy, happiness, harmony. Wishes come true. Period of satisfaction and emotional uplift. Enjoy the moment.",
@@ -173,7 +173,7 @@ RUNES: list[dict] = [
     # --- AETT 2 (Хагалаз) ---
     {
         "index": 9, "id": "hagalaz", "name_ru": "Хагалаз", "name_en": "Hagalaz", "symbol": "ᚺ",
-        "transliteration": "H", "aett": 2, "element": "ice", "deity": "Хель / Hel",
+        "transliteration": "H", "aett": 2, "element": "ice", "deity_ru": "Хель", "deity_en": "Hel",
         "keyword_ru": "Град", "keyword_en": "Hail",
         "meaning_ru": "Разрушение и неизбежная трансформация. Стихийные перемены вне вашего контроля. Через разрушение старого рождается новое. Примите и адаптируйтесь.",
         "meaning_en": "Destruction and inevitable transformation. Elemental changes beyond your control. Through destroying the old, the new is born. Accept and adapt.",
@@ -192,7 +192,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 10, "id": "nauthiz", "name_ru": "Наутиз", "name_en": "Nauthiz", "symbol": "ᚾ",
-        "transliteration": "N", "aett": 2, "element": "fire", "deity": "Скульд / Skuld",
+        "transliteration": "N", "aett": 2, "element": "fire", "deity_ru": "Скульд", "deity_en": "Skuld",
         "keyword_ru": "Нужда", "keyword_en": "Need",
         "meaning_ru": "Необходимость и ограничения. Терпение — ваш главный инструмент. Через нужду приходит понимание истинных потребностей. Время аскезы.",
         "meaning_en": "Necessity and constraints. Patience is your main tool. Through need comes understanding of true desires. Time for asceticism.",
@@ -213,7 +213,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 11, "id": "isa", "name_ru": "Иса", "name_en": "Isa", "symbol": "ᛁ",
-        "transliteration": "I", "aett": 2, "element": "ice", "deity": "Верданди / Verdandi",
+        "transliteration": "I", "aett": 2, "element": "ice", "deity_ru": "Верданди", "deity_en": "Verdandi",
         "keyword_ru": "Лёд", "keyword_en": "Ice",
         "meaning_ru": "Замирание, пауза, самоанализ. Всё остановилось не зря — это время внутренней работы. Не торопите события. Покой даёт ясность.",
         "meaning_en": "Stillness, pause, self-reflection. Everything stopped for a reason — it's time for inner work. Don't rush. Stillness brings clarity.",
@@ -232,7 +232,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 12, "id": "jera", "name_ru": "Йера", "name_en": "Jera", "symbol": "ᛃ",
-        "transliteration": "J", "aett": 2, "element": "earth", "deity": "Фрейр / Freyr",
+        "transliteration": "J", "aett": 2, "element": "earth", "deity_ru": "Фрейр", "deity_en": "Freyr",
         "keyword_ru": "Урожай", "keyword_en": "Harvest",
         "meaning_ru": "Урожай, награда за труд, завершение цикла. Вы пожинаете то, что посеяли. Справедливый результат. Циклы природы работают на вас.",
         "meaning_en": "Harvest, reward for effort, cycle completion. You reap what you sowed. Fair results. Nature's cycles work for you.",
@@ -251,7 +251,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 13, "id": "eihwaz", "name_ru": "Эйваз", "name_en": "Eihwaz", "symbol": "ᛇ",
-        "transliteration": "Ei", "aett": 2, "element": "earth", "deity": "Один / Odin",
+        "transliteration": "Ei", "aett": 2, "element": "earth", "deity_ru": "Один", "deity_en": "Odin",
         "keyword_ru": "Тис", "keyword_en": "Yew",
         "meaning_ru": "Стойкость, связь миров, трансформация через испытания. Мировое древо — ваша опора. Преодоление страха смерти и перерождение.",
         "meaning_en": "Resilience, world connection, transformation through trials. The World Tree is your support. Overcoming the fear of death and rebirth.",
@@ -270,7 +270,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 14, "id": "perthro", "name_ru": "Перт", "name_en": "Perthro", "symbol": "ᛈ",
-        "transliteration": "P", "aett": 2, "element": "water", "deity": "Фригг / Frigg",
+        "transliteration": "P", "aett": 2, "element": "water", "deity_ru": "Фригг", "deity_en": "Frigg",
         "keyword_ru": "Тайна", "keyword_en": "Mystery",
         "meaning_ru": "Судьба, скрытое знание, тайна. Что-то сокрытое вот-вот откроется. Удача в играх и гаданиях. Доверьтесь потоку судьбы.",
         "meaning_en": "Fate, hidden knowledge, mystery. Something concealed is about to be revealed. Luck in games and divination. Trust the flow of fate.",
@@ -291,7 +291,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 15, "id": "algiz", "name_ru": "Альгиз", "name_en": "Algiz", "symbol": "ᛉ",
-        "transliteration": "Z", "aett": 2, "element": "air", "deity": "Хеймдалль / Heimdall",
+        "transliteration": "Z", "aett": 2, "element": "air", "deity_ru": "Хеймдалль", "deity_en": "Heimdall",
         "keyword_ru": "Защита", "keyword_en": "Protection",
         "meaning_ru": "Мощная божественная защита. Инстинкт самосохранения обострён. Духовная связь с высшими силами укрепляется. Вы под покровительством.",
         "meaning_en": "Powerful divine protection. Self-preservation instinct is heightened. Spiritual connection with higher forces strengthens. You are under guardianship.",
@@ -312,7 +312,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 16, "id": "sowilo", "name_ru": "Совило", "name_en": "Sowilo", "symbol": "ᛊ",
-        "transliteration": "S", "aett": 2, "element": "fire", "deity": "Бальдр / Baldr",
+        "transliteration": "S", "aett": 2, "element": "fire", "deity_ru": "Бальдр", "deity_en": "Baldr",
         "keyword_ru": "Солнце", "keyword_en": "Sun",
         "meaning_ru": "Солнце, победа, жизненная сила. Целостность и успех. Свет рассеивает тьму. Время триумфа и наполненности энергией.",
         "meaning_en": "Sun, victory, life force. Wholeness and success. Light dispels darkness. Time of triumph and energy fulfillment.",
@@ -332,7 +332,7 @@ RUNES: list[dict] = [
     # --- AETT 3 (Тюра) ---
     {
         "index": 17, "id": "tiwaz", "name_ru": "Тиваз", "name_en": "Tiwaz", "symbol": "ᛏ",
-        "transliteration": "T", "aett": 3, "element": "air", "deity": "Тюр / Tyr",
+        "transliteration": "T", "aett": 3, "element": "air", "deity_ru": "Тюр", "deity_en": "Tyr",
         "keyword_ru": "Воин", "keyword_en": "Warrior",
         "meaning_ru": "Справедливость, честь, мужество, победа в правом деле. Закон на вашей стороне. Жертва ради высшей цели оправдана.",
         "meaning_en": "Justice, honor, courage, victory in a just cause. The law is on your side. Sacrifice for a higher purpose is justified.",
@@ -353,7 +353,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 18, "id": "berkano", "name_ru": "Беркана", "name_en": "Berkano", "symbol": "ᛒ",
-        "transliteration": "B", "aett": 3, "element": "earth", "deity": "Фригг / Frigg",
+        "transliteration": "B", "aett": 3, "element": "earth", "deity_ru": "Фригг", "deity_en": "Frigg",
         "keyword_ru": "Берёза", "keyword_en": "Birch",
         "meaning_ru": "Рождение, рост, плодородие, женственность. Новое начало, мягкая сила природы. Забота о семье и детях благоприятна.",
         "meaning_en": "Birth, growth, fertility, femininity. New beginning, gentle force of nature. Caring for family and children is favored.",
@@ -374,7 +374,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 19, "id": "ehwaz", "name_ru": "Эваз", "name_en": "Ehwaz", "symbol": "ᛖ",
-        "transliteration": "E", "aett": 3, "element": "earth", "deity": "Фрейр / Freyr",
+        "transliteration": "E", "aett": 3, "element": "earth", "deity_ru": "Фрейр", "deity_en": "Freyr",
         "keyword_ru": "Конь", "keyword_en": "Horse",
         "meaning_ru": "Движение, прогресс, доверие между партнёрами. Быстрые перемены к лучшему. Верный спутник рядом. Командная работа.",
         "meaning_en": "Movement, progress, trust between partners. Quick changes for the better. A loyal companion is near. Teamwork.",
@@ -395,7 +395,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 20, "id": "mannaz", "name_ru": "Манназ", "name_en": "Mannaz", "symbol": "ᛗ",
-        "transliteration": "M", "aett": 3, "element": "air", "deity": "Хеймдалль / Heimdall",
+        "transliteration": "M", "aett": 3, "element": "air", "deity_ru": "Хеймдалль", "deity_en": "Heimdall",
         "keyword_ru": "Человек", "keyword_en": "Human",
         "meaning_ru": "Самопознание, разум, общество. Вы — часть большего целого. Время для самоанализа и социальной активности. Помощь придёт от людей.",
         "meaning_en": "Self-knowledge, mind, society. You are part of a greater whole. Time for self-reflection and social activity. Help will come from people.",
@@ -416,7 +416,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 21, "id": "laguz", "name_ru": "Лагуз", "name_en": "Laguz", "symbol": "ᛚ",
-        "transliteration": "L", "aett": 3, "element": "water", "deity": "Ньёрд / Njord",
+        "transliteration": "L", "aett": 3, "element": "water", "deity_ru": "Ньёрд", "deity_en": "Njord",
         "keyword_ru": "Вода", "keyword_en": "Water",
         "meaning_ru": "Поток, интуиция, подсознание. Доверьтесь течению — вода найдёт путь. Эмоции и сны несут важные послания. Женская мудрость.",
         "meaning_en": "Flow, intuition, subconscious. Trust the current — water finds the way. Emotions and dreams carry important messages. Feminine wisdom.",
@@ -437,7 +437,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 22, "id": "ingwaz", "name_ru": "Ингуз", "name_en": "Ingwaz", "symbol": "ᛜ",
-        "transliteration": "Ng", "aett": 3, "element": "earth", "deity": "Фрейр / Freyr",
+        "transliteration": "Ng", "aett": 3, "element": "earth", "deity_ru": "Фрейр", "deity_en": "Freyr",
         "keyword_ru": "Семя", "keyword_en": "Seed",
         "meaning_ru": "Плодородие, завершение цикла, внутренний покой. Семя посажено — дайте ему прорасти. Период накопления сил перед прорывом.",
         "meaning_en": "Fertility, cycle completion, inner peace. The seed is planted — let it grow. Period of gathering strength before a breakthrough.",
@@ -456,7 +456,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 23, "id": "dagaz", "name_ru": "Дагаз", "name_en": "Dagaz", "symbol": "ᛞ",
-        "transliteration": "D", "aett": 3, "element": "fire", "deity": "Хеймдалль / Heimdall",
+        "transliteration": "D", "aett": 3, "element": "fire", "deity_ru": "Хеймдалль", "deity_en": "Heimdall",
         "keyword_ru": "Рассвет", "keyword_en": "Dawn",
         "meaning_ru": "Прорыв, рассвет, трансформация. Тьма позади — впереди свет. Кардинальное изменение к лучшему. Просветление и надежда.",
         "meaning_en": "Breakthrough, dawn, transformation. Darkness is behind — light ahead. Radical change for the better. Enlightenment and hope.",
@@ -475,7 +475,7 @@ RUNES: list[dict] = [
     },
     {
         "index": 24, "id": "othala", "name_ru": "Отала", "name_en": "Othala", "symbol": "ᛟ",
-        "transliteration": "O", "aett": 3, "element": "earth", "deity": "Один / Odin",
+        "transliteration": "O", "aett": 3, "element": "earth", "deity_ru": "Один", "deity_en": "Odin",
         "keyword_ru": "Наследие", "keyword_en": "Heritage",
         "meaning_ru": "Дом, род, наследие предков. Связь с корнями даёт силу. Недвижимость, наследство, семейные ценности. Мудрость рода ведёт вас.",
         "meaning_en": "Home, clan, ancestral heritage. Connection with roots gives strength. Real estate, inheritance, family values. Clan wisdom guides you.",
@@ -497,7 +497,7 @@ RUNES: list[dict] = [
     # --- ВИРД (пустая руна) ---
     {
         "index": 25, "id": "wyrd", "name_ru": "Вирд", "name_en": "Wyrd", "symbol": "☉",
-        "transliteration": "—", "aett": 0, "element": "void", "deity": "Норны / Norns",
+        "transliteration": "—", "aett": 0, "element": "void", "deity_ru": "Норны", "deity_en": "Norns",
         "keyword_ru": "Судьба", "keyword_en": "Fate",
         "meaning_ru": "Пустая руна — чистая судьба. Непознаваемое, божественное вмешательство. Ситуация полностью в руках высших сил. Доверьтесь и примите.",
         "meaning_en": "Blank rune — pure fate. The unknowable, divine intervention. The situation is entirely in the hands of higher forces. Trust and accept.",
