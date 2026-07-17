@@ -21,7 +21,8 @@ class TestRuneOutI18n:
 
     def test_es_falls_back_to_english_until_generated(self):
         fehu = RUNE_BY_ID["fehu"]
-        out = _rune_out(fehu, "es")
+        with patch.dict(runes_i18n.RUNES_I18N, {"es": {}}):
+            out = _rune_out(fehu, "es")
         assert out["name"] == "Fehu"
         assert out["deity"] == "Freya"
         assert out["meaning"] == fehu["meaning_en"]
@@ -54,9 +55,10 @@ class TestSpreadI18n:
 
     def test_es_falls_back_to_english(self):
         spread = SPREADS_RUNES["rune_of_day"]
-        assert _spread_name("rune_of_day", spread, "es") == "Rune of the Day"
-        assert _spread_desc("rune_of_day", spread, "es") == spread["desc_en"]
-        assert _spread_positions("rune_of_day", spread, "es") == spread["positions_en"]
+        with patch.dict(runes_i18n.SPREADS_RUNES_I18N, {"es": {}}):
+            assert _spread_name("rune_of_day", spread, "es") == "Rune of the Day"
+            assert _spread_desc("rune_of_day", spread, "es") == spread["desc_en"]
+            assert _spread_positions("rune_of_day", spread, "es") == spread["positions_en"]
 
     def test_es_uses_i18n_once_populated(self):
         spread = SPREADS_RUNES["three_norns"]
@@ -84,7 +86,8 @@ class TestStavesEndpointI18n:
         assert protection["name"] == "Protection Stave"
 
     async def test_es_falls_back_to_english_until_generated(self, client):
-        res = await client.get("/v1/runes/staves?lang=es")
+        with patch.dict(runes_i18n.STAVES_I18N, {"es": {}}):
+            res = await client.get("/v1/runes/staves?lang=es")
         assert res.status_code == 200
         protection = next(s for s in res.json() if s["id"] == "protection")
         assert protection["name"] == "Protection Stave"
@@ -92,7 +95,8 @@ class TestStavesEndpointI18n:
 
 class TestSpreadsEndpointI18n:
     async def test_es_falls_back_to_english_until_generated(self, client):
-        res = await client.get("/v1/runes/spreads?lang=es")
+        with patch.dict(runes_i18n.SPREADS_RUNES_I18N, {"es": {}}):
+            res = await client.get("/v1/runes/spreads?lang=es")
         assert res.status_code == 200
         rune_of_day = next(s for s in res.json() if s["id"] == "rune_of_day")
         assert rune_of_day["name"] == "Rune of the Day"

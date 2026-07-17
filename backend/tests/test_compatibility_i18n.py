@@ -52,12 +52,16 @@ class TestCompatibilityLabelHelpers:
             assert _sign_name(0, "es") == "Aries-ES"
 
     def test_element_name_fallback(self):
-        assert _element_name(0, "tr") == ELEMENTS_EN[0]
-        assert _element_name(0, "ru") == ELEMENTS_RU[0]
+        from app.data import compatibility_i18n
+        with patch.dict(compatibility_i18n.ELEMENTS_I18N, {"tr": {}}):
+            assert _element_name(0, "tr") == ELEMENTS_EN[0]
+            assert _element_name(0, "ru") == ELEMENTS_RU[0]
 
     def test_chinese_name_fallback(self):
-        assert _chinese_name(0, "uk") == CHINESE[0]
-        assert _chinese_name(0, "ru") == CHINESE_RU[0]
+        from app.data import compatibility_i18n
+        with patch.dict(compatibility_i18n.CHINESE_I18N, {"uk": {}}):
+            assert _chinese_name(0, "uk") == CHINESE[0]
+            assert _chinese_name(0, "ru") == CHINESE_RU[0]
 
 
 class TestCompatEndpointsUseHelpers:
@@ -68,9 +72,11 @@ class TestCompatEndpointsUseHelpers:
         return res.json()["id"]
 
     async def test_signs_endpoint_es_lang_does_not_crash_and_falls_back_to_en(self, client, auth_headers):
+        from app.data import compatibility_i18n
         pid = await self._make_partner(client, auth_headers)
-        res = await client.post("/v1/compatibility/signs", headers=auth_headers,
-                                 json={"partner_id": pid, "lang": "es"})
+        with patch.dict(compatibility_i18n.SIGNS_I18N, {"es": {}}):
+            res = await client.post("/v1/compatibility/signs", headers=auth_headers,
+                                     json={"partner_id": pid, "lang": "es"})
         assert res.status_code == 200
         data = res.json()
         assert data["user_sign"] in SIGNS  # falls back to English name, not Russian, not a crash

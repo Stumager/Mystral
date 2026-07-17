@@ -45,7 +45,8 @@ class TestPhaseNames:
         assert _phase_name(0, "en") == PHASE_NAMES_EN[0]
 
     def test_es_falls_back_to_english(self):
-        assert _phase_name(0, "es") == PHASE_NAMES_EN[0]
+        with patch.dict(lunar_i18n.PHASE_NAMES_I18N, {"es": {}}):
+            assert _phase_name(0, "es") == PHASE_NAMES_EN[0]
 
     def test_es_uses_i18n_once_populated(self):
         with patch.dict(lunar_i18n.PHASE_NAMES_I18N, {"es": {"0": {"name": "Luna Nueva"}}}):
@@ -60,7 +61,8 @@ class TestEventField:
 
     def test_es_falls_back_to_english(self):
         ed = EVENT_DATA["new_moon"]
-        assert _event_field(ed, "title", "new_moon", "es") == ed["title_en"]
+        with patch.dict(lunar_i18n.EVENT_DATA_I18N, {"es": {}}):
+            assert _event_field(ed, "title", "new_moon", "es") == ed["title_en"]
 
     def test_es_uses_i18n_once_populated(self):
         ed = EVENT_DATA["new_moon"]
@@ -70,14 +72,16 @@ class TestEventField:
 
 class TestGetLunarTodayData:
     def test_es_falls_back_to_english_for_day_and_sign_content(self):
-        data = get_lunar_today_data("es")
-        ld = data["lunar_day"]
-        day_en = LUNAR_DAYS[ld]
-        assert data["day_title"] == day_en["title_en"]
-        assert data["favorable"] == day_en["favorable_en"]
-        sign_en = MOON_SIGNS[data["moon_sign_key"]]
-        assert data["sign_desc"] == sign_en["desc_en"]
-        assert data["sign_favorable"] == sign_en["favorable_en"]
+        with patch.dict(lunar_i18n.LUNAR_DAYS_I18N, {"es": {}}), \
+             patch.dict(lunar_i18n.MOON_SIGNS_I18N, {"es": {}}):
+            data = get_lunar_today_data("es")
+            ld = data["lunar_day"]
+            day_en = LUNAR_DAYS[ld]
+            assert data["day_title"] == day_en["title_en"]
+            assert data["favorable"] == day_en["favorable_en"]
+            sign_en = MOON_SIGNS[data["moon_sign_key"]]
+            assert data["sign_desc"] == sign_en["desc_en"]
+            assert data["sign_favorable"] == sign_en["favorable_en"]
 
     def test_ru_unaffected(self):
         data = get_lunar_today_data("ru")

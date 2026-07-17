@@ -21,7 +21,8 @@ class TestPlanetNameHelper:
         assert _planet_name("sun", "en") == PLANET_NAMES_EN["sun"]
 
     def test_es_falls_back_to_english_until_generated(self):
-        assert _planet_name("sun", "es") == PLANET_NAMES_EN["sun"]
+        with patch.dict(natal_i18n.PLANET_NAMES_I18N, {"es": {}}):
+            assert _planet_name("sun", "es") == PLANET_NAMES_EN["sun"]
 
     def test_es_uses_i18n_once_populated(self):
         with patch.dict(natal_i18n.PLANET_NAMES_I18N, {"es": {"sun": {"name": "Sol"}}}):

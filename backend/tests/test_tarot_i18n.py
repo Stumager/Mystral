@@ -19,7 +19,8 @@ class TestCardNameHelper:
         assert _card_name(0, "en") == CARD_NAMES[0]
 
     def test_es_falls_back_to_english_until_generated(self):
-        assert _card_name(0, "es") == CARD_NAMES[0]
+        with patch.dict(tarot_i18n.CARD_NAMES_I18N, {"es": {}}):
+            assert _card_name(0, "es") == CARD_NAMES[0]
 
     def test_es_uses_i18n_once_populated(self):
         with patch.dict(tarot_i18n.CARD_NAMES_I18N, {"es": {"0": {"name": "El Loco"}}}):
