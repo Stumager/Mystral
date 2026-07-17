@@ -345,12 +345,36 @@ async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncS
     for `lang` (see seo_i18n.localize_*). Expired rows are served stale and
     refreshed in the background so crawlers never wait on generation; only a
     complete cache miss generates synchronously."""
-    result = await session.exec(
-        select(SeoContent).where(
-            SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+    # TZ-082: this lookup used to sit outside any try/except, unlike the
+    # read+write pair in _generate_and_store's persistence step below (fixed
+    # in TZ-073 for the exact same failure class) — a transient DB hiccup
+    # here (pool exhaustion, dropped connection) propagated as an unhandled
+    # 500 instead of just falling through to on-demand generation. This is
+    # the one call site TZ-073 missed, and the reason its 21-page fingerprint
+    # (12 runes + all 9 numerology — the only pages whose on-demand path
+    # holds a connection open across a live LLM call, per TZ-073's notes)
+    # came back.
+    cached = None
+    try:
+        result = await session.exec(
+            select(SeoContent).where(
+                SeoContent.page_type == page_type, SeoContent.slug == slug, SeoContent.lang == lang,
+            )
         )
-    )
-    cached = result.first()
+        cached = result.first()
+    except Exception as e:
+        logger.error("SEO cache lookup failed for %s/%s/%s: %s, generating fresh", page_type, slug, lang, e)
+        # On Postgres, a failed statement leaves the session's transaction
+        # aborted — any further use (including _generate_and_store's own
+        # persistence step below, on this same session) raises
+        # InFailedSQLTransactionError until rolled back. Without this, the
+        # page would still render (TZ-073's guard catches that too) but the
+        # freshly generated content would never make it into the cache for
+        # this request, confirmed against real Postgres.
+        try:
+            await session.rollback()
+        except Exception:
+            pass
 
     if cached and cached.generated_at:
         try:

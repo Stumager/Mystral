@@ -133,6 +133,32 @@ class TestSeoContentPersistenceFailureDoesNotCrashPage:
         assert "test intro" in res.text
 
 
+class TestSeoContentCacheLookupFailureDoesNotCrashPage:
+    """TZ-082 root cause: get_seo_content's initial cache-lookup SELECT sat
+    outside any try/except. The sibling read+write pair inside
+    _generate_and_store got this protection in TZ-073 for the exact same
+    failure class (transient DB hiccup -> unhandled 500 despite the LLM
+    having produced valid content) — this first read, run before we even
+    know if it's a cache hit or miss, was the one call site TZ-073 missed."""
+
+    async def test_page_renders_even_if_cache_lookup_fails(self, client):
+        good_json = (
+            '{"intro": "test intro", "sections": [{"title": "t", "text": "x"}], '
+            '"faq": [{"q": "q", "a": "a"}], "cta_text": "cta"}'
+        )
+        fake_client = types.SimpleNamespace(
+            chat=types.SimpleNamespace(completions=types.SimpleNamespace(
+                create=AsyncMock(return_value=_fake_llm_response(good_json))
+            ))
+        )
+        with patch("app.core.groq_client._get_async_client", return_value=fake_client), \
+             patch("sqlmodel.ext.asyncio.session.AsyncSession.exec",
+                   AsyncMock(side_effect=RuntimeError("simulated transient DB error"))):
+            res = await client.get("/numerology/life-path-1")
+        assert res.status_code == 200
+        assert "test intro" in res.text
+
+
 class TestSitemap:
     async def test_sitemap_returns_xml(self, client):
         res = await client.get("/sitemap.xml")
