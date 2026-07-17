@@ -21,22 +21,23 @@ from scripts.generate_structural_translations import (
 
 class TestHeuristicCheck:
     def test_empty_translation_rejected(self):
-        ok, reason = _heuristic_ok("", "Овен", "Aries")
+        ok, reason = _heuristic_ok("", "Овен", "Aries", "name")
         assert not ok and "empty" in reason
 
     def test_reasonable_translation_accepted(self):
-        ok, _ = _heuristic_ok("Aries-ES", "Овен", "Aries")
+        ok, _ = _heuristic_ok("Aries-ES", "Овен", "Aries", "name")
         assert ok
 
     def test_suspiciously_short_rejected(self):
-        ok, reason = _heuristic_ok("A", "Совместимость гармоничной пары полная", "Full harmonious pair compatibility")
+        ok, reason = _heuristic_ok("A", "Совместимость гармоничной пары полная",
+                                    "Full harmonious pair compatibility", "description")
         assert not ok and "short" in reason
 
     def test_suspiciously_long_rejected(self):
         # Long (>2-word) reference value, so the ratio check actually
         # applies (short values are exempt - see below).
         long_text = "x" * 200
-        ok, reason = _heuristic_ok(long_text, "Полная совместимость пары", "Full pair compatibility")
+        ok, reason = _heuristic_ok(long_text, "Полная совместимость пары", "Full pair compatibility", "description")
         assert not ok and "long" in reason
 
     def test_long_verbatim_english_echo_rejected(self):
@@ -44,19 +45,19 @@ class TestHeuristicCheck:
         # noun) is still a strong "model gave up translating" signal.
         en = "A harmonious pair with deep mutual understanding and trust"
         ru = "Гармоничная пара с глубоким взаимопониманием и доверием"
-        ok, reason = _heuristic_ok(en, ru, en)
+        ok, reason = _heuristic_ok(en, ru, en, "description")
         assert not ok and "untranslated" in reason
 
     def test_long_verbatim_echo_is_case_insensitive(self):
         en = "A harmonious pair with deep mutual understanding and trust"
         ru = "Гармоничная пара с глубоким взаимопониманием и доверием"
-        ok, _ = _heuristic_ok(en.upper(), ru, en)
+        ok, _ = _heuristic_ok(en.upper(), ru, en, "description")
         assert not ok
 
     def test_short_proper_noun_resembling_english_is_fine(self):
         # Proper names (rune ids, card names) legitimately look similar to
         # the English spelling in many languages.
-        ok, _ = _heuristic_ok("Ares", "Овен", "Aries")
+        ok, _ = _heuristic_ok("Ares", "Овен", "Aries", "name")
         assert ok
 
     def test_short_value_identical_to_english_is_accepted(self):
@@ -68,11 +69,11 @@ class TestHeuristicCheck:
         # that's actually correct for a given short value can't be verified
         # automatically either way, so the short case is accepted rather
         # than burned on retries that would just reproduce the same answer.
-        ok, reason = _heuristic_ok("Aries", "Овен", "Aries")
+        ok, reason = _heuristic_ok("Aries", "Овен", "Aries", "name")
         assert ok, reason
 
     def test_short_value_identical_case_insensitive_is_accepted(self):
-        ok, _ = _heuristic_ok("ARIES", "Овен", "Aries")
+        ok, _ = _heuristic_ok("ARIES", "Овен", "Aries", "name")
         assert ok
 
     def test_short_value_exemption_also_bypasses_length_ratio_check(self):
@@ -83,15 +84,46 @@ class TestHeuristicCheck:
         # legitimately be much shorter (or longer) than either reference in
         # any language, so short values skip the ratio check too, not just
         # the identical-to-English one.
-        ok, reason = _heuristic_ok("Yay", "Стрелец", "Sagittarius")
+        ok, reason = _heuristic_ok("Yay", "Стрелец", "Sagittarius", "name")
         assert ok, reason
 
     def test_short_value_extremely_short_translation_still_accepted(self):
         # Same exemption, taken to the edge: a single-letter translation of
         # a short reference isn't rejected either - length alone isn't a
         # quality signal at this scale.
-        ok, reason = _heuristic_ok("A", "Овен", "Aries")
+        ok, reason = _heuristic_ok("A", "Овен", "Aries", "name")
         assert ok, reason
+
+    def test_famous_field_identical_to_english_is_accepted_even_when_long(self):
+        # Real false positive found in production on
+        # numerology.NUMBER_DATA_I18N[11].famous_2: "Edgar Allan Poe" (3
+        # words - above the <=2-word threshold above) failed on es/pt/tr
+        # even though it's the exactly correct spelling of that person's
+        # name in every one of those languages. `famous` always holds a
+        # real person's name, and names generally aren't translated at
+        # all - this is a field-name exemption, not a word-count one,
+        # since a name can be legitimately short or long either way.
+        ok, reason = _heuristic_ok("Edgar Allan Poe", "Эдгар Аллан По", "Edgar Allan Poe", "famous_2")
+        assert ok, reason
+
+    def test_famous_field_exemption_applies_to_bare_field_name_too(self):
+        ok, reason = _heuristic_ok("Edgar Allan Poe", "Эдгар Аллан По", "Edgar Allan Poe", "famous")
+        assert ok, reason
+
+    def test_famous_field_exemption_also_bypasses_length_ratio_check(self):
+        # A short or oddly-proportioned name is fine too - length isn't a
+        # quality signal for this field, same reasoning as short zodiac
+        # terms, but keyed on field name rather than word count.
+        ok, reason = _heuristic_ok("Poe", "Эдгар Аллан По", "Edgar Allan Poe", "famous_2")
+        assert ok, reason
+
+    def test_famous_field_exemption_does_not_leak_to_other_fields(self):
+        # A field merely containing "famous" as a substring elsewhere, or
+        # a different long field, must still get the normal checks.
+        en = "A harmonious pair with deep mutual understanding and trust"
+        ru = "Гармоничная пара с глубоким взаимопониманием и доверием"
+        ok, reason = _heuristic_ok(en, ru, en, "description")
+        assert not ok and "untranslated" in reason
 
 
 class TestBuildPrompt:

@@ -286,7 +286,7 @@ def _build_prompt(ru_value: str, en_value: str, lang: str) -> str:
     )
 
 
-def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool, str]:
+def _heuristic_ok(translation: str, ru_value: str, en_value: str, field: str) -> tuple[bool, str]:
     """Module 4's automatic pass: catches the two failure shapes that matter
     most for longer reference strings — a near-empty/truncated response, and
     the model just echoing the English reference back untranslated.
@@ -307,9 +307,25 @@ def _heuristic_ok(translation: str, ru_value: str, en_value: str) -> tuple[bool,
     just reproduce the same (correct) answer. Longer phrases and sentences
     still get both checks — a whole description copied verbatim from
     English, or wildly the wrong length, remains a strong signal of a
-    lazy/stuck translation there."""
+    lazy/stuck translation there.
+
+    A second, field-*name*-based exemption (not word-count-based) skips
+    both checks entirely for numerology's `famous`/`famous_N` fields
+    (indexed list items, e.g. "famous_2" — see pick_list()). These always
+    hold a real person's name, and proper nouns generally aren't
+    translated at all regardless of length — unlike zodiac signs, where
+    short is the norm and a long result is suspicious, a person's name can
+    legitimately be short ("Poe") or long ("Edgar Allan Poe"), so a
+    word-count cutoff doesn't fit this field the way it does short
+    astrological terms. Caught in production:
+    numerology.NUMBER_DATA_I18N[11].famous_2 ("Edgar Allan Poe", 3 words —
+    above the <=2-word threshold above) failed on es/pt/tr despite being
+    the exactly correct spelling of that name in every one of those
+    languages."""
     if not translation or not translation.strip():
         return False, "empty translation"
+    if field == "famous" or field.startswith("famous_"):
+        return True, ""
     if len(en_value.split()) <= 2:
         return True, ""
     ref_len = max(len(ru_value), len(en_value))
@@ -490,7 +506,7 @@ async def _run_per_field(dict_name: str, items: list[TranslationItem], lang: str
                 print(f"  error for {label}: {e}", flush=True)
                 translation = None
                 continue
-            ok, reason = _heuristic_ok(translation or "", ru_value, en_value)
+            ok, reason = _heuristic_ok(translation or "", ru_value, en_value, field)
             if ok:
                 break
             print(f"  rejected {label}: {reason} -> {translation!r}", flush=True)
@@ -548,7 +564,7 @@ async def _run_batched(dict_name: str, items: list[TranslationItem], lang: str,
                 candidate = translations.get(field)
                 if candidate is None:
                     continue
-                ok, reason = _heuristic_ok(candidate, ru_value, en_value)
+                ok, reason = _heuristic_ok(candidate, ru_value, en_value, field)
                 if ok:
                     succeeded[field] = candidate
                     del pending[field]
