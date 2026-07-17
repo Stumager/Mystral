@@ -994,6 +994,20 @@ any language not present here yet.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
     "es": {
         "1": {
@@ -1021,6 +1035,7 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "description": "Intuición de orden superior, inspiración, liderazgo espiritual. Ves lo que está oculto para otros y llevas la luz.",
             "famous_0": "Wolfgang Mozart",
             "famous_1": "Barack Obama",
+            "famous_2": "Edgar Allan Poe",
             "love": "La conexión espiritual profunda es lo más importante. Busca un alma afín.",
             "name": "Número Maestro 11",
             "strengths_0": "Superintuición",
@@ -1172,6 +1187,7 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "famous_0": "Nelson Mandela",
             "famous_1": "Pablo Picasso",
             "famous_2": "Sandra Bullock",
+            "love": "Compañero de estatus. Pero no conviertas las relaciones en un trato.",
             "name": "Ocho",
             "strengths_0": "Perspicacia empresarial",
             "strengths_1": "Autoridad",
@@ -1223,6 +1239,7 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "description": "Intuição de ordem superior, inspiração, liderança espiritual. Você vê o que está oculto dos outros e carrega a luz.",
             "famous_0": "Wolfgang Mozart",
             "famous_1": "Barack Obama",
+            "famous_2": "Edgar Allan Poe",
             "love": "Conexão espiritual profunda é o que mais importa. Busque uma alma gêmea.",
             "name": "Número Mestre 11",
             "strengths_0": "Superintuição",
@@ -1376,6 +1393,7 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "famous_0": "Nelson Mandela",
             "famous_1": "Pablo Picasso",
             "famous_2": "Sandra Bullock",
+            "love": "Parceiro de status. Mas não transforme o relacionamento em um negócio.",
             "name": "Oito",
             "strengths_0": "tino empresarial",
             "strengths_1": "autoridade",
@@ -1388,6 +1406,7 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "challenges_0": "Idealismo",
             "challenges_1": "Desapontamento com as pessoas",
             "challenges_2": "Dificuldade com finais",
+            "description": "Compaixão, sabedoria, conclusão. Você serve a um propósito superior e vê o mundo em grande escala.",
             "famous_0": "Mahatma Gandhi",
             "famous_1": "Madre Teresa",
             "famous_2": "Jimi Hendrix",
@@ -1426,6 +1445,8 @@ NUMBER_DATA_I18N: dict[str, dict[str, dict[str, str]]] = {
             "description": "Yüksek düzey sezgi, ilham, ruhsal liderlik. Başkalarından gizleneni görür ve ışığı taşırsınız.",
             "famous_0": "Wolfgang Mozart",
             "famous_1": "Barack Obama",
+            "famous_2": "Edgar Allan Poe",
+            "love": "Derin ruhsal bağ her şeyden önemlidir. Ruhdaşınızı arayın.",
             "name": "Usta Sayı 11",
             "strengths_0": "Süper sezgi",
             "strengths_1": "Kitle ilhamı",
@@ -1821,6 +1842,9 @@ KARMIC_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "16": {
             "description": "Deuda kármica 16 — destrucción del ego. Lección de humildad, crecimiento espiritual a través de pérdidas y reconstrucción."
+        },
+        "19": {
+            "description": "Deuda kármica 19 — abuso de poder. Lección de independencia sin reprimir a los demás."
         }
     },
     "pt": {
@@ -2006,8 +2030,14 @@ CELL_LEVELS_I18N: dict[str, dict[str, dict[str, str]]] = {
         "0": {
             "description": "Ausente — qualidade não desenvolvida, precisa de trabalho"
         },
+        "1": {
+            "description": "Fraco — potencial básico, precisa ser desenvolvido"
+        },
         "2": {
             "description": "Médio — nível normal, estável"
+        },
+        "3": {
+            "description": "Forte — claramente expresso, seu apoio"
         },
         "4": {
             "description": "Muito forte — domina, pode ser excessivo"
@@ -2131,6 +2161,7 @@ LINE_DEFS_I18N: dict[str, dict[str, dict[str, str]]] = {
             "title": "Ruhsal gelişim"
         },
         "3": {
+            "desc": "Kendini gerçekleştirme ve hedeflere ulaşma yeteneği",
             "title": "Kişisel potansiyel"
         },
         "4": {
@@ -2422,6 +2453,9 @@ ANGEL_NUMBERS_I18N: dict[str, dict[str, dict[str, str]]] = {
         "06:06": {
             "meaning": "Ailenize ve evinize dikkat edin. Yakın ilişkilerdeki uyum, kariyerden daha önemlidir."
         },
+        "07:07": {
+            "meaning": "Doğru ruhsal gelişim yolundasınız. Meditasyon yapmaya ve kendinizi incelemeye devam edin."
+        },
         "08:08": {
             "meaning": "Finansal bolluk yaklaşıyor. Refahı hak ediyorsunuz"
         },
@@ -2433,6 +2467,9 @@ ANGEL_NUMBERS_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "111": {
             "meaning": "Güçlü enerji akışı. Düşünceleriniz anında şekil alıyor — onları kontrol edin."
+        },
+        "1111": {
+            "meaning": "Kozmik portal açık. Düşündüğünüz her şey gerçekleşecek. En gizli dileğinizi dileyin."
         },
         "11:11": {
             "meaning": "Fırsatlar portalı açık. Düşünceleriniz anında somutlaşıyor — iyi şeyler düşünün."
@@ -2457,6 +2494,9 @@ ANGEL_NUMBERS_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "18:18": {
             "meaning": "Finansal döngü olumlu bir şekilde sona eriyor. Kâr bekleyin."
+        },
+        "19:19": {
+            "meaning": "Başladığını bitir. Emeğinin meyvesini toplama zamanı."
         },
         "20:20": {
             "meaning": "İlahi destek güçleniyor"
