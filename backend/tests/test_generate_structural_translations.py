@@ -14,6 +14,7 @@ from scripts.generate_structural_translations import (
     _heuristic_ok,
     _load_existing_dicts,
     _write_i18n_module,
+    main,
     run,
 )
 
@@ -418,3 +419,73 @@ class TestBatchedSectionsRunThroughRunBatched:
 
         assert code == 0
         assert seen_fields == [{"meaning"}], "keyword was already present and must not be re-sent"
+
+
+class TestRetryFailedFlag:
+    """--retry-failed sweeps every registered section's normal resume pass
+    in one command. It adds no new persisted state - a failed item is
+    already indistinguishable from "not yet attempted" on disk (see
+    TestWriteAndResumeCycle), so this is purely a convenience over running
+    --section once per section."""
+
+    def test_requires_section_or_retry_failed(self, capsys):
+        with patch("sys.argv", ["generate_structural_translations.py"]):
+            code = main()
+        assert code == 2
+        assert "Either --section or --retry-failed is required" in capsys.readouterr().out
+
+    def test_retry_failed_sweeps_every_registered_section(self):
+        calls = []
+
+        async def fake_run(section, langs, keys, force, delay, dry_run):
+            calls.append(section)
+            return 0
+
+        fake_registry = {"beta": lambda: {}, "alpha": lambda: {}}
+        with patch("sys.argv", ["generate_structural_translations.py", "--retry-failed", "--dry-run"]), \
+             patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
+             patch("scripts.generate_structural_translations.run", side_effect=fake_run):
+            code = main()
+        assert code == 0
+        assert calls == ["alpha", "beta"]  # every section, sorted
+
+    def test_section_flag_still_targets_just_one_section(self):
+        calls = []
+
+        async def fake_run(section, langs, keys, force, delay, dry_run):
+            calls.append(section)
+            return 0
+
+        fake_registry = {"alpha": lambda: {}, "beta": lambda: {}}
+        with patch("sys.argv", ["generate_structural_translations.py", "--section", "alpha", "--dry-run"]), \
+             patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
+             patch("scripts.generate_structural_translations.run", side_effect=fake_run):
+            code = main()
+        assert code == 0
+        assert calls == ["alpha"]
+
+    def test_retry_failed_aggregates_a_nonzero_exit_code(self):
+        async def fake_run(section, langs, keys, force, delay, dry_run):
+            return 1 if section == "beta" else 0
+
+        fake_registry = {"alpha": lambda: {}, "beta": lambda: {}}
+        with patch("sys.argv", ["generate_structural_translations.py", "--retry-failed", "--dry-run"]), \
+             patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
+             patch("scripts.generate_structural_translations.run", side_effect=fake_run):
+            code = main()
+        assert code == 1
+
+    def test_retry_failed_passes_through_langs_and_keys(self):
+        seen = []
+
+        async def fake_run(section, langs, keys, force, delay, dry_run):
+            seen.append((section, langs, keys))
+            return 0
+
+        fake_registry = {"alpha": lambda: {}}
+        with patch("sys.argv", ["generate_structural_translations.py", "--retry-failed",
+                                 "--langs", "es,uk", "--keys", "fehu,uruz", "--dry-run"]), \
+             patch.dict("scripts.generate_structural_translations.SECTION_REGISTRY", fake_registry, clear=True), \
+             patch("scripts.generate_structural_translations.run", side_effect=fake_run):
+            main()
+        assert seen == [("alpha", ["es", "uk"], ["fehu", "uruz"])]

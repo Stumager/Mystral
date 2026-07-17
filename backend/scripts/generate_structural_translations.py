@@ -20,11 +20,15 @@ Run inside the backend container (needs OPENROUTER key from env):
     docker compose exec backend python scripts/generate_structural_translations.py --section compatibility
     docker compose exec backend python scripts/generate_structural_translations.py --section compatibility --langs es --dry-run
     docker compose exec backend python scripts/generate_structural_translations.py --section runes --keys fehu,uruz --force
+    docker compose exec backend python scripts/generate_structural_translations.py --retry-failed
 
 Resumable: (lang, key, field) triples already present in the target
 <section>_i18n.py are skipped, so an interrupted run can simply be
-restarted. Rejected/failed items are listed in the final summary for
-re-runs via --keys.
+restarted. A failed item is never written there in the first place, so a
+plain re-run already retries it — no separate "failed" state to track.
+Rejected/failed items are listed in the final summary for a targeted
+re-run via --section ... --keys, or use --retry-failed to sweep every
+section's resume pass in one command once all 6 have had a first pass.
 """
 import argparse
 import asyncio
@@ -585,8 +589,17 @@ async def run(section: str, langs: list[str], keys: list[str] | None,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--section", required=True, choices=sorted(SECTION_REGISTRY),
-                        help="which section to translate")
+    parser.add_argument("--section", choices=sorted(SECTION_REGISTRY),
+                        help="which section to translate (required unless --retry-failed)")
+    parser.add_argument("--retry-failed", action="store_true",
+                        help="sweep every registered section in one command instead of one "
+                             "--section at a time. A failed item is never written to its "
+                             "_i18n.py module (see run()/the resume mechanism), so a plain "
+                             "resume pass already retries exactly the failed/not-yet-attempted "
+                             "items and leaves successful ones alone — this flag is purely a "
+                             "convenience for doing that sweep across all sections at once, e.g. "
+                             "once all 6 have had their first pass, instead of hunting through "
+                             "each section's run log for what still needs --keys.")
     parser.add_argument("--langs", default=",".join(STRUCTURAL_LANGS),
                         help=f"comma-separated subset of: {','.join(STRUCTURAL_LANGS)}")
     parser.add_argument("--keys", default="", help="comma-separated keys to limit to (for spot-fixing)")
@@ -594,6 +607,10 @@ def main() -> int:
     parser.add_argument("--delay", type=float, default=2.0, help="seconds between API calls")
     parser.add_argument("--dry-run", action="store_true", help="list what would be translated, no API calls")
     args = parser.parse_args()
+
+    if not args.retry_failed and not args.section:
+        print("Either --section or --retry-failed is required")
+        return 2
 
     langs = [l.strip() for l in args.langs.split(",") if l.strip()]
     bad = [l for l in langs if l not in STRUCTURAL_LANGS]
@@ -607,7 +624,15 @@ def main() -> int:
         return 2
 
     keys = [k.strip() for k in args.keys.split(",") if k.strip()] or None
-    return asyncio.run(run(args.section, langs, keys, args.force, args.delay, args.dry_run))
+    sections = sorted(SECTION_REGISTRY) if args.retry_failed else [args.section]
+
+    overall = 0
+    for section in sections:
+        if len(sections) > 1:
+            print(f"\n=== {section} ===", flush=True)
+        code = asyncio.run(run(section, langs, keys, args.force, args.delay, args.dry_run))
+        overall = overall or code
+    return overall
 
 
 if __name__ == "__main__":
