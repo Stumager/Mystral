@@ -48,7 +48,10 @@ class TestGetNumberData:
         assert data["strengths"] == NUMBER_DATA[1]["strengths_en"]
 
     def test_es_falls_back_to_english_until_generated(self):
-        data = get_number_data(1, "es")
+        # Forced empty rather than relying on the ambient file being
+        # empty - real generation has since populated other entries here.
+        with patch.dict(numerology_i18n.NUMBER_DATA_I18N, {"es": {}}):
+            data = get_number_data(1, "es")
         assert data["name"] == NUMBER_DATA[1]["name_en"]
         assert data["famous"] == NUMBER_DATA[1]["famous_en"]
 
@@ -79,7 +82,8 @@ class TestKarmicDescription:
         assert karmic_description(13, "en") == KARMIC_DESCRIPTIONS_EN[13]
 
     def test_es_falls_back_to_english(self):
-        assert karmic_description(13, "es") == KARMIC_DESCRIPTIONS_EN[13]
+        with patch.dict(numerology_i18n.KARMIC_I18N, {"es": {}}):
+            assert karmic_description(13, "es") == KARMIC_DESCRIPTIONS_EN[13]
 
     def test_es_uses_i18n_once_populated(self):
         with patch.dict(numerology_i18n.KARMIC_I18N, {"es": {"13": {"description": "ES desc"}}}):
@@ -88,12 +92,15 @@ class TestKarmicDescription:
 
 class TestPythagorasSquareI18n:
     def test_cell_names_and_levels_fall_back_to_english(self):
-        sq = pythagoras_square(date(1995, 11, 8), "es")
+        with patch.dict(numerology_i18n.CELL_NAMES_I18N, {"es": {}}), \
+             patch.dict(numerology_i18n.CELL_LEVELS_I18N, {"es": {}}):
+            sq = pythagoras_square(date(1995, 11, 8), "es")
         cell_1 = next(c for c in sq["cells"] if c["number"] == 1)
         assert cell_1["name"] == CELL_NAMES_EN[1]
 
     def test_line_titles_fall_back_to_english(self):
-        sq = pythagoras_square(date(1995, 11, 8), "es")
+        with patch.dict(numerology_i18n.LINE_DEFS_I18N, {"es": {}}):
+            sq = pythagoras_square(date(1995, 11, 8), "es")
         assert sq["lines"][0]["title"] == LINE_DEFS[0]["title_en"]
 
     def test_ru_lang_unaffected(self):
@@ -126,7 +133,8 @@ class TestAngelNumberEndpoint:
         assert res.json()["meaning"] == ANGEL_NUMBERS["11:11"]["meaning_en"]
 
     async def test_es_falls_back_to_english_until_generated(self, client):
-        res = await client.get("/v1/numerology/angel/11:11?lang=es")
+        with patch.dict(numerology_i18n.ANGEL_NUMBERS_I18N, {"es": {}}):
+            res = await client.get("/v1/numerology/angel/11:11?lang=es")
         assert res.status_code == 200
         assert res.json()["meaning"] == ANGEL_NUMBERS["11:11"]["meaning_en"]
 
