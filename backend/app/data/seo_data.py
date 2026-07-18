@@ -85,3 +85,31 @@ NUMEROLOGY_SEO = [
     {"slug": "life-path-9", "number": 9, "name": "Гуманист", "keywords": ["число жизненного пути 9", "нумерология 9"]},
 ]
 NUMEROLOGY_BY_SLUG = {n["slug"]: n for n in NUMEROLOGY_SEO}
+
+# name/symbol mirror app/api/v1/natal.py's PLANET_NAMES_RU/PLANET_NAMES_EN/PLANET_SYMBOLS
+# for the 10 classical planets only (excludes true_node/south_node/chiron) — kept as a
+# separate hardcoded copy rather than importing natal.py, matching this file's existing
+# convention of zero cross-module imports; keep in sync by hand if those ever change.
+NATAL_PLANETS = [
+    {"slug": "sun", "name": "Солнце", "name_en": "Sun", "symbol": "☀️", "keywords": ["солнце в натальной карте", "значение солнца в гороскопе"]},
+    {"slug": "moon", "name": "Луна", "name_en": "Moon", "symbol": "🌙", "keywords": ["луна в натальной карте", "значение луны в гороскопе"]},
+    {"slug": "mercury", "name": "Меркурий", "name_en": "Mercury", "symbol": "☿", "keywords": ["меркурий в натальной карте", "значение меркурия в гороскопе"]},
+    {"slug": "venus", "name": "Венера", "name_en": "Venus", "symbol": "♀", "keywords": ["венера в натальной карте", "значение венеры в гороскопе"]},
+    {"slug": "mars", "name": "Марс", "name_en": "Mars", "symbol": "♂", "keywords": ["марс в натальной карте", "значение марса в гороскопе"]},
+    {"slug": "jupiter", "name": "Юпитер", "name_en": "Jupiter", "symbol": "♃", "keywords": ["юпитер в натальной карте", "значение юпитера в гороскопе"]},
+    {"slug": "saturn", "name": "Сатурн", "name_en": "Saturn", "symbol": "♄", "keywords": ["сатурн в натальной карте", "значение сатурна в гороскопе"]},
+    {"slug": "uranus", "name": "Уран", "name_en": "Uranus", "symbol": "♅", "keywords": ["уран в натальной карте", "значение урана в гороскопе"]},
+    {"slug": "neptune", "name": "Нептун", "name_en": "Neptune", "symbol": "♆", "keywords": ["нептун в натальной карте", "значение нептуна в гороскопе"]},
+    {"slug": "pluto", "name": "Плутон", "name_en": "Pluto", "symbol": "♇", "keywords": ["плутон в натальной карте", "значение плутона в гороскопе"]},
+]
+NATAL_PLANETS_BY_SLUG = {p["slug"]: p for p in NATAL_PLANETS}
+
+# Thin index only — rich per-day content lives in app/data/lunar_days.py /
+# app/data/lunar_i18n.py (reused via localize_lunar_day in seo_i18n.py). Slug is the
+# plain day number as a string ("1".."30"), matching the URL /lunar-calendar/day/{n}
+# and lunar_i18n.LUNAR_DAYS_I18N's own "1".."30" string keys directly.
+LUNAR_DAY_SEO = [
+    {"slug": str(n), "number": n, "keywords": [f"{n} лунный день значение", f"{n}-й лунный день"]}
+    for n in range(1, 31)
+]
+LUNAR_DAY_BY_SLUG = {d["slug"]: d for d in LUNAR_DAY_SEO}

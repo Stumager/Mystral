@@ -6,6 +6,11 @@ per-language UI chrome (nav, breadcrumbs, CTA, format strings) for all 6.
 Language codes match the rest of the platform: uk, not ua.
 """
 
+from app.core.structural_i18n import localized_field, pick, pick_list
+from app.data.lunar_days import LUNAR_DAYS
+from app.data.lunar_i18n import LUNAR_DAYS_I18N
+from app.data.natal_i18n import PLANET_NAMES_I18N
+
 BASE_URL = "https://mystral.space"
 
 PREFIX_LANGS = ("en", "es", "pt", "tr", "uk")
@@ -83,6 +88,25 @@ UI = {
         "runes_hub_intro": "24 руны Старшего Футарка с подробным значением, толкованием в гадании и применением в магических ставах.",
         "runes_hub_title": "Руны Старшего Футарка — значение и толкование | Mystral",
         "runes_hub_desc": "24 руны Старшего Футарка с подробным значением, толкованием и применением в магических ставах.",
+        "nav_natal": "Натальная карта", "nav_lunar": "Лунный календарь",
+        "bc_natal": "Натальная карта", "bc_lunar": "Лунный календарь", "bc_lunar_day": "{number}-й лунный день",
+        "natal_hub_h1": "Натальная карта — значение планет в гороскопе",
+        "natal_hub_intro": "Десять планет натальной карты и их значение в гороскопе рождения — от Солнца и Луны до Плутона. Узнайте, как расположение планет влияет на характер и судьбу.",
+        "natal_hub_title": "Натальная карта — значение планет в гороскопе | Mystral",
+        "natal_hub_desc": "Значение планет в натальной карте: Солнце, Луна, Меркурий, Венера, Марс, Юпитер, Сатурн, Уран, Нептун, Плутон. Бесплатный расчёт натальной карты на Mystral.",
+        "natal_planet_h1": "{name} в натальной карте — значение и влияние",
+        "natal_planet_title": "{name} в натальной карте — значение | Mystral",
+        "natal_planet_desc": "Значение планеты {name} в натальной карте: характер, знаки зодиака, дома гороскопа, любовь и карьера.",
+        "other_planets": "Другие планеты натальной карты",
+        "lunar_hub_h1": "Лунный календарь — 30 лунных дней",
+        "lunar_hub_intro": "Все 30 лунных дней с подробным значением: здоровье, красота, деньги, любовь, работа и духовные практики на каждый день лунного цикла.",
+        "lunar_hub_title": "Лунный календарь — значение 30 лунных дней | Mystral",
+        "lunar_hub_desc": "Полный лунный календарь: значение всех 30 лунных дней, благоприятные и неблагоприятные дела, талисманы. Персональный лунный гороскоп на Mystral.",
+        "lunar_day_h1": "{number}-й лунный день — значение",
+        "lunar_day_title": "{number}-й лунный день — значение | Mystral",
+        "lunar_day_desc": "{number}-й лунный день «{title}» — подробное значение, благоприятные и неблагоприятные дела, талисманы и советы.",
+        "other_lunar_days": "Другие лунные дни",
+        "label_favorable": "Благоприятно", "label_unfavorable": "Неблагоприятно", "label_stones": "Камни-талисманы",
     },
     "en": {
         "nav_home": "Home", "nav_zodiac": "Zodiac", "nav_tarot": "Tarot", "nav_runes": "Runes",
@@ -125,6 +149,25 @@ UI = {
         "runes_hub_intro": "The 24 Elder Futhark runes with detailed meanings, divination interpretation and use in bind runes.",
         "runes_hub_title": "Elder Futhark Runes — Meaning and Interpretation | Mystral",
         "runes_hub_desc": "The 24 Elder Futhark runes with detailed meanings, interpretation and magical uses.",
+        "nav_natal": "Natal Chart", "nav_lunar": "Lunar Calendar",
+        "bc_natal": "Natal Chart", "bc_lunar": "Lunar Calendar", "bc_lunar_day": "Lunar Day {number}",
+        "natal_hub_h1": "Natal Chart — Meaning of the Planets in Astrology",
+        "natal_hub_intro": "The ten planets of the natal chart and their meaning in a birth horoscope — from the Sun and Moon to Pluto. Discover how planetary placements shape character and destiny.",
+        "natal_hub_title": "Natal Chart — Meaning of the Planets | Mystral",
+        "natal_hub_desc": "The meaning of the planets in a natal chart: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto. Free natal chart calculation on Mystral.",
+        "natal_planet_h1": "{name} in the Natal Chart — Meaning and Influence",
+        "natal_planet_title": "{name} in the Natal Chart — Meaning | Mystral",
+        "natal_planet_desc": "The meaning of {name} in the natal chart: personality, zodiac signs, houses, love and career.",
+        "other_planets": "Other Natal Chart Planets",
+        "lunar_hub_h1": "Lunar Calendar — All 30 Lunar Days",
+        "lunar_hub_intro": "All 30 lunar days with detailed meanings: health, beauty, money, love, work and spiritual practice for every day of the lunar cycle.",
+        "lunar_hub_title": "Lunar Calendar — Meaning of the 30 Lunar Days | Mystral",
+        "lunar_hub_desc": "The complete lunar calendar: the meaning of all 30 lunar days, favorable and unfavorable activities, talismans. Personal lunar horoscope on Mystral.",
+        "lunar_day_h1": "Lunar Day {number} — Meaning",
+        "lunar_day_title": "Lunar Day {number} — Meaning | Mystral",
+        "lunar_day_desc": "Lunar day {number}, \"{title}\" — detailed meaning, favorable and unfavorable activities, talismans and advice.",
+        "other_lunar_days": "Other Lunar Days",
+        "label_favorable": "Favorable", "label_unfavorable": "Unfavorable", "label_stones": "Talisman Stones",
     },
     "es": {
         "nav_home": "Inicio", "nav_zodiac": "Zodiaco", "nav_tarot": "Tarot", "nav_runes": "Runas",
@@ -167,6 +210,25 @@ UI = {
         "runes_hub_intro": "Las 24 runas del Futhark Antiguo con significado detallado, interpretación en la adivinación y uso en talismanes.",
         "runes_hub_title": "Runas del Futhark Antiguo — significado e interpretación | Mystral",
         "runes_hub_desc": "Las 24 runas del Futhark Antiguo con significado detallado, interpretación y usos mágicos.",
+        "nav_natal": "Carta Natal", "nav_lunar": "Calendario Lunar",
+        "bc_natal": "Carta Natal", "bc_lunar": "Calendario Lunar", "bc_lunar_day": "Día Lunar {number}",
+        "natal_hub_h1": "Carta Natal — Significado de los Planetas en Astrología",
+        "natal_hub_intro": "Los diez planetas de la carta natal y su significado en el horóscopo de nacimiento — del Sol y la Luna a Plutón. Descubre cómo la posición de los planetas moldea el carácter y el destino.",
+        "natal_hub_title": "Carta Natal — Significado de los Planetas | Mystral",
+        "natal_hub_desc": "El significado de los planetas en la carta natal: Sol, Luna, Mercurio, Venus, Marte, Júpiter, Saturno, Urano, Neptuno, Plutón. Cálculo gratuito de la carta natal en Mystral.",
+        "natal_planet_h1": "{name} en la Carta Natal — Significado e Influencia",
+        "natal_planet_title": "{name} en la Carta Natal — Significado | Mystral",
+        "natal_planet_desc": "El significado de {name} en la carta natal: personalidad, signos del zodiaco, casas astrológicas, amor y carrera.",
+        "other_planets": "Otros Planetas de la Carta Natal",
+        "lunar_hub_h1": "Calendario Lunar — Los 30 Días Lunares",
+        "lunar_hub_intro": "Los 30 días lunares con significado detallado: salud, belleza, dinero, amor, trabajo y práctica espiritual para cada día del ciclo lunar.",
+        "lunar_hub_title": "Calendario Lunar — Significado de los 30 Días Lunares | Mystral",
+        "lunar_hub_desc": "El calendario lunar completo: el significado de los 30 días lunares, actividades favorables y desfavorables, talismanes. Horóscopo lunar personal en Mystral.",
+        "lunar_day_h1": "Día Lunar {number} — Significado",
+        "lunar_day_title": "Día Lunar {number} — Significado | Mystral",
+        "lunar_day_desc": "El día lunar {number}, «{title}» — significado detallado, actividades favorables y desfavorables, talismanes y consejos.",
+        "other_lunar_days": "Otros Días Lunares",
+        "label_favorable": "Favorable", "label_unfavorable": "Desfavorable", "label_stones": "Piedras Talismán",
     },
     "pt": {
         "nav_home": "Início", "nav_zodiac": "Zodíaco", "nav_tarot": "Tarô", "nav_runes": "Runas",
@@ -209,6 +271,25 @@ UI = {
         "runes_hub_intro": "As 24 runas do Futhark Antigo com significado detalhado, interpretação na adivinhação e uso em talismãs.",
         "runes_hub_title": "Runas do Futhark Antigo — significado e interpretação | Mystral",
         "runes_hub_desc": "As 24 runas do Futhark Antigo com significado detalhado, interpretação e usos mágicos.",
+        "nav_natal": "Mapa Astral", "nav_lunar": "Calendário Lunar",
+        "bc_natal": "Mapa Astral", "bc_lunar": "Calendário Lunar", "bc_lunar_day": "Dia Lunar {number}",
+        "natal_hub_h1": "Mapa Astral — Significado dos Planetas na Astrologia",
+        "natal_hub_intro": "Os dez planetas do mapa astral e seu significado no horóscopo de nascimento — do Sol e da Lua a Plutão. Descubra como a posição dos planetas molda o caráter e o destino.",
+        "natal_hub_title": "Mapa Astral — Significado dos Planetas | Mystral",
+        "natal_hub_desc": "O significado dos planetas no mapa astral: Sol, Lua, Mercúrio, Vênus, Marte, Júpiter, Saturno, Urano, Netuno, Plutão. Cálculo gratuito do mapa astral no Mystral.",
+        "natal_planet_h1": "{name} no Mapa Astral — Significado e Influência",
+        "natal_planet_title": "{name} no Mapa Astral — Significado | Mystral",
+        "natal_planet_desc": "O significado de {name} no mapa astral: personalidade, signos do zodíaco, casas astrológicas, amor e carreira.",
+        "other_planets": "Outros Planetas do Mapa Astral",
+        "lunar_hub_h1": "Calendário Lunar — Os 30 Dias Lunares",
+        "lunar_hub_intro": "Os 30 dias lunares com significado detalhado: saúde, beleza, dinheiro, amor, trabalho e prática espiritual para cada dia do ciclo lunar.",
+        "lunar_hub_title": "Calendário Lunar — Significado dos 30 Dias Lunares | Mystral",
+        "lunar_hub_desc": "O calendário lunar completo: o significado dos 30 dias lunares, atividades favoráveis e desfavoráveis, talismãs. Horóscopo lunar pessoal no Mystral.",
+        "lunar_day_h1": "Dia Lunar {number} — Significado",
+        "lunar_day_title": "Dia Lunar {number} — Significado | Mystral",
+        "lunar_day_desc": "O dia lunar {number}, «{title}» — significado detalhado, atividades favoráveis e desfavoráveis, talismãs e conselhos.",
+        "other_lunar_days": "Outros Dias Lunares",
+        "label_favorable": "Favorável", "label_unfavorable": "Desfavorável", "label_stones": "Pedras Talismã",
     },
     "tr": {
         "nav_home": "Ana Sayfa", "nav_zodiac": "Burçlar", "nav_tarot": "Tarot", "nav_runes": "Rünler",
@@ -251,6 +332,25 @@ UI = {
         "runes_hub_intro": "Eski Futhark'ın 24 rünü: ayrıntılı anlamları, fal yorumu ve rün tılsımlarında kullanımı.",
         "runes_hub_title": "Eski Futhark rünleri — anlamı ve yorumu | Mystral",
         "runes_hub_desc": "Eski Futhark'ın 24 rünü: ayrıntılı anlamları, yorumu ve büyüsel kullanımı.",
+        "nav_natal": "Doğum Haritası", "nav_lunar": "Ay Takvimi",
+        "bc_natal": "Doğum Haritası", "bc_lunar": "Ay Takvimi", "bc_lunar_day": "{number}. Ay Günü",
+        "natal_hub_h1": "Doğum Haritası — Astrolojide Gezegenlerin Anlamı",
+        "natal_hub_intro": "Doğum haritasının on gezegeni ve doğum burcundaki anlamları — Güneş ve Ay'dan Plüton'a kadar. Gezegen konumlarının karakteri ve kaderi nasıl şekillendirdiğini keşfedin.",
+        "natal_hub_title": "Doğum Haritası — Gezegenlerin Anlamı | Mystral",
+        "natal_hub_desc": "Doğum haritasında gezegenlerin anlamı: Güneş, Ay, Merkür, Venüs, Mars, Jüpiter, Satürn, Uranüs, Neptün, Plüton. Mystral'da ücretsiz doğum haritası hesaplama.",
+        "natal_planet_h1": "Doğum Haritasında {name} — Anlamı ve Etkisi",
+        "natal_planet_title": "Doğum Haritasında {name} — Anlamı | Mystral",
+        "natal_planet_desc": "Doğum haritasında {name} gezegeninin anlamı: karakter, burçlar, evler, aşk ve kariyer.",
+        "other_planets": "Diğer Doğum Haritası Gezegenleri",
+        "lunar_hub_h1": "Ay Takvimi — 30 Ay Gününün Tamamı",
+        "lunar_hub_intro": "Ay döngüsünün her günü için ayrıntılı anlamlarıyla 30 ay günü: sağlık, güzellik, para, aşk, iş ve manevi uygulamalar.",
+        "lunar_hub_title": "Ay Takvimi — 30 Ay Gününün Anlamı | Mystral",
+        "lunar_hub_desc": "Eksiksiz ay takvimi: 30 ay gününün tamamının anlamı, uğurlu ve uğursuz faaliyetler, tılsımlar. Mystral'da kişisel ay burcu yorumu.",
+        "lunar_day_h1": "{number}. Ay Günü — Anlamı",
+        "lunar_day_title": "{number}. Ay Günü — Anlamı | Mystral",
+        "lunar_day_desc": "{number}. ay günü, «{title}» — ayrıntılı anlamı, uğurlu ve uğursuz faaliyetler, tılsımlar ve öneriler.",
+        "other_lunar_days": "Diğer Ay Günleri",
+        "label_favorable": "Uğurlu", "label_unfavorable": "Uğursuz", "label_stones": "Tılsım Taşları",
     },
     "uk": {
         "nav_home": "Головна", "nav_zodiac": "Зодіак", "nav_tarot": "Таро", "nav_runes": "Руни",
@@ -293,6 +393,25 @@ UI = {
         "runes_hub_intro": "24 руни Старшого Футарка з детальним значенням, тлумаченням у гаданні та застосуванням у магічних ставах.",
         "runes_hub_title": "Руни Старшого Футарка — значення та тлумачення | Mystral",
         "runes_hub_desc": "24 руни Старшого Футарка з детальним значенням, тлумаченням і застосуванням у магічних ставах.",
+        "nav_natal": "Натальна карта", "nav_lunar": "Місячний календар",
+        "bc_natal": "Натальна карта", "bc_lunar": "Місячний календар", "bc_lunar_day": "{number}-й місячний день",
+        "natal_hub_h1": "Натальна карта — значення планет в астрології",
+        "natal_hub_intro": "Десять планет натальної карти та їхнє значення в гороскопі народження — від Сонця і Місяця до Плутона. Дізнайтеся, як розташування планет впливає на характер і долю.",
+        "natal_hub_title": "Натальна карта — значення планет | Mystral",
+        "natal_hub_desc": "Значення планет у натальній карті: Сонце, Місяць, Меркурій, Венера, Марс, Юпітер, Сатурн, Уран, Нептун, Плутон. Безкоштовний розрахунок натальної карти на Mystral.",
+        "natal_planet_h1": "{name} у натальній карті — значення і вплив",
+        "natal_planet_title": "{name} у натальній карті — значення | Mystral",
+        "natal_planet_desc": "Значення планети {name} у натальній карті: характер, знаки зодіаку, доми гороскопу, кохання та кар'єра.",
+        "other_planets": "Інші планети натальної карти",
+        "lunar_hub_h1": "Місячний календар — усі 30 місячних днів",
+        "lunar_hub_intro": "Усі 30 місячних днів з детальним значенням: здоров'я, краса, гроші, кохання, робота та духовні практики на кожен день місячного циклу.",
+        "lunar_hub_title": "Місячний календар — значення 30 місячних днів | Mystral",
+        "lunar_hub_desc": "Повний місячний календар: значення всіх 30 місячних днів, сприятливі та несприятливі справи, талісмани. Персональний місячний гороскоп на Mystral.",
+        "lunar_day_h1": "{number}-й місячний день — значення",
+        "lunar_day_title": "{number}-й місячний день — значення | Mystral",
+        "lunar_day_desc": "{number}-й місячний день «{title}» — детальне значення, сприятливі та несприятливі справи, талісмани і поради.",
+        "other_lunar_days": "Інші місячні дні",
+        "label_favorable": "Сприятливо", "label_unfavorable": "Несприятливо", "label_stones": "Камені-талісмани",
     },
 }
 
@@ -567,3 +686,43 @@ def localize_num(num: dict, lang: str) -> dict:
     if lang == "ru":
         return num
     return {**num, "name": NUMEROLOGY_I18N[lang][num["slug"]]}
+
+
+# ---------------------------------------------------------------------------
+# Natal-chart planets (TZ-083): names reuse app.data.natal_i18n's existing
+# TZ-080 translations rather than duplicating a second copy here.
+# ---------------------------------------------------------------------------
+
+def localize_natal_planet(planet: dict, lang: str) -> dict:
+    if lang == "ru":
+        return planet
+    return {**planet, "name": localized_field(PLANET_NAMES_I18N, lang, planet["slug"], "name", planet["name_en"])}
+
+
+# ---------------------------------------------------------------------------
+# Lunar-calendar days (TZ-083): the thin LUNAR_DAY_SEO entry (slug/number/
+# keywords only) is always merged with the rich per-day content in
+# app.data.lunar_days.LUNAR_DAYS / app.data.lunar_i18n.LUNAR_DAYS_I18N, via
+# the same pick()/pick_list() helpers app/api/v1/lunar.py already uses for
+# the live /lunar/today endpoint — no data is duplicated here.
+# ---------------------------------------------------------------------------
+
+def localize_lunar_day(day_seo: dict, lang: str) -> dict:
+    raw = LUNAR_DAYS[day_seo["number"]]
+    key = day_seo["slug"]
+    favorable = pick_list(raw, "favorable", lang, LUNAR_DAYS_I18N, key)
+    unfavorable = pick_list(raw, "unfavorable", lang, LUNAR_DAYS_I18N, key)
+    return {
+        **day_seo,
+        "symbol": pick(raw, "symbol", lang, LUNAR_DAYS_I18N, key),
+        "title": pick(raw, "title", lang, LUNAR_DAYS_I18N, key),
+        "desc": pick(raw, "desc", lang, LUNAR_DAYS_I18N, key),
+        "health": pick(raw, "health", lang, LUNAR_DAYS_I18N, key),
+        "stones": pick(raw, "stones", lang, LUNAR_DAYS_I18N, key),
+        "energy": raw["energy"],
+        "favorable": favorable,
+        "unfavorable": unfavorable,
+        # joined strings for prompt building — str.format(**data) can't join a list
+        "favorable_text": ", ".join(favorable),
+        "unfavorable_text": ", ".join(unfavorable),
+    }

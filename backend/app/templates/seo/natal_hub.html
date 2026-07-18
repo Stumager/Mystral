@@ -1,0 +1,12 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_natal }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_natal }}{% endblock %}
+{% block content %}
+<h1>{{ t.natal_hub_h1 }}</h1>
+<p>{{ t.natal_hub_intro }}</p>
+{% endblock %}
+{% block links %}
+<div class="links">{% for p in planets %}<a href="{{ prefix }}/natal-chart/planets/{{ p.slug }}">{{ p.symbol }} {{ p.name }}</a>{% endfor %}</div>
+{% endblock %}

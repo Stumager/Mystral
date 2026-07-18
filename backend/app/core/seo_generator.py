@@ -71,6 +71,27 @@ PROMPTS = {
         "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
         "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
     ),
+    "natal_planet": (
+        "Напиши подробное значение планеты {name} ({symbol}) в натальной карте. "
+        "Включи секции: 1) Общее значение планеты, 2) Планета в знаках зодиака, "
+        "3) Планета в домах гороскопа, 4) Сильное и слабое проявление, "
+        "5) В любви и отношениях, 6) В карьере и финансах, 7) Ретроградность, "
+        "8) Как работать с энергией планеты. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "lunar_day": (
+        "Напиши подробное значение {number}-го лунного дня «{title}» (символ: {symbol}). "
+        "Используй как основу следующие проверенные данные: благоприятно — {favorable_text}; "
+        "неблагоприятно — {unfavorable_text}; камни-талисманы — {stones}. "
+        "Включи секции: 1) Общая характеристика дня, 2) Здоровье, 3) Красота, "
+        "4) Деньги и финансы, 5) Любовь и отношения, 6) Работа и дела, "
+        "7) Духовные практики, 8) Сны в этот день. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
 }
 
 # For the 5 prefixed languages: English master templates with an explicit
@@ -125,6 +146,23 @@ PROMPTS_I18N = {
         "Include sections: 1) Character and personality, 2) Life purpose, "
         "3) Career and vocation, 4) Love and relationships, 5) Health, "
         "6) Famous people with this number. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "natal_planet": (
+        "Write the detailed meaning of the planet {name} ({symbol}) in the natal chart. "
+        "Include sections: 1) General meaning of the planet, 2) The planet across zodiac signs, "
+        "3) The planet across houses, 4) Strong and weak expressions, "
+        "5) In love and relationships, 6) In career and finances, 7) Retrograde motion, "
+        "8) How to work with this planet's energy. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "lunar_day": (
+        "Write the detailed meaning of lunar day {number}, \"{title}\" (symbol: {symbol}). "
+        "Use the following verified data as a basis: favorable — {favorable_text}; "
+        "unfavorable — {unfavorable_text}; talisman stones — {stones}. "
+        "Include sections: 1) General overview of the day, 2) Health, 3) Beauty, "
+        "4) Money and finances, 5) Love and relationships, 6) Work, "
+        "7) Spiritual practice, 8) Dreams on this day. "
         "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
     ),
 }
@@ -393,10 +431,17 @@ async def get_seo_content(page_type: str, slug: str, data: dict, session: AsyncS
 def localize_data(page_type: str, data: dict, lang: str) -> dict:
     """Localized copy of a seo_data entry for prompt building (used by the
     warm cache and the batch script; page handlers localize via seo_i18n
-    directly). Tarot gets a target-language "name" key for the i18n prompt."""
+    directly). Tarot gets a target-language "name" key for the i18n prompt.
+
+    lunar_day is special-cased ahead of the `lang == "ru"` shortcut: unlike
+    every other section, its seo_data.py entry (slug/number/keywords only)
+    has no ru content of its own either — localize_lunar_day() always merges
+    in the real content from lunar_days.py/lunar_i18n.py regardless of lang."""
+    from app.data.seo_i18n import localize_lunar_day, localize_natal_planet, localize_num, localize_rune, localize_sign, tarot_display_name
+    if page_type == "lunar_day":
+        return localize_lunar_day(data, lang)
     if lang == "ru":
         return data
-    from app.data.seo_i18n import localize_num, localize_rune, localize_sign, tarot_display_name
     if page_type == "zodiac":
         return localize_sign(data, lang)
     if page_type == "tarot":
@@ -405,12 +450,14 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
         return localize_rune(data, lang)
     if page_type == "numerology":
         return localize_num(data, lang)
+    if page_type == "natal_planet":
+        return localize_natal_planet(data, lang)
     return data
 
 
 def seo_page_items() -> list[tuple[str, str, dict]]:
-    """(page_type, slug, raw ru data) for all 123 individual SEO pages."""
-    from app.data.seo_data import NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS
+    """(page_type, slug, raw ru data) for all individual SEO pages."""
+    from app.data.seo_data import LUNAR_DAY_SEO, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS
 
     items: list[tuple[str, str, dict]] = []
     for s in ZODIAC_SIGNS:
@@ -421,6 +468,10 @@ def seo_page_items() -> list[tuple[str, str, dict]]:
         items.append(("rune", r["slug"], r))
     for n in NUMEROLOGY_SEO:
         items.append(("numerology", n["slug"], n))
+    for p in NATAL_PLANETS:
+        items.append(("natal_planet", p["slug"], p))
+    for d in LUNAR_DAY_SEO:
+        items.append(("lunar_day", d["slug"], d))
     return items
 
 

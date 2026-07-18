@@ -11,13 +11,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
 from app.data.seo_data import (
+    LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
     NUMEROLOGY_BY_SLUG, NUMEROLOGY_SEO, RUNE_BY_SLUG, RUNE_SEO,
     SUITS, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
 )
 from app.data.seo_i18n import (
     ALL_LANGS, LANG_NATIVE, OG_LOCALE, PREFIX_LANGS, SUITS_HDR, UI,
-    abs_url, hreflang_alternates, localize_card, localize_num,
-    localize_rune, localize_sign, url_prefix,
+    abs_url, hreflang_alternates, localize_card, localize_lunar_day,
+    localize_natal_planet, localize_num, localize_rune, localize_sign,
+    url_prefix,
 )
 
 router = APIRouter()
@@ -228,6 +230,88 @@ async def numerology_page(slug: str, request: Request, session: AsyncSession = D
     ))
 
 
+@router.get("/natal-chart", response_class=HTMLResponse)
+@router.get("/{lang}/natal-chart", response_class=HTMLResponse)
+async def natal_chart_hub(request: Request):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/natal-chart")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/natal_hub.html", _ctx(
+        lang, "/natal-chart", t["natal_hub_title"], t["natal_hub_desc"],
+        planets=[localize_natal_planet(p, lang) for p in NATAL_PLANETS],
+    ))
+
+
+@router.get("/natal-chart/planets/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/natal-chart/planets/{slug}", response_class=HTMLResponse)
+async def natal_planet_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/natal-chart/planets/{slug}")
+    if redirect:
+        return redirect
+    raw = NATAL_PLANETS_BY_SLUG.get(slug)
+    if not raw:
+        raise HTTPException(404)
+    planet = localize_natal_planet(raw, lang)
+    content = await get_seo_content("natal_planet", slug, planet, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/natal_planet.html", _ctx(
+        lang, f"/natal-chart/planets/{slug}",
+        t["natal_planet_title"].format(**planet),
+        t["natal_planet_desc"].format(**planet),
+        content=content,
+        planet=planet,
+        all_planets=[localize_natal_planet(p, lang) for p in NATAL_PLANETS],
+        h1=t["natal_planet_h1"].format(**planet),
+        today=TODAY(),
+    ))
+
+
+@router.get("/lunar-calendar", response_class=HTMLResponse)
+@router.get("/{lang}/lunar-calendar", response_class=HTMLResponse)
+async def lunar_calendar_hub(request: Request):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/lunar-calendar")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/lunar_hub.html", _ctx(
+        lang, "/lunar-calendar", t["lunar_hub_title"], t["lunar_hub_desc"],
+        days=[localize_lunar_day(d, lang) for d in LUNAR_DAY_SEO],
+    ))
+
+
+@router.get("/lunar-calendar/day/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/lunar-calendar/day/{slug}", response_class=HTMLResponse)
+async def lunar_day_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/lunar-calendar/day/{slug}")
+    if redirect:
+        return redirect
+    raw = LUNAR_DAY_BY_SLUG.get(slug)
+    if not raw:
+        raise HTTPException(404)
+    day = localize_lunar_day(raw, lang)
+    content = await get_seo_content("lunar_day", slug, day, session, lang)
+    t = UI[lang]
+    n = day["number"]
+    prev_day = localize_lunar_day(LUNAR_DAY_BY_SLUG[str(n - 1)], lang) if n > 1 else None
+    next_day = localize_lunar_day(LUNAR_DAY_BY_SLUG[str(n + 1)], lang) if n < 30 else None
+    return templates.TemplateResponse(request, "seo/lunar_day.html", _ctx(
+        lang, f"/lunar-calendar/day/{slug}",
+        t["lunar_day_title"].format(**day),
+        t["lunar_day_desc"].format(**day),
+        content=content,
+        day=day,
+        prev=prev_day, next=next_day,
+        all_days=[localize_lunar_day(d, lang) for d in LUNAR_DAY_SEO],
+        h1=t["lunar_day_h1"].format(**day),
+        today=TODAY(),
+    ))
+
+
 CONSTELLATIONS = {
     "aries": {"pts": [[28,48],[45,38],[68,30]], "lines": [[0,1],[1,2]], "bright": [2]},
     "taurus": {"pts": [[22,20],[40,45],[28,58],[22,52],[50,58],[52,72],[60,40]], "lines": [[0,1],[1,2],[2,3],[1,4],[4,5],[3,5],[0,6]], "bright": [0,5]},
@@ -271,7 +355,7 @@ async def constellation_svg(slug: str, request: Request):
 @router.get("/sitemap.xml", response_class=Response)
 async def sitemap():
     today = date.today().isoformat()
-    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9")]
+    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"), ("/lunar-calendar", "0.9")]
     for s in ZODIAC_SIGNS:
         paths.append((f"/zodiac/{s['slug']}", "0.9"))
     for c in TAROT_CARDS:
@@ -280,6 +364,10 @@ async def sitemap():
         paths.append((f"/runes/{r['slug']}", "0.8"))
     for n in NUMEROLOGY_SEO:
         paths.append((f"/numerology/{n['slug']}", "0.7"))
+    for p in NATAL_PLANETS:
+        paths.append((f"/natal-chart/planets/{p['slug']}", "0.8"))
+    for d in LUNAR_DAY_SEO:
+        paths.append((f"/lunar-calendar/day/{d['slug']}", "0.8"))
 
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n')

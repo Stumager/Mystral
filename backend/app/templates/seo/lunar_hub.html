@@ -1,0 +1,12 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_lunar }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_lunar }}{% endblock %}
+{% block content %}
+<h1>{{ t.lunar_hub_h1 }}</h1>
+<p>{{ t.lunar_hub_intro }}</p>
+{% endblock %}
+{% block links %}
+<div class="links">{% for d in days %}<a href="{{ prefix }}/lunar-calendar/day/{{ d.slug }}">{{ d.symbol }} {{ d.number }} — {{ d.title }}</a>{% endfor %}</div>
+{% endblock %}

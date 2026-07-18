@@ -1,0 +1,32 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+{% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_lunar }}","item":"https://mystral.space{{ prefix }}/lunar-calendar"},{"@type":"ListItem","position":3,"name":"{{ t.bc_lunar_day.format(number=day.number) }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › <a href="{{ prefix }}/lunar-calendar">{{ t.bc_lunar }}</a> › {{ t.bc_lunar_day.format(number=day.number) }}{% endblock %}
+{% block content %}
+<h1>{{ h1 }}</h1>
+<div class="card" style="text-align:center">
+  <span style="font-family:'Cormorant Garamond',serif;font-size:72px;color:#C9A84C;line-height:1">{{ day.number }}</span>
+  <p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.3em;color:#E8CD7E;margin-top:8px">{{ day.symbol }} — {{ day.title|upper }}</p>
+</div>
+<p>{{ content.intro }}</p>
+{% for sec in content.sections %}
+<h2>{{ sec.title }}</h2>
+<p>{{ sec.text }}</p>
+{% endfor %}
+<div class="card">
+  <p><strong>{{ t.label_favorable }}:</strong> {{ day.favorable_text }}</p>
+  <p><strong>{{ t.label_unfavorable }}:</strong> {{ day.unfavorable_text }}</p>
+  <p><strong>{{ t.label_stones }}:</strong> {{ day.stones }}</p>
+</div>
+{% endblock %}
+{% block links %}
+<h2>{{ t.other_lunar_days }}</h2>
+<div style="display:flex;justify-content:space-between;margin:16px 0">
+  {% if prev %}<a href="{{ prefix }}/lunar-calendar/day/{{ prev.slug }}" style="font-size:13px">← {{ prev.number }}</a>{% else %}<span></span>{% endif %}
+  {% if next %}<a href="{{ prefix }}/lunar-calendar/day/{{ next.slug }}" style="font-size:13px">{{ next.number }} →</a>{% else %}<span></span>{% endif %}
+</div>
+<div class="links">{% for d in all_days %}<a href="{{ prefix }}/lunar-calendar/day/{{ d.slug }}">{{ d.symbol }} {{ d.number }}</a>{% endfor %}</div>
+{% endblock %}

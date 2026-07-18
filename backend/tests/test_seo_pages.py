@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.data.seo_data import NUMEROLOGY_SEO, RUNE_SEO
+from app.data.seo_data import LUNAR_DAY_SEO, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO
 from app.data.seo_i18n import PREFIX_LANGS
 
 
@@ -71,6 +71,69 @@ class TestRunePages:
         assert res.status_code == 404
 
 
+class TestNatalChartPages:
+    async def test_natal_planet_returns_html(self, client):
+        res = await client.get("/natal-chart/planets/sun")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_natal_planet_has_h1(self, client):
+        res = await client.get("/natal-chart/planets/sun")
+        assert "<h1" in res.text
+
+    async def test_natal_planet_has_canonical(self, client):
+        res = await client.get("/natal-chart/planets/sun")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/natal-chart/planets/sun" in res.text
+
+    async def test_natal_planet_invalid_slug(self, client):
+        res = await client.get("/natal-chart/planets/xenu")
+        assert res.status_code == 404
+
+    async def test_natal_planet_traversal_slug(self, client):
+        res = await client.get("/natal-chart/planets/..%2F..%2Fetc%2Fpasswd")
+        assert res.status_code == 404
+
+    async def test_natal_chart_hub(self, client):
+        res = await client.get("/natal-chart")
+        assert res.status_code == 200
+
+
+class TestLunarCalendarPages:
+    async def test_lunar_day_returns_html(self, client):
+        res = await client.get("/lunar-calendar/day/1")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_lunar_day_has_h1(self, client):
+        res = await client.get("/lunar-calendar/day/1")
+        assert "<h1" in res.text
+
+    async def test_lunar_day_has_canonical(self, client):
+        res = await client.get("/lunar-calendar/day/1")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/lunar-calendar/day/1" in res.text
+
+    async def test_lunar_day_invalid_slug(self, client):
+        res = await client.get("/lunar-calendar/day/99")
+        assert res.status_code == 404
+
+    async def test_lunar_day_traversal_slug(self, client):
+        res = await client.get("/lunar-calendar/day/..%2F..%2Fetc%2Fpasswd")
+        assert res.status_code == 404
+
+    async def test_lunar_calendar_hub(self, client):
+        res = await client.get("/lunar-calendar")
+        assert res.status_code == 200
+
+    async def test_lunar_day_shows_real_curated_data(self, client):
+        # unlike other sections, lunar days carry real curated data
+        # (favorable/unfavorable/stones) independent of LLM generation.
+        res = await client.get("/lunar-calendar/day/1")
+        assert "Планирование" in res.text  # LUNAR_DAYS[1]["favorable_ru"][0]
+        assert "Лунный камень" in res.text  # LUNAR_DAYS[1]["stones_ru"]
+
+
 class TestAllRunesAndNumerologyPages:
     """TZ-073 regression: a SEO crawler found 21/123 pages returning 500 —
     12/24 runes and 9/9 numerology pages — because a real fixture only
@@ -100,6 +163,34 @@ class TestAllRunesAndNumerologyPages:
     async def test_every_numerology_slug_all_langs(self, client, lang, num):
         res = await client.get(f"/{lang}/numerology/{num['slug']}")
         assert res.status_code == 200, f"/{lang}/numerology/{num['slug']} -> {res.status_code}"
+
+
+class TestAllNatalPlanetsAndLunarDaysPages:
+    """TZ-083, following the exact precedent TZ-073/TZ-082 established for
+    runes/numerology: walk every slug, not a sample, on ru and every
+    prefixed language, so a regression can't hide behind an untested slug."""
+
+    @pytest.mark.parametrize("planet", NATAL_PLANETS, ids=lambda p: p["slug"])
+    async def test_every_natal_planet_slug_ru(self, client, planet):
+        res = await client.get(f"/natal-chart/planets/{planet['slug']}")
+        assert res.status_code == 200, f"/natal-chart/planets/{planet['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("day", LUNAR_DAY_SEO, ids=lambda d: d["slug"])
+    async def test_every_lunar_day_slug_ru(self, client, day):
+        res = await client.get(f"/lunar-calendar/day/{day['slug']}")
+        assert res.status_code == 200, f"/lunar-calendar/day/{day['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("planet", NATAL_PLANETS, ids=lambda p: p["slug"])
+    async def test_every_natal_planet_slug_all_langs(self, client, lang, planet):
+        res = await client.get(f"/{lang}/natal-chart/planets/{planet['slug']}")
+        assert res.status_code == 200, f"/{lang}/natal-chart/planets/{planet['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("day", LUNAR_DAY_SEO, ids=lambda d: d["slug"])
+    async def test_every_lunar_day_slug_all_langs(self, client, lang, day):
+        res = await client.get(f"/{lang}/lunar-calendar/day/{day['slug']}")
+        assert res.status_code == 200, f"/{lang}/lunar-calendar/day/{day['slug']} -> {res.status_code}"
 
 
 def _fake_llm_response(payload: str):
@@ -168,7 +259,7 @@ class TestSitemap:
     async def test_sitemap_has_all_urls(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        assert count >= 126, f"sitemap has only {count} URLs"
+        assert count >= 168, f"sitemap has only {count} URLs"
 
     async def test_sitemap_urls_absolute(self, client):
         res = await client.get("/sitemap.xml")
@@ -226,8 +317,20 @@ class TestLangPages:
         assert '<html lang="en">' in res.text
         assert "Life Path Number 1" in res.text
 
+    async def test_es_natal_planet(self, client):
+        res = await client.get("/es/natal-chart/planets/sun")
+        assert res.status_code == 200
+        assert '<html lang="es">' in res.text
+        assert "Sol" in res.text  # Spanish name for the Sun
+
+    async def test_pt_lunar_day(self, client):
+        res = await client.get("/pt/lunar-calendar/day/1")
+        assert res.status_code == 200
+        assert '<html lang="pt">' in res.text
+        assert "Dia das Intenções" in res.text  # Portuguese title for lunar day 1
+
     async def test_lang_hubs(self, client):
-        for path in ("/es/zodiac", "/es/tarot", "/es/runes"):
+        for path in ("/es/zodiac", "/es/tarot", "/es/runes", "/es/natal-chart", "/es/lunar-calendar"):
             res = await client.get(path)
             assert res.status_code == 200, path
             assert '<html lang="es">' in res.text, path
@@ -337,6 +440,10 @@ class TestSitemapI18n:
         assert "<loc>https://mystral.space/es/zodiac/aries</loc>" in res.text
         assert "<loc>https://mystral.space/uk/tarot/the-fool</loc>" in res.text
         assert "<loc>https://mystral.space/en/numerology/life-path-1</loc>" in res.text
+        assert "<loc>https://mystral.space/es/natal-chart/planets/sun</loc>" in res.text
+        assert "<loc>https://mystral.space/uk/lunar-calendar/day/1</loc>" in res.text
+        assert "<loc>https://mystral.space/natal-chart</loc>" in res.text
+        assert "<loc>https://mystral.space/lunar-calendar</loc>" in res.text
 
     async def test_sitemap_has_xhtml_alternates(self, client):
         res = await client.get("/sitemap.xml")
@@ -346,8 +453,9 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 126 paths x 6 languages
-        assert count == 757, f"sitemap has {count} URLs"
+        # 1 homepage + 168 paths x 6 languages (126 original + 2 new hubs
+        # + 10 natal planets + 30 lunar days, added in TZ-083)
+        assert count == 1009, f"sitemap has {count} URLs"
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

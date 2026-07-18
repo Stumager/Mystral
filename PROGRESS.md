@@ -598,3 +598,116 @@ tier был ленивый, в `deps.get_current_user`, только при за
 - mystral.app/www.mystral.app по-прежнему заблокированы регистрацией
   домена — не мой скоуп, ждать отдельного ТЗ после регистрации + A-записи.
 - Закоммичено и запушено этой же сессией (см. commit).
+
+## 2026-07-18 — ТЗ-083 (часть 1/2): natal-chart planets + lunar-calendar
+
+### Completed
+- **Скоуп по решению Саши**: только natal-chart (пиллар + 10 планет) +
+  lunar-calendar (пиллар + 30 дней) в этом проходе. Houses/ascendant/
+  compatibility — отдельным ТЗ позже.
+- **Проверка коллизии путей** — `/natal-chart`, `/lunar-calendar`,
+  `/compatibility` не заняты фронтендом: SPA в `App.tsx` навигирует
+  чисто через `useState<Page>`, без роутера, единственные реальные
+  проверки `window.location.pathname` — `/privacy`, `/terms`,
+  `/ref/:code` regex. Коллизии нет.
+- **`seo_data.py`** — `NATAL_PLANETS` (10 классических планет, имена/
+  символы зеркалят `app/api/v1/natal.py`'s `PLANET_NAMES_RU/EN/
+  PLANET_SYMBOLS`, отдельная захардкоженная копия, не импорт — по
+  конвенции файла) + `LUNAR_DAY_SEO` (тонкий индекс 1-30, slug = сам
+  номер строкой, совпадает с ключами `lunar_i18n.LUNAR_DAYS_I18N`).
+- **`seo_i18n.py`** — новые UI-строки (title/desc/h1/hub/labels) на
+  всех 6 языках (~24 ключа × 6 = 144 строки), `localize_natal_planet`
+  (переиспользует существующий `natal_i18n.PLANET_NAMES_I18N` через
+  `structural_i18n.localized_field`, а не дублирует перевод заново) и
+  `localize_lunar_day` (переиспользует `lunar_days.py`/`lunar_i18n.py`
+  через существующие `pick`/`pick_list` — ни одна строка не
+  задублирована вручную). `localize_lunar_day` мержит данные даже для
+  ru (тонкая seo_data-запись не содержит контента вообще ни на одном
+  языке) — единственное отклонение от паттерна остальных секций,
+  явно закомментировано.
+- **`seo_generator.py`** — промпты `natal_planet`/`lunar_day` (ru +
+  i18n), `localize_data()`/`seo_page_items()` дополнены; `lunar_day`
+  промпт явно заземлён на реальных данных (favorable/unfavorable/
+  stones передаются как контекст, не только тема).
+- **`seo_pages.py`** — 6 новых роутов (hub+detail × 2 секции, каждый
+  в паре root+`/{lang}`), sitemap дополнен.
+- **Шаблоны** — `natal_hub.html`, `natal_planet.html`, `lunar_hub.html`,
+  `lunar_day.html` (последний — единственный, что показывает настоящий
+  структурированный контент — favorable/unfavorable/камни — независимо
+  от LLM-генерации). `base.html` — добавлены nav_natal/nav_lunar в
+  шапку (4 → 6 пунктов).
+- **`generate_seo_translations.py`** — `PAGE_TYPES` дополнен
+  `natal_planet`, `lunar_day`.
+- **`nginx/nginx.prod.conf`** — regex дополнен всеми тремя префиксами
+  сразу (`natal-chart|lunar-calendar|compatibility`) по указанию Саши,
+  даже без готовых compatibility-роутов — FastAPI отдаёт на них 404,
+  что и подтверждено живой проверкой.
+- **Тесты** — `TestNatalChartPages`/`TestLunarCalendarPages` (200/404/
+  traversal/canonical/h1), `TestAllNatalPlanetsAndLunarDaysPages`
+  (полный обход 10 планет + 30 дней × ru + 5 языков — тот же паттерн,
+  что TZ-073/082 закрепили для рун/нумерологии), 2 новых кейса в
+  `TestLangPages` (es-планета, pt-лунный день с реальной переведённой
+  строкой), обновлён sitemap count (757 → 1009) и добавлены проверки
+  новых URL в sitemap.
+
+### Problems found
+- Ничего вне периметра. Единственная находка — сам факт, что
+  `docker-compose.prod.yml` не ждёт готовности Postgres
+  (`depends_on` без `condition: service_healthy`, в отличие от dev-
+  compose) — не чинил, не в периметре этого ТЗ, задержало только
+  локальную проверку (backend несколько раз падал при первом старте
+  на ConnectionRefusedError, ожил после recreate).
+
+### Verified
+- `py_compile` — чисто.
+- `tsc --noEmit` (фронтенд не трогал, но по стандарту прогнал) — 0 ошибок.
+- Полный `pytest` — **799 passed, 6 skipped** (было 799-255=544 до
+  этого ТЗ; +255 новых: 240 из `TestAllNatalPlanetsAndLunarDaysPages`
+  (10+30 ru + (10+30)×5 языков) + 15 из остальных новых классов/кейсов
+  — сходится ровно).
+- **Живая проверка через реальный прод-роутинг** (не только FastAPI
+  напрямую, как просил Саша): поднял `docker-compose.prod.yml`
+  целиком под отдельным project name (`mystral-prodtest`, чтобы не
+  столкнуться с dev-стеком), реальный Postgres, реальный nginx на
+  `nginx.prod.conf`. `OPENROUTER_API_KEY` пустой и в `.env.prod`,
+  реальная генерация не запускалась ни разу. Через `localhost:8080`
+  (порт nginx, НЕ backend напрямую):
+  - `/natal-chart`, `/natal-chart/planets/sun`, `/lunar-calendar`,
+    `/lunar-calendar/day/1`, `/en/natal-chart/planets/moon`,
+    `/es/lunar-calendar/day/15` — все 200, `text/html`.
+  - `/compatibility` — 404 от FastAPI (не от фронтенда — тело
+    `{"error":404,"message":"Not Found"}`), подтверждает, что regex
+    трёх префиксов сразу работает как задумано.
+  - `/random-unrelated-page` — 200, тело SPA-шелла — regex не
+    расширился на лишнее.
+  - Существующие секции (zodiac/tarot/runes/numerology/sitemap) —
+    без регрессий, всё 200.
+  - Canonical + полный hreflang-набор (6 языков + x-default) —
+    подтверждено в реальном HTML-ответе через nginx для en-планеты и
+    ru-лунного дня.
+  - Лунный день реально показывает куратированный контент независимо
+    от LLM («Планирование», «Лунный камень» — из `LUNAR_DAYS[1]`)
+    прямо в HTML через nginx.
+  - `sitemap.xml` через nginx — ровно 1009 `<loc>`, 252 из них
+    natal-chart/lunar-calendar — совпадает с расчётом день-в-день.
+  - Тестовый стек (`mystral-prodtest`) полностью снесён после
+    проверки (`docker-compose down` + volume/образы), `.env.prod`
+    (gitignored, локальный шаблон с `CHANGE_ME`) возвращён к исходному
+    плейсхолдеру.
+
+### Next step
+- **Реальная генерация контента** (10 планет + 30 дней × 6 языков =
+  240 строк) НЕ запускалась — по правилу проекта, платные прогоны
+  через `generate_seo_translations.py` только вручную на VPS. RU
+  генерируется сам по факту первого захода (`warm_seo_cache()`/
+  on-demand), для 5 остальных языков нужен ручной прогон Саши после
+  деплоя:
+  `python -m scripts.generate_seo_translations --types natal_planet,lunar_day`
+  (дефолтные `--langs` = 5 префиксных, ru не нужен отдельно).
+- Не коммитил/не пушил — жду подтверждения.
+- Houses/ascendant/compatibility — отдельное ТЗ после проверки этого
+  прохода на проде, по решению Саши.
+- CTA "Попробовать бесплатно" на существующих 756 страницах всё ещё
+  ведёт на главную — переключение на релевантные лендинги осталось
+  отдельным пунктом на потом (как и просил Саша), не делал в этом
+  проходе.
