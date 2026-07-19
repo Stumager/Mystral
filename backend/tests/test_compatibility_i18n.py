@@ -44,7 +44,9 @@ class TestCompatibilityLabelHelpers:
         assert _sign_name(0, "en") == SIGNS[0]
 
     def test_sign_name_es_falls_back_to_english_until_generated(self):
-        assert _sign_name(0, "es") == SIGNS[0]
+        from app.data import compatibility_i18n
+        with patch.dict(compatibility_i18n.SIGNS_I18N, {"es": {}}):
+            assert _sign_name(0, "es") == SIGNS[0]
 
     def test_sign_name_es_uses_i18n_once_populated(self):
         from app.data import compatibility_i18n

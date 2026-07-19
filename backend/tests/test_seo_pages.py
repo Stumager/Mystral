@@ -46,6 +46,32 @@ class TestZodiacPages:
         assert res.headers["content-type"].startswith("image/svg")
 
 
+class TestZodiacCtaRedirect:
+    """TZ-085: zodiac is the only section with a live relevant landing
+    (natal-chart) so far — its CTA should point there instead of the
+    homepage. Other sections have no landing yet and must stay unchanged."""
+
+    async def test_zodiac_cta_points_to_natal_chart(self, client):
+        res = await client.get("/zodiac/scorpio")
+        assert '<a href="/natal-chart" class="cta-btn">' in res.text
+
+    async def test_zodiac_cta_keeps_lang_prefix(self, client):
+        res = await client.get("/es/zodiac/scorpio")
+        assert '<a href="/es/natal-chart" class="cta-btn">' in res.text
+
+    async def test_tarot_cta_unchanged(self, client):
+        res = await client.get("/tarot/the-fool")
+        assert '<a href="/" class="cta-btn">' in res.text
+
+    async def test_rune_cta_unchanged(self, client):
+        res = await client.get("/runes/fehu")
+        assert '<a href="/" class="cta-btn">' in res.text
+
+    async def test_numerology_cta_unchanged(self, client):
+        res = await client.get("/numerology/life-path-1")
+        assert '<a href="/" class="cta-btn">' in res.text
+
+
 class TestTarotPages:
     async def test_tarot_card_returns_html(self, client):
         res = await client.get("/tarot/the-fool")

@@ -30,7 +30,8 @@ class TestSignNameReusesNatalI18n:
         assert _sign_name(0, "en") == SIGNS[0]
 
     def test_es_falls_back_to_english_until_generated(self):
-        assert _sign_name(0, "es") == SIGNS[0]
+        with patch.dict(natal_i18n.SIGNS_I18N, {"es": {}}):
+            assert _sign_name(0, "es") == SIGNS[0]
 
     def test_es_uses_natal_i18n_directly_no_separate_lunar_copy(self):
         # Populating natal_i18n.SIGNS_I18N (not a lunar-specific dict) must
@@ -112,7 +113,13 @@ class TestLunarTodayEndpoint:
 
 class TestLunarMonthEndpoint:
     async def test_es_lang_uses_reused_sign_names(self, client):
-        res = await client.get("/v1/lunar/month?lang=es")
+        # Forced empty rather than relying on real es translation being
+        # absent: several sign names (Aries/Leo/Libra/Virgo) are spelled
+        # identically in Spanish, so which day's sign "today" resolves to
+        # could coincidentally pass this assertion even without a genuine
+        # fallback — force it so the check is deterministic.
+        with patch.dict(natal_i18n.SIGNS_I18N, {"es": {}}):
+            res = await client.get("/v1/lunar/month?lang=es")
         assert res.status_code == 200
         data = res.json()
         assert data

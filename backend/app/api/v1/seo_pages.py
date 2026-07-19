@@ -107,6 +107,10 @@ async def zodiac_sign(slug: str, request: Request, session: AsyncSession = Depen
         h1=t["zodiac_h1"].format(**sign),
         og_image=abs_url(lang, f"/zodiac/{slug}/constellation.svg"),
         today=TODAY(),
+        # TZ-085: zodiac is the only section with a relevant landing so far
+        # (natal-chart) — everything else keeps the default "/" CTA target
+        # until their own landings exist.
+        cta_href=f"{url_prefix(lang)}/natal-chart",
     ))
 
 

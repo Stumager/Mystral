@@ -37,7 +37,8 @@ class TestSignNameHelper:
         assert _sign_name("Ari", "en") == "Aries"
 
     def test_es_falls_back_to_english_until_generated(self):
-        assert _sign_name("Aries", "es") == "Aries"
+        with patch.dict(natal_i18n.SIGNS_I18N, {"es": {}}):
+            assert _sign_name("Aries", "es") == "Aries"
 
     def test_es_uses_i18n_once_populated(self):
         with patch.dict(natal_i18n.SIGNS_I18N, {"es": {"Aries": {"name": "Aries-ES"}}}):

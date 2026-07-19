@@ -74,7 +74,7 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
   <div class="cta">
     <h2>{{ t.cta_title }}</h2>
     <p>{{ cta_text|default(t.cta_default, true) }}</p>
-    <a href="/" class="cta-btn">{{ t.cta_button }}</a>
+    <a href="{{ cta_href|default('/') }}" class="cta-btn">{{ t.cta_button }}</a>
   </div>
   {% block links %}{% endblock %}
 </main>
