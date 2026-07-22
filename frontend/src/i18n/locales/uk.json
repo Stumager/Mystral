@@ -571,5 +571,28 @@
     "reversed_hint": "Перевернута руна виділена кольором",
     "copied_hint": "Скопійовано! Відкрий чат у Telegram і встав зображення (Ctrl+V або довге натискання → Вставити).",
     "download_hint": "Зображення збережено — доклади його в Telegram вручну."
+  },
+  "timezones": {
+    "kaliningrad": "Калінінград",
+    "moscow": "Москва",
+    "samara": "Самара",
+    "yekaterinburg": "Єкатеринбург",
+    "omsk": "Омськ",
+    "krasnoyarsk": "Красноярськ",
+    "irkutsk": "Іркутськ",
+    "yakutsk": "Якутськ",
+    "vladivostok": "Владивосток",
+    "magadan": "Магадан",
+    "kamchatka": "Камчатка",
+    "kyiv": "Київ",
+    "minsk": "Мінськ",
+    "almaty": "Алмати",
+    "tashkent": "Ташкент",
+    "london": "Лондон",
+    "berlin": "Берлін",
+    "dubai": "Дубай",
+    "bangkok": "Бангкок",
+    "new_york": "Нью-Йорк",
+    "los_angeles": "Лос-Анджелес"
   }
 }

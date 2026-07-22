@@ -252,7 +252,7 @@ export function OnboardingModal({ onClose }: Props) {
               <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
                 <span style={{ fontSize: 13.5, color: "#B6AC98" }}>{t("onboarding.timezone")}</span>
                 <select value={tz} onChange={e => setTz(e.target.value)} style={{ background: "transparent", border: "none", color: "#F0E9DA", fontSize: 15, textAlign: "right", outline: "none", maxWidth: 180 }}>
-                  {TIMEZONES.map(t => <option key={t.value} value={t.value} style={{ background: "#0D0B1F" }}>{t.label}</option>)}
+                  {TIMEZONES.map(tz => <option key={tz.value} value={tz.value} style={{ background: "#0D0B1F" }}>{t(`timezones.${tz.key}`)} ({tz.offset})</option>)}
                 </select>
               </div>
             </>

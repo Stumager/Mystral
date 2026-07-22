@@ -97,8 +97,8 @@ EVENT_DATA = {
 }
 
 
-def get_upcoming_events(days: int = 14, lang: str = "ru") -> list[dict]:
-    now = datetime.utcnow()
+def get_upcoming_events(days: int = 14, lang: str = "ru", from_dt: Optional[datetime] = None) -> list[dict]:
+    now = from_dt or datetime.utcnow()
     events = []
 
     days_since_ref = (now - NEW_MOON_REF).total_seconds() / 86400
@@ -172,8 +172,9 @@ def _sign_list(sign_data: dict, field: str, sign_key: str, lang: str) -> list[st
     return pick_list(sign_data, field, lang, MOON_SIGNS_I18N, sign_key) if sign_data else []
 
 
-def get_lunar_today_data(lang: str = "ru") -> dict:
-    info = _calc_lunar(datetime.utcnow())
+def get_lunar_today_data(lang: str = "ru", target_date: Optional[date] = None) -> dict:
+    dt = datetime(target_date.year, target_date.month, target_date.day, 12, 0) if target_date else datetime.utcnow()
+    info = _calc_lunar(dt)
     pi = info["phase_index"]
     si = info["sign_index"]
     ld = min(info["lunar_day"], 30)
@@ -208,7 +209,7 @@ def get_lunar_today_data(lang: str = "ru") -> dict:
         "sign_unfavorable": _sign_list(sign_data, "unfavorable", sign_key, lang),
         "sign_beauty": _sign_field(sign_data, "beauty", sign_key, lang),
         "sign_health": _sign_field(sign_data, "health", sign_key, lang),
-        "upcoming_events": get_upcoming_events(14, lang),
+        "upcoming_events": get_upcoming_events(14, lang, dt),
     }
 
 
@@ -216,38 +217,50 @@ VALID_LANGS = {"ru", "en", "es", "pt", "tr", "uk"}
 
 
 @router.get("/lunar/today")
-async def lunar_today(lang: str = "ru"):
+async def lunar_today(lang: str = "ru", date: Optional[str] = None):
     if lang not in VALID_LANGS:
         lang = "en"
+    target_date = None
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, "Invalid date format, expected YYYY-MM-DD")
     # get_upcoming_events runs up to ~60 kerykeion chart builds — cache aggressively
     import redis.asyncio as aioredis
-    cache_key = f"lunar_today:{lang}:{datetime.utcnow().strftime('%Y-%m-%d_%H')}"
+    # explicit date: result never changes, cache long. No date ("today"): cache per hour.
+    cache_key = f"lunar_today:{lang}:{date}" if date else f"lunar_today:{lang}:{datetime.utcnow().strftime('%Y-%m-%d_%H')}"
+    ttl = 86400 if date else 3900
     r = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
     try:
         cached = await r.get(cache_key)
         if cached:
             return json.loads(cached)
-        data = get_lunar_today_data(lang)
-        await r.setex(cache_key, 3900, json.dumps(data, ensure_ascii=False))
+        data = get_lunar_today_data(lang, target_date)
+        await r.setex(cache_key, ttl, json.dumps(data, ensure_ascii=False))
         return data
     except Exception:
-        return get_lunar_today_data(lang)
+        return get_lunar_today_data(lang, target_date)
     finally:
         await r.close()
 
 
 @router.get("/lunar/month")
-async def lunar_month(lang: str = "ru"):
+async def lunar_month(lang: str = "ru", year: Optional[int] = None, month: Optional[int] = None):
     today = date.today()
-    _, days_in_month = monthrange(today.year, today.month)
+    y = year or today.year
+    m = month or today.month
+    if not (1 <= m <= 12):
+        raise HTTPException(400, "Invalid month, expected 1-12")
+    _, days_in_month = monthrange(y, m)
     result = []
     for d in range(1, days_in_month + 1):
-        dt = datetime(today.year, today.month, d, 12, 0)
+        dt = datetime(y, m, d, 12, 0)
         info = _calc_lunar(dt)
         ld = min(info["lunar_day"], 30)
         day_data = LUNAR_DAYS.get(ld, LUNAR_DAYS[1])
         result.append({
-            "date": f"{today.year}-{today.month:02d}-{d:02d}",
+            "date": f"{y}-{m:02d}-{d:02d}",
             "lunar_day": ld,
             "phase_icon": PHASE_ICONS[info["phase_index"]],
             "moon_sign": _sign_name(info["sign_index"], lang),

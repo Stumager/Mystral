@@ -575,7 +575,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                 className="bg-bg-surface border border-border-subtle rounded-lg px-2 py-1 text-text-primary text-xs focus:outline-none max-w-[160px]"
               >
                 {TIMEZONES.map(tz => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  <option key={tz.value} value={tz.value}>{t(`timezones.${tz.key}`)} ({tz.offset})</option>
                 ))}
               </select>
             </div>

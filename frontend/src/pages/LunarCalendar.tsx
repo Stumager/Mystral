@@ -44,24 +44,44 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
   const lang = user?.lang ?? "ru";
+  const realTodayStr = new Date().toISOString().slice(0, 10);
   const [today, setToday] = useState<LunarToday | null>(null);
   const [month, setMonth] = useState<MonthDay[]>([]);
+  const [selectedDate, setSelectedDate] = useState(realTodayStr);
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth() + 1);
   const [tab, setTab] = useState<Tab>("work");
   const [question, setQuestion] = useState("");
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
-  const loaded = useRef(false);
+  const dayLoaded = useRef<string | null>(null);
+  const monthLoaded = useRef<string | null>(null);
 
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    Promise.all([
-      fetch(`/api/v1/lunar/today?lang=${lang}`).then(r => r.json()),
-      fetch(`/api/v1/lunar/month?lang=${lang}`).then(r => r.json()),
-    ]).then(([t, m]) => { setToday(t); setMonth(m); }).catch(() => {});
-  }, []);
+    const key = `${lang}:${selectedDate}`;
+    if (dayLoaded.current === key) return;
+    dayLoaded.current = key;
+    const isRealToday = selectedDate === realTodayStr;
+    fetch(`/api/v1/lunar/today?lang=${lang}${isRealToday ? "" : `&date=${selectedDate}`}`)
+      .then(r => r.json()).then(setToday).catch(() => {});
+  }, [lang, selectedDate]);
+
+  useEffect(() => {
+    const key = `${lang}:${viewYear}-${viewMonth}`;
+    if (monthLoaded.current === key) return;
+    monthLoaded.current = key;
+    fetch(`/api/v1/lunar/month?lang=${lang}&year=${viewYear}&month=${viewMonth}`)
+      .then(r => r.json()).then(setMonth).catch(() => {});
+  }, [lang, viewYear, viewMonth]);
+
+  function shiftMonth(delta: number) {
+    let y = viewYear, m = viewMonth + delta;
+    if (m < 1) { m = 12; y -= 1; }
+    else if (m > 12) { m = 1; y += 1; }
+    setViewYear(y); setViewMonth(m);
+  }
 
   async function handleAI() {
     if (user?.tier !== "pro") { setShowPaywall(true); return; }
@@ -78,9 +98,10 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
     }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   const weekdays = t("lunar.weekdays").split(",");
   const firstDay = month.length > 0 ? (new Date(month[0].date).getDay() + 6) % 7 : 0;
+  const monthLocale = lang === "ru" ? "ru-RU" : lang === "uk" ? "uk-UA" : lang === "es" ? "es-ES" : lang === "pt" ? "pt-BR" : lang === "tr" ? "tr-TR" : "en-US";
+  const monthLabel = new Date(viewYear, viewMonth - 1, 1).toLocaleDateString(monthLocale, { month: "long", year: "numeric" });
 
   const tabLabels: Record<Tab, string> = lang === "ru"
     ? { work: "Работа", love: "Любовь", money: "Деньги", beauty: "Красота", spiritual: "Дух", dreams: "Сны" }
@@ -116,6 +137,11 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 style={{ background: "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), rgba(138,127,192,0.08))", border: "1px solid rgba(138,127,192,.2)", boxShadow: "0 0 40px rgba(138,127,192,0.15)" }}>
                 {today.phase_icon}
               </div>
+              {selectedDate !== realTodayStr && (
+                <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".14em", color: "#C9A84C" }}>
+                  {new Date(selectedDate).toLocaleDateString(monthLocale, { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              )}
               <p className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", lineHeight: 1 }}>{today.lunar_day}</p>
               <p style={{ fontSize: 13, color: "#9890B8" }}>{today.lunar_day} {t("lunar.lunar_day_label")} · {today.phase_name}</p>
               <p style={{ fontSize: 13, color: "#9890B8" }}>{t("lunar.moon_in")} {today.moon_sign} · {today.illumination}%</p>
@@ -297,9 +323,13 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 border: "1px solid rgba(201,168,76,.13)",
               }}
             >
-              <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 12 }}>
-                {t("lunar.calendar")}
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <button onClick={() => shiftMonth(-1)} className="text-text-muted px-2" style={{ fontSize: 15, cursor: "pointer" }} aria-label="prev month">{"‹"}</button>
+                <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
+                  {monthLabel}
+                </p>
+                <button onClick={() => shiftMonth(1)} className="text-text-muted px-2" style={{ fontSize: 15, cursor: "pointer" }} aria-label="next month">{"›"}</button>
+              </div>
               <div className="grid grid-cols-7 gap-1 text-center">
                 {weekdays.map(d => (
                   <span key={d} className="text-text-faint text-[9px] pb-1">{d}</span>
@@ -307,18 +337,21 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
                 {month.map(day => {
                   const dayNum = parseInt(day.date.split("-")[2]);
-                  const isToday = day.date === todayStr;
+                  const isSelected = day.date === selectedDate;
+                  const isRealToday = day.date === realTodayStr;
                   return (
-                    <div key={day.date} className="flex flex-col items-center py-1"
+                    <button key={day.date} onClick={() => setSelectedDate(day.date)}
+                      className="flex flex-col items-center py-1"
                       style={{
                         borderRadius: 10,
-                        background: isToday ? "rgba(201,168,76,.12)" : "transparent",
-                        border: isToday ? "1px solid rgba(201,168,76,.3)" : "1px solid transparent",
+                        cursor: "pointer",
+                        background: isSelected ? "rgba(201,168,76,.12)" : "transparent",
+                        border: isSelected ? "1px solid rgba(201,168,76,.3)" : isRealToday ? "1px solid rgba(201,168,76,.15)" : "1px solid transparent",
                       }}>
-                      <span className={`text-[10px] ${isToday ? "text-text-primary font-bold" : "text-text-muted"}`} style={isToday ? { color: "#E8CD7E" } : undefined}>{dayNum}</span>
+                      <span className={`text-[10px] ${isSelected ? "text-text-primary font-bold" : "text-text-muted"}`} style={isSelected ? { color: "#E8CD7E" } : undefined}>{dayNum}</span>
                       <span className="text-[8px] leading-none">{day.phase_icon}</span>
                       <span className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: ENERGY_COLORS[day.energy] || "#9B8FBB" }} />
-                    </div>
+                    </button>
                   );
                 })}
               </div>

@@ -444,6 +444,33 @@ async def compat_overall(req: CompatTypeRequest, current_user: User = Depends(ge
         "numerology": NUM_COMPAT.get((min(_life_path(prof.birth_date), 9), min(_life_path(partner.birth_date), 9)), 55),
         "chinese": CHINESE_COMPAT.get((_chinese_idx(prof.birth_date.year), _chinese_idx(partner.birth_date.year)), 55),
     }
+
+    # Moon/synastry/composite reuse the existing per-type endpoints as-is, so
+    # whatever they already enforce (birth time required for moon, Pro tier
+    # for synastry/composite) applies here unchanged. If a type isn't
+    # available for this pair/tier, it's just left out of the average
+    # instead of failing the whole "full analysis".
+    try:
+        moon = await compat_moon(req, current_user, session)
+        scores["moon"] = moon["score"]
+    except HTTPException:
+        pass
+
+    try:
+        syn = await compat_synastry(req, current_user, session)
+        scores["synastry"] = syn["score"]
+    except HTTPException:
+        pass
+
+    try:
+        composite = await compat_composite(CompositeRequest(partner_id=req.partner_id, lang=req.lang), current_user, session)
+        aspects = composite.get("aspects") if not composite.get("error") else None
+        if aspects:
+            harmony = sum(1 for a in aspects if a["type"] in ("trine", "sextile", "conjunction"))
+            scores["composite"] = min(98, max(25, round(harmony / len(aspects) * 100)))
+    except HTTPException:
+        pass
+
     overall = round(sum(scores.values()) / len(scores))
     return {
         "type": "overall", "score": overall, "scores": scores,

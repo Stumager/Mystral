@@ -571,5 +571,28 @@
     "reversed_hint": "Runa invertida resaltada en color",
     "copied_hint": "¡Copiado! Abre un chat de Telegram y pega la imagen (Ctrl+V o mantén pulsado → Pegar).",
     "download_hint": "Imagen guardada — adjúntala en Telegram manualmente."
+  },
+  "timezones": {
+    "kaliningrad": "Kaliningrado",
+    "moscow": "Moscú",
+    "samara": "Samara",
+    "yekaterinburg": "Ekaterimburgo",
+    "omsk": "Omsk",
+    "krasnoyarsk": "Krasnoyarsk",
+    "irkutsk": "Irkutsk",
+    "yakutsk": "Yakutsk",
+    "vladivostok": "Vladivostok",
+    "magadan": "Magadán",
+    "kamchatka": "Kamchatka",
+    "kyiv": "Kiev",
+    "minsk": "Minsk",
+    "almaty": "Almaty",
+    "tashkent": "Taskent",
+    "london": "Londres",
+    "berlin": "Berlín",
+    "dubai": "Dubái",
+    "bangkok": "Bangkok",
+    "new_york": "Nueva York",
+    "los_angeles": "Los Ángeles"
   }
 }

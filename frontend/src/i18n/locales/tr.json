@@ -571,5 +571,28 @@
     "reversed_hint": "Ters rün renkle vurgulanmıştır",
     "copied_hint": "Kopyalandı! Bir Telegram sohbeti aç ve resmi yapıştır (Ctrl+V veya uzun basış → Yapıştır).",
     "download_hint": "Resim kaydedildi — Telegram'a manuel olarak ekle."
+  },
+  "timezones": {
+    "kaliningrad": "Kaliningrad",
+    "moscow": "Moskova",
+    "samara": "Samara",
+    "yekaterinburg": "Yekaterinburg",
+    "omsk": "Omsk",
+    "krasnoyarsk": "Krasnoyarsk",
+    "irkutsk": "İrkutsk",
+    "yakutsk": "Yakutsk",
+    "vladivostok": "Vladivostok",
+    "magadan": "Magadan",
+    "kamchatka": "Kamçatka",
+    "kyiv": "Kiev",
+    "minsk": "Minsk",
+    "almaty": "Almatı",
+    "tashkent": "Taşkent",
+    "london": "Londra",
+    "berlin": "Berlin",
+    "dubai": "Dubai",
+    "bangkok": "Bangkok",
+    "new_york": "New York",
+    "los_angeles": "Los Angeles"
   }
 }

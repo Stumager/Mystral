@@ -571,5 +571,28 @@
     "reversed_hint": "Reversed rune highlighted in color",
     "copied_hint": "Copied! Open a Telegram chat and paste the image (Ctrl+V or long-press → Paste).",
     "download_hint": "Image saved — attach it in Telegram manually."
+  },
+  "timezones": {
+    "kaliningrad": "Kaliningrad",
+    "moscow": "Moscow",
+    "samara": "Samara",
+    "yekaterinburg": "Yekaterinburg",
+    "omsk": "Omsk",
+    "krasnoyarsk": "Krasnoyarsk",
+    "irkutsk": "Irkutsk",
+    "yakutsk": "Yakutsk",
+    "vladivostok": "Vladivostok",
+    "magadan": "Magadan",
+    "kamchatka": "Kamchatka",
+    "kyiv": "Kyiv",
+    "minsk": "Minsk",
+    "almaty": "Almaty",
+    "tashkent": "Tashkent",
+    "london": "London",
+    "berlin": "Berlin",
+    "dubai": "Dubai",
+    "bangkok": "Bangkok",
+    "new_york": "New York",
+    "los_angeles": "Los Angeles"
   }
 }
