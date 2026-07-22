@@ -65,9 +65,18 @@ async def _find_user_by_payload_id(user_id_str: str, session: AsyncSession) -> O
 
 def _activate_pro(user: User, product_key: str) -> None:
     product = PRODUCTS.get(product_key, PRODUCTS["pro_month"])
+    now = datetime.utcnow()
+    # Mirrors _extend_pro's stacking rule (app/api/v1/referrals.py): an
+    # already-active subscription extends from its current expiry rather than
+    # being hard-reset to "now + N days" — the old unconditional reset threw
+    # away any remaining time on an early renewal or a second successful
+    # payment for the same period (real money paid for nothing).
+    was_active = user.subscription_expires_at is not None and user.subscription_expires_at > now
+    base = user.subscription_expires_at if was_active else now
     user.subscription_tier = "pro"
-    user.subscription_expires_at = datetime.utcnow() + timedelta(days=product["days"])
-    user.subscription_created_at = datetime.utcnow()
+    user.subscription_expires_at = base + timedelta(days=product["days"])
+    if not was_active:
+        user.subscription_created_at = now
 
 
 def _revoke_pro(user: User) -> None:

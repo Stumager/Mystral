@@ -409,6 +409,68 @@ class TestYukassaFlow:
             async with AsyncSessionLocal() as s:
                 assert (await s.get(User, user.id)).subscription_expires_at == first_expiry
 
+    async def test_early_renewal_extends_remaining_time_not_reset(self, client, auth_user):
+        """_activate_pro must stack on top of an already-active subscription
+        (mirrors _extend_pro in referrals.py), not hard-reset to now + N days —
+        the old behavior threw away remaining paid time on an early renewal
+        via the 'Продлить' button."""
+        user, _ = auth_user
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            u.subscription_tier = "pro"
+            u.subscription_expires_at = datetime.utcnow() + timedelta(days=10)
+            s.add(u)
+            await s.commit()
+
+        await self._make_pending_payment(user.id, "yk-renew-1", "pro_month")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-renew-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res = await client.post("/v1/payments/yukassa/webhook",
+                                    json={"event": "payment.succeeded", "object": {"id": "yk-renew-1"}})
+        assert res.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            u = await s.get(User, user.id)
+            # 10 banked days + 30 new days ≈ 40 — a hard reset would only give ~30.
+            days_left = (u.subscription_expires_at - datetime.utcnow()).days
+            assert days_left >= 39, f"expected ~40 days (10 remaining + 30 new), got {days_left}"
+
+    async def test_second_successful_payment_stacks_even_outside_reuse_window(self, client, auth_user):
+        """The duplicate-payment guard in /yukassa/create only stops a second
+        *pending* checkout from opening within its 30-minute window — it does
+        nothing once a payment has actually succeeded, and does nothing at all
+        outside that window. Activation itself must stack independently of
+        that guard: two genuinely separate successful payments add up rather
+        than the second overwriting the first."""
+        user, _ = auth_user
+        await self._make_pending_payment(user.id, "yk-first-1", "pro_month")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-first-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res1 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "payment.succeeded", "object": {"id": "yk-first-1"}})
+        assert res1.status_code == 200
+        async with AsyncSessionLocal() as s:
+            first_expiry = (await s.get(User, user.id)).subscription_expires_at
+
+        await self._make_pending_payment(user.id, "yk-second-1", "pro_month")
+        with patch("httpx.AsyncClient.get", _yk_get_mock({
+            "id": "yk-second-1", "status": "succeeded",
+            "metadata": {"user_id": str(user.id), "product": "pro_month"},
+        })):
+            res2 = await client.post("/v1/payments/yukassa/webhook",
+                                     json={"event": "payment.succeeded", "object": {"id": "yk-second-1"}})
+        assert res2.status_code == 200
+
+        async with AsyncSessionLocal() as s:
+            second_expiry = (await s.get(User, user.id)).subscription_expires_at
+        assert second_expiry > first_expiry
+        gained_days = (second_expiry - first_expiry).days
+        assert gained_days >= 29, f"expected the second payment to add ~30 more days on top of the first, got {gained_days}"
+
     async def test_yukassa_status_requires_auth(self, client):
         res = await client.get(f"/v1/payments/yukassa/status/{uuid4()}")
         assert res.status_code == 401
