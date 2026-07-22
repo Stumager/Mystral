@@ -29,6 +29,13 @@ PRODUCTS = {
 
 PAID_MARKER_TTL = 3600  # payload marker set by the bot after successful_payment
 
+# A user who retries checkout (e.g. PaymentReturn's "Try again") while an
+# earlier YuKassa payment for the same product is still pending would
+# otherwise get a second checkout — and be charged twice for one Pro period
+# if both later succeed. Reuse the still-open checkout within this window
+# instead of creating a duplicate.
+YUKASSA_PENDING_REUSE_WINDOW = timedelta(minutes=30)
+
 
 def _parse_payload(payload: str) -> tuple[str, str]:
     """'pro_year_<id>' -> ('pro_year', '<id>'). Product validated against PRODUCTS."""
@@ -425,6 +432,28 @@ async def yukassa_create(
     if not settings.yukassa_shop_id or not settings.yukassa_secret_key:
         raise HTTPException(status_code=503, detail="YuKassa not configured")
 
+    recent_cutoff = datetime.utcnow() - YUKASSA_PENDING_REUSE_WINDOW
+    result = await session.exec(
+        select(Payment)
+        .where(
+            Payment.user_id == current_user.id,
+            Payment.provider == "yukassa",
+            Payment.product == req.product,
+            Payment.status == "pending",
+            Payment.created_at >= recent_cutoff,
+        )
+        .order_by(Payment.created_at.desc())
+    )
+    existing = result.first()
+    if existing:
+        try:
+            cached_meta = json.loads(existing.metadata_json or "{}")
+            cached_url = cached_meta.get("confirmation_url") if isinstance(cached_meta, dict) else None
+        except (ValueError, TypeError):
+            cached_url = None
+        if cached_url:
+            return {"payment_url": cached_url, "payment_id": str(existing.id)}
+
     creds = base64.b64encode(
         f"{settings.yukassa_shop_id}:{settings.yukassa_secret_key}".encode()
     ).decode()
@@ -474,6 +503,7 @@ async def yukassa_create(
         raise HTTPException(status_code=502, detail="No confirmation URL from YuKassa")
 
     payment.provider_payment_id = yk_payment_id
+    payment.metadata_json = json.dumps({"confirmation_url": payment_url})
     session.add(payment)
     await session.commit()
 

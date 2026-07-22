@@ -267,6 +267,87 @@ class TestYukassaFlow:
             assert payment.user_id == user.id
             assert str(payment.id) == data["payment_id"]
 
+    async def test_yukassa_create_reuses_recent_pending_payment(self, client, auth_user):
+        """TZ-088: a second /create call for the same product while an earlier
+        checkout is still pending must NOT open a new YuKassa payment — two
+        payments that both later succeed would charge the user twice for one
+        Pro period. It should hand back the still-open checkout instead."""
+        user, headers = auth_user
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-dup-1",
+            "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/first"},
+        })):
+            first = await client.post("/v1/payments/yukassa/create",
+                                      headers=headers, json={"product": "pro_month"})
+        assert first.status_code == 200
+        first_data = first.json()
+
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-dup-2",
+            "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/second"},
+        })) as post_mock:
+            second = await client.post("/v1/payments/yukassa/create",
+                                       headers=headers, json={"product": "pro_month"})
+        assert second.status_code == 200
+        second_data = second.json()
+
+        assert second_data["payment_id"] == first_data["payment_id"]
+        assert second_data["payment_url"] == first_data["payment_url"]
+
+        async with AsyncSessionLocal() as s:
+            result = await s.exec(select(Payment).where(Payment.user_id == user.id))
+            payments = result.all()
+            assert len(payments) == 1
+            assert payments[0].provider_payment_id == "yk-dup-1"
+
+    async def test_yukassa_create_new_payment_for_different_product(self, client, auth_user):
+        """A pending payment for one product must not block checkout for a
+        different product."""
+        user, headers = auth_user
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-diffprod-1", "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/month"},
+        })):
+            await client.post("/v1/payments/yukassa/create",
+                              headers=headers, json={"product": "pro_month"})
+
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-diffprod-2", "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/year"},
+        })):
+            res = await client.post("/v1/payments/yukassa/create",
+                                    headers=headers, json={"product": "pro_year"})
+        assert res.status_code == 200
+        assert res.json()["payment_url"] == "https://yookassa.ru/checkout/year"
+
+        async with AsyncSessionLocal() as s:
+            result = await s.exec(select(Payment).where(Payment.user_id == user.id))
+            assert len(result.all()) == 2
+
+    async def test_yukassa_create_ignores_stale_pending_payment(self, client, auth_user):
+        """A pending payment outside the reuse window (e.g. an old abandoned
+        checkout) must not block a fresh one."""
+        user, headers = auth_user
+        async with AsyncSessionLocal() as s:
+            s.add(Payment(
+                user_id=user.id, provider="yukassa", provider_payment_id="yk-stale-1",
+                product="pro_month", amount="399.00", status="pending",
+                created_at=datetime.utcnow() - timedelta(minutes=45),
+                metadata_json='{"confirmation_url": "https://yookassa.ru/checkout/stale"}',
+            ))
+            await s.commit()
+
+        with patch("httpx.AsyncClient.post", _yk_post_mock({
+            "id": "yk-fresh-1", "status": "pending",
+            "confirmation": {"confirmation_url": "https://yookassa.ru/checkout/fresh"},
+        })):
+            res = await client.post("/v1/payments/yukassa/create",
+                                    headers=headers, json={"product": "pro_month"})
+        assert res.status_code == 200
+        assert res.json()["payment_url"] == "https://yookassa.ru/checkout/fresh"
+
     async def test_yukassa_webhook_succeeded_activates_pro(self, client, auth_user):
         user, _ = auth_user
         await self._make_pending_payment(user.id, "yk-succ-1", "pro_year")
