@@ -343,7 +343,10 @@
     "refund_status_rejected": "Refund request rejected",
     "refund_status_rejected_comment": "Comment",
     "refund_status_completed": "Refund processed",
-    "refund_status_failed": "Refund failed — please contact support"
+    "refund_status_failed": "Refund failed — please contact support",
+    "refund_confirm_title": "Confirm refund request",
+    "refund_confirm_text": "Are you sure you want to request a refund? Your Mystral Pro subscription will be canceled once the refund is processed.",
+    "refund_confirm_yes": "Yes, request refund"
   },
   "login": {
     "subtitle": "Esoteric platform",
@@ -545,7 +548,9 @@
   "common": {
     "error": "Error",
     "loading": "Loading...",
-    "open_profile": "Open profile"
+    "open_profile": "Open profile",
+    "pro_activated_banner": "Congratulations — you have Mystral Pro!",
+    "pro_deactivated_banner": "Your Mystral Pro subscription is no longer active"
   },
   "legal": {
     "privacy": "Privacy Policy",

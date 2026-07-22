@@ -343,7 +343,10 @@
     "refund_status_rejected": "Solicitação de reembolso rejeitada",
     "refund_status_rejected_comment": "Comentário",
     "refund_status_completed": "Reembolso processado",
-    "refund_status_failed": "Reembolso falhou — entre em contato com o suporte"
+    "refund_status_failed": "Reembolso falhou — entre em contato com o suporte",
+    "refund_confirm_title": "Confirmar solicitação de reembolso",
+    "refund_confirm_text": "Tem certeza de que deseja solicitar um reembolso? Sua assinatura Mystral Pro será cancelada assim que o reembolso for processado.",
+    "refund_confirm_yes": "Sim, solicitar reembolso"
   },
   "login": {
     "subtitle": "Plataforma esotérica",
@@ -545,7 +548,9 @@
   "common": {
     "error": "Erro",
     "loading": "Carregando...",
-    "open_profile": "Abrir perfil"
+    "open_profile": "Abrir perfil",
+    "pro_activated_banner": "Parabéns — você tem Mystral Pro!",
+    "pro_deactivated_banner": "Sua assinatura Mystral Pro não está mais ativa"
   },
   "legal": {
     "privacy": "Política de privacidade",

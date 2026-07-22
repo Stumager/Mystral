@@ -649,4 +649,4 @@ async def yukassa_status(
             payment = synced
             await session.refresh(current_user)
 
-    return {"status": payment.status, "tier": current_user.subscription_tier}
+    return {"status": payment.status, "tier": current_user.subscription_tier, "product": payment.product}

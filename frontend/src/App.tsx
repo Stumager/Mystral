@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./i18n";
 import { AppLayout } from "./components/layout/AppLayout";
 import { Logo } from "./components/Logo";
@@ -24,8 +25,9 @@ import { Tarot } from "./pages/Tarot";
 type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "admin";
 
 function AppInner() {
+  const { t } = useTranslation();
   const [page, setPage] = useState<Page>("home");
-  const { user, isLoading, pendingMerge, dismissMerge, updateUser } = useAuth();
+  const { user, isLoading, pendingMerge, dismissMerge, updateUser, statusMessage, clearStatusMessage } = useAuth();
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const navigate = (p: string) => setPage(p as Page);
@@ -83,6 +85,23 @@ function AppInner() {
           setOnboardingDismissed(true);
           updateUser({ has_birth_date: true });
         }} />
+      )}
+      {statusMessage && (
+        <div className="fixed top-4 left-0 right-0 flex justify-center pointer-events-none" style={{ zIndex: 200, padding: "0 16px" }}>
+          <div
+            onClick={clearStatusMessage}
+            className="pointer-events-auto"
+            style={{
+              maxWidth: 420, textAlign: "center", fontSize: 13, padding: "10px 18px", borderRadius: 14, cursor: "pointer",
+              background: statusMessage === "pro_activated" ? "rgba(201,168,76,.14)" : "rgba(196,84,84,.14)",
+              border: `1px solid ${statusMessage === "pro_activated" ? "rgba(201,168,76,.4)" : "rgba(196,84,84,.4)"}`,
+              color: statusMessage === "pro_activated" ? "#E8CD7E" : "#D98A8A",
+              boxShadow: "0 8px 24px -8px rgba(0,0,0,.5)",
+            }}
+          >
+            {statusMessage === "pro_activated" ? t("common.pro_activated_banner") : t("common.pro_deactivated_banner")}
+          </div>
+        </div>
       )}
     </>
   );

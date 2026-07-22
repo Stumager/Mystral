@@ -343,7 +343,10 @@
     "refund_status_rejected": "Запрос на возврат отклонён",
     "refund_status_rejected_comment": "Комментарий",
     "refund_status_completed": "Возврат оформлен",
-    "refund_status_failed": "Возврат не удался — свяжитесь с поддержкой"
+    "refund_status_failed": "Возврат не удался — свяжитесь с поддержкой",
+    "refund_confirm_title": "Подтверждение возврата",
+    "refund_confirm_text": "Вы уверены, что хотите запросить возврат? После обработки возврата подписка Mystral Pro будет отменена.",
+    "refund_confirm_yes": "Да, запросить возврат"
   },
   "login": {
     "subtitle": "Эзотерическая платформа",
@@ -545,7 +548,9 @@
   "common": {
     "error": "Ошибка",
     "loading": "Загрузка...",
-    "open_profile": "Открыть профиль"
+    "open_profile": "Открыть профиль",
+    "pro_activated_banner": "Поздравляем — у вас Mystral Pro!",
+    "pro_deactivated_banner": "Ваша подписка Mystral Pro больше не активна"
   },
   "legal": {
     "privacy": "Политика конфиденциальности",

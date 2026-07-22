@@ -343,7 +343,10 @@
     "refund_status_rejected": "İade talebi reddedildi",
     "refund_status_rejected_comment": "Yorum",
     "refund_status_completed": "İade işlendi",
-    "refund_status_failed": "İade başarısız oldu — lütfen destek ile iletişime geçin"
+    "refund_status_failed": "İade başarısız oldu — lütfen destek ile iletişime geçin",
+    "refund_confirm_title": "İade talebini onayla",
+    "refund_confirm_text": "İade talep etmek istediğinizden emin misiniz? İade işlendikten sonra Mystral Pro aboneliğiniz iptal edilecektir.",
+    "refund_confirm_yes": "Evet, iade talep et"
   },
   "login": {
     "subtitle": "Ezoterik platform",
@@ -545,7 +548,9 @@
   "common": {
     "error": "Hata",
     "loading": "Yükleniyor...",
-    "open_profile": "Profili aç"
+    "open_profile": "Profili aç",
+    "pro_activated_banner": "Tebrikler — artık Mystral Pro'ya sahipsiniz!",
+    "pro_deactivated_banner": "Mystral Pro aboneliğiniz artık aktif değil"
   },
   "legal": {
     "privacy": "Gizlilik politikası",

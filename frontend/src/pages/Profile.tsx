@@ -77,11 +77,44 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const [refundLoading, setRefundLoading] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundStatus, setRefundStatus] = useState<{ status: string | null; admin_comment: string | null } | null>(null);
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false);
+  const refundStatusRef = useRef<string | null>(null);
+
+  useEffect(() => { refundStatusRef.current = refundStatus?.status ?? null; }, [refundStatus]);
 
   function loadRefundStatus() {
     if (!token) return;
     fetch("/api/v1/payments/refund-request/status", { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(setRefundStatus).catch(() => {});
+      .then(r => r.json())
+      .then((fresh: { status: string | null; admin_comment: string | null }) => {
+        const prevStatus = refundStatusRef.current;
+        setRefundStatus(fresh);
+        // QA-038: an admin can resolve a refund while the user isn't actively
+        // watching this screen — surface the transition explicitly instead of
+        // only updating the passive status line below, so it isn't silent.
+        if (prevStatus === "pending" && fresh.status && fresh.status !== "pending") {
+          const key = fresh.status === "completed" ? "profile.refund_status_completed"
+            : fresh.status === "rejected" ? "profile.refund_status_rejected"
+            : fresh.status === "failed" ? "profile.refund_status_failed" : null;
+          if (key) showToast(t(key));
+        }
+      })
+      .catch(() => {});
+  }
+
+  // QA-039: the request itself only fires after the user confirms in the
+  // dialog below — this used to run straight off the button's onClick.
+  async function submitRefundRequest() {
+    setShowRefundConfirm(false);
+    setRefundLoading(true);
+    try {
+      const res = await fetch("/api/v1/payments/refund-request", { method: "POST", headers: authHeaders(), body: JSON.stringify({ reason: refundReason || null }) });
+      const d = await res.json();
+      if (d.status === "sent") { showToast(t("profile.refund_sent")); setRefundReason(""); loadRefundStatus(); }
+      else if (d.status === "expired") showToast(t("profile.refund_expired"));
+      else showToast(d.message || d.detail || t("profile.refund_no_payment"));
+    } catch { showToast("Error"); }
+    finally { setRefundLoading(false); }
   }
 
   const setField = (field: string) =>
@@ -147,6 +180,21 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         .catch(() => {});
       loadRefundStatus();
     }
+  }, [token]);
+
+  // QA-038: re-check refund status when the user comes back to this tab,
+  // so a resolution reaches the UI without a manual reload.
+  useEffect(() => {
+    if (!token) return;
+    function onVisible() {
+      if (document.visibilityState === "visible") loadRefundStatus();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [token]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -462,17 +510,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                   style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#F0E9DA", fontSize: 13, padding: "0 12px", boxSizing: "border-box", outline: "none" }}
                 />
                 <button
-                  onClick={async () => {
-                    setRefundLoading(true);
-                    try {
-                      const res = await fetch("/api/v1/payments/refund-request", { method: "POST", headers: authHeaders(), body: JSON.stringify({ reason: refundReason || null }) });
-                      const d = await res.json();
-                      if (d.status === "sent") { showToast(t("profile.refund_sent")); setRefundReason(""); loadRefundStatus(); }
-                      else if (d.status === "expired") showToast(t("profile.refund_expired"));
-                      else showToast(d.message || d.detail || t("profile.refund_no_payment"));
-                    } catch { showToast("Error"); }
-                    finally { setRefundLoading(false); }
-                  }}
+                  onClick={() => setShowRefundConfirm(true)}
                   disabled={refundLoading}
                   style={{ width: "100%", height: 38, marginTop: 8, borderRadius: 12, border: "1px solid rgba(196,84,84,.3)", background: "transparent", color: "#D98A8A", fontSize: 13, cursor: "pointer" }}
                 >
@@ -770,6 +808,30 @@ export function Profile({ onNavigate }: ProfilePageProps) {
         </Card>
 
       </main>
+
+      {/* Refund confirmation modal (QA-039) */}
+      {showRefundConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 100, background: "rgba(0,0,0,.7)", backdropFilter: "blur(8px)" }} onClick={e => e.target === e.currentTarget && setShowRefundConfirm(false)}>
+          <div style={{ padding: 28, borderRadius: 22, maxWidth: 400, width: "90%", background: "linear-gradient(155deg,rgba(20,8,8,.95),rgba(10,4,4,.98))", border: "1px solid rgba(196,84,84,.3)" }}>
+            <h3 className="font-cormorant" style={{ fontSize: 28, color: "#D98A8A" }}>{t("profile.refund_confirm_title")}</h3>
+            <p style={{ fontSize: 14, color: "#A89E8B", lineHeight: 1.7, margin: "12px 0 20px" }}>
+              {t("profile.refund_confirm_text")}
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Button variant="ghost" size="sm" className="flex-1" onClick={() => setShowRefundConfirm(false)}>
+                {t("profile.cancel")}
+              </Button>
+              <button
+                disabled={refundLoading}
+                onClick={submitRefundRequest}
+                style={{ flex: 1, height: 38, borderRadius: 12, border: "1px solid rgba(196,84,84,.4)", background: "rgba(196,84,84,.15)", color: "#D98A8A", fontSize: 13, fontWeight: 600, cursor: refundLoading ? "not-allowed" : "pointer", opacity: refundLoading ? 0.45 : 1 }}
+              >
+                {refundLoading ? "..." : t("profile.refund_confirm_yes")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete account modal */}
       {showDeleteModal && (
