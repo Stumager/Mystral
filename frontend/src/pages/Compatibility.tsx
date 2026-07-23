@@ -39,12 +39,12 @@ function SynastryAspects({ aspects, lang }: { aspects: SynAspect[]; lang: string
   );
 }
 
-function OverallScores({ scores, lang, labels, colorFn }: { scores: Record<string, number>; lang: string; labels: Record<string, [string, string]>; colorFn: (s: number) => string }) {
+function OverallScores({ scores, labels, colorFn }: { scores: Record<string, number>; labels: Record<string, string>; colorFn: (s: number) => string }) {
   return (
     <div className="mt-3 flex flex-col gap-1.5">
       {Object.entries(scores).map(([k, v]) => (
         <div key={k} className="flex items-center justify-between text-xs">
-          <span className="text-text-muted">{labels[k]?.[lang === "ru" ? 0 : 1] ?? k}</span>
+          <span className="text-text-muted">{labels[k] ?? k}</span>
           <span style={{ color: colorFn(v) }}>{v}%</span>
         </div>
       ))}
@@ -200,13 +200,12 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
   }
 
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
-  const typeLabels: Record<string, [string, string]> = {
-    signs: ["По знакам", "By Signs"], elements: ["По стихиям", "By Elements"],
-    numerology: ["Нумерология", "Numerology"], chinese: ["Китайский", "Chinese"],
-    moon: ["Лунная", "Moon"], synastry: ["Синастрия", "Synastry"],
-    composite: ["Композитная карта", "Composite Chart"],
-    overall: ["Полный анализ", "Full Analysis"],
-  };
+  // QA-011: was a [ru, en] tuple picked by `lang === "ru" ? 0 : 1`, so
+  // es/pt/tr/uk always got the English label. Resolve through i18n instead.
+  const COMPAT_TYPE_IDS = ["signs", "elements", "numerology", "chinese", "moon", "synastry", "composite", "overall"];
+  const typeLabels: Record<string, string> = Object.fromEntries(
+    COMPAT_TYPE_IDS.map(id => [id, t(`compat.types.${id}`)]),
+  );
 
   function scoreColor(s: number) { return s >= 70 ? "#4ade80" : s >= 40 ? "#C9A84C" : "#f87171"; }
 
@@ -316,7 +315,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               <p style={{ fontSize: 12, color: "#8A8170", marginTop: 2 }}>{lang === "ru" ? selectedPartner.zodiac_sign_ru : selectedPartner.zodiac_sign}</p>
             </div>
 
-            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{lang === "ru" ? "Выбери тип анализа" : "Choose analysis type"}</p>
+            <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("compat.choose_type")}</p>
 
             <div className="flex flex-col gap-2">
               {COMPAT_TYPES.map(ct => (
@@ -325,7 +324,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
                   onClick={() => runCompat(ct.id)}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 14, color: "#C9A84C", fontWeight: 600, width: 20, textAlign: "center" }}>{ct.icon}</span>
-                    <span className="text-text-primary text-xs">{typeLabels[ct.id]?.[lang === "ru" ? 0 : 1] ?? ct.id}</span>
+                    <span className="text-text-primary text-xs">{typeLabels[ct.id] ?? ct.id}</span>
                     {ct.tier === "pro" && user?.tier !== "pro" && (
                       <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
                     )}
@@ -346,7 +345,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
             {/* Score */}
             <div className="flex flex-col items-center gap-3">
               <p className="font-cormorant text-text-primary" style={{ fontSize: 22, color: "#F0E9DA" }}>{result.partner_name}</p>
-              <p className="text-text-faint text-xs">{typeLabels[result.type]?.[lang === "ru" ? 0 : 1]}</p>
+              <p className="text-text-faint text-xs">{typeLabels[result.type]}</p>
               <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
                   <div style={{ width: `${result.score}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8A6E2E,#E8CD7E)", boxShadow: "0 0 12px rgba(201,168,76,.3)" }} />
@@ -395,7 +394,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               ) : null}
 
               {result.type === "overall" && result.scores ? (
-                <OverallScores scores={result.scores as Record<string, number>} lang={lang} labels={typeLabels} colorFn={scoreColor} />
+                <OverallScores scores={result.scores as Record<string, number>} labels={typeLabels} colorFn={scoreColor} />
               ) : null}
             </div>
 
@@ -419,7 +418,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
             </button>
 
             <Button variant="ghost" className="w-full" onClick={() => { setStep("types"); setResult(null); setInterpretation(""); setShowShareCard(false); }}>
-              {lang === "ru" ? "Другой анализ" : "Another analysis"}
+              {t("compat.another_analysis")}
             </Button>
           </div>
         )}
@@ -441,7 +440,7 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
         <ShareCard
           type="compat"
           title={result.partner_name}
-          subtitle={typeLabels[result.type]?.[lang === "ru" ? 0 : 1]}
+          subtitle={typeLabels[result.type]}
           score={result.score}
           scoreLabel={result.description}
           onClose={() => setShowShareCard(false)}

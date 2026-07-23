@@ -20,7 +20,7 @@ interface HouseData { number: number; sign: string; sign_ru: string; sign_local:
 interface AspectData {
   planet1: string; planet2: string; planet1_ru: string; planet2_ru: string;
   planet1_en: string; planet2_en: string; planet1_local: string; planet2_local: string;
-  type: string; name_ru: string; name_en: string; symbol: string; orb: number; harmony: boolean;
+  type: string; name_ru: string; name_en: string; name_local: string; symbol: string; orb: number; harmony: boolean;
 }
 interface Stellium {
   type: string; name_ru: string; name_en: string; name_local: string;
@@ -206,9 +206,13 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const elLabels: Record<string, string> = lang === "ru"
     ? { fire: "Огонь", earth: "Земля", air: "Воздух", water: "Вода" }
     : { fire: "Fire", earth: "Earth", air: "Air", water: "Water" };
-  const sectionLabels: Record<Section, string> = lang === "ru"
-    ? { personality: "Личность", planets: "Планеты", houses: "Дома", aspects: "Аспекты", transits: "Транзиты" }
-    : { personality: "Personality", planets: "Planets", houses: "Houses", aspects: "Aspects", transits: "Transits" };
+  const sectionLabels: Record<Section, string> = {
+    personality: t("natal.sections.personality"),
+    planets: t("natal.sections.planets"),
+    houses: t("natal.sections.houses"),
+    aspects: t("natal.sections.aspects"),
+    transits: t("natal.sections.transits"),
+  };
 
   const bigThreeForShare = chart ? [
     { label: chart.planets[0].name_local, sign: chart.planets[0].sign_local, degree: chart.planets[0].degree },
@@ -442,7 +446,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                       <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
                         <span className="text-text-muted">{a.planet1_local} {a.symbol} {a.planet2_local}</span>
                         <span style={{ color: aspectColor }}>
-                          {lang === "ru" ? a.name_ru : a.name_en} <span className="text-text-faint">{a.orb}°</span>
+                          {a.name_local} <span className="text-text-faint">{a.orb}°</span>
                         </span>
                       </div>
                     );

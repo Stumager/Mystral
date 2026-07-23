@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getZodiacSign } from "../../utils/zodiac";
+import { getZodiacSign, signLabel } from "../../utils/zodiac";
 import { Logo } from "../Logo";
 
 interface Props {
@@ -23,7 +23,6 @@ const NAV_ITEMS = [
 export function DesktopSidebar({ activePage, onNavigate }: Props) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
-  const ru = (user?.lang ?? "ru") === "ru";
   const isPro = user?.tier === "pro";
   const firstLetter = (user?.name ?? "?")[0]?.toUpperCase() ?? "?";
 
@@ -38,7 +37,7 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
       .then(d => {
         if (d.birth_date) {
           const z = getZodiacSign(d.birth_date);
-          setZodiacLabel(ru ? z.sign : z.en);
+          setZodiacLabel(signLabel(z, user?.lang ?? "ru"));
         }
       }).catch(() => {});
   }, [token]);

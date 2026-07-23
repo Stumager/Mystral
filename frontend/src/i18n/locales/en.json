@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Personality",
+      "planets": "Planets",
+      "houses": "Houses",
+      "aspects": "Aspects",
+      "transits": "Transits"
+    },
     "title": "Natal Chart",
     "subtitle": "Enter birth data to calculate your chart",
     "name": "Name",
@@ -420,7 +427,17 @@
     "recommendations": "Daily recommendations",
     "calendar": "Lunar calendar",
     "loading": "Loading...",
-    "weekdays": "Mo,Tu,We,Th,Fr,Sa,Su"
+    "weekdays": "Mo,Tu,We,Th,Fr,Sa,Su",
+    "hecate_warning": "Hecate Day — be careful",
+    "favorable": "Favorable",
+    "avoid": "Avoid",
+    "upcoming_events": "Upcoming Events",
+    "today_excl": "Today!",
+    "in_days": "in {{count}} days",
+    "day_stones": "Day Stones",
+    "ai_recommendation": "AI Recommendation",
+    "ask_placeholder": "Ask the lunar calendar...",
+    "get_recommendation": "Get recommendation"
   },
   "compat": {
     "title": "Compatibility",
@@ -442,7 +459,18 @@
     "choose_type": "Choose analysis type",
     "add_partner": "Add partner",
     "your_partners": "Your partners",
-    "partner_added": "Partner added"
+    "partner_added": "Partner added",
+    "types": {
+      "signs": "By Signs",
+      "elements": "By Elements",
+      "numerology": "Numerology",
+      "chinese": "Chinese",
+      "moon": "Moon",
+      "synastry": "Synastry",
+      "composite": "Composite Chart",
+      "overall": "Full Analysis"
+    },
+    "another_analysis": "Another analysis"
   },
   "numerology": {
     "title": "Numerology",
@@ -480,7 +508,10 @@
     "get_interpretation": "Full interpretation",
     "reading": "Analyzing...",
     "error": "Error. Try again.",
-    "back": "New calculation"
+    "back": "New calculation",
+    "enter_name_title": "Enter full name",
+    "name_example": "John Smith",
+    "life_path_number": "Life Path Number"
   },
   "runes": {
     "title": "Runes",

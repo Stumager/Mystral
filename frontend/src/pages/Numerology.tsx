@@ -53,7 +53,6 @@ export function Numerology({ onNavigate }: NumerologyProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
   const lang = user?.lang ?? "ru";
-  const ru = lang === "ru";
 
   const [profile, setProfile] = useState<NumerologyProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +79,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
     fetch("/api/v1/numerology/profile", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d: NumerologyProfile) => { setProfile(d); setLoading(false); })
-      .catch(() => { setError(ru ? "Заполни дату рождения в профиле" : "Set your birth date in profile"); setLoading(false); });
+      .catch(() => { setError(t("numerology.set_birth_date")); setLoading(false); });
   }, [token]);
 
   async function saveFullName() {
@@ -105,10 +104,10 @@ export function Numerology({ onNavigate }: NumerologyProps) {
     setAngelLoading(true); setAngelResult(null);
     try {
       const r = await fetch(`/api/v1/numerology/angel/${encodeURIComponent(q)}?lang=${lang}`);
-      if (!r.ok) { setAngelResult(ru ? "Число не найдено" : "Number not found"); return; }
+      if (!r.ok) { setAngelResult(t("numerology.not_found")); return; }
       const d = await r.json();
       setAngelResult(d.meaning);
-    } catch { setAngelResult(ru ? "Ошибка" : "Error"); }
+    } catch { setAngelResult(t("numerology.error")); }
     finally { setAngelLoading(false); }
   }
 
@@ -122,23 +121,26 @@ export function Numerology({ onNavigate }: NumerologyProps) {
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setAiText(err.message || (ru ? "Ошибка" : "Error"));
+      else setAiText(err.message || t("numerology.error"));
       setAiLoading(false);
     }
   }
 
   const inputCls = "w-full bg-bg-surface border border-border-subtle rounded-xl px-3 py-2.5 text-text-primary text-sm placeholder:text-text-faint focus:outline-none focus:border-violet-600 transition-colors";
 
-  const aiLabels: Record<AISection, string> = ru
-    ? { core: "Характер", square: "Квадрат", forecast: "Прогноз", karmic: "Карма" }
-    : { core: "Character", square: "Square", forecast: "Forecast", karmic: "Karma" };
+  const aiLabels: Record<AISection, string> = {
+    core: t("numerology.character"),
+    square: t("numerology.square"),
+    forecast: t("numerology.forecast"),
+    karmic: t("numerology.karma"),
+  };
 
   function NumberCard({ entry, label, locked }: { entry: NumEntry | null; label: string; locked?: boolean }) {
     if (!entry) return (
       <div className="relative overflow-hidden" style={{ padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
         <p className="font-cinzel uppercase mb-1" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{label}</p>
         <p className="font-cormorant text-center text-text-faint my-1" style={{ fontSize: 42 }}>--</p>
-        <p className="text-text-faint text-[10px] text-center">{ru ? "Введи полное имя" : "Enter full name"}</p>
+        <p className="text-text-faint text-[10px] text-center">{t("numerology.enter_name_title")}</p>
       </div>
     );
     if (locked) return (
@@ -177,7 +179,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
           <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
             <p className="text-text-muted text-sm text-center">{error}</p>
             <Button variant="primary" size="sm" className="w-full mt-3" onClick={() => onNavigate("profile")}>
-              {ru ? "Открыть профиль" : "Open profile"}
+              {t("numerology.open_profile")}
             </Button>
           </div>
         ) : profile ? (
@@ -186,11 +188,11 @@ export function Numerology({ onNavigate }: NumerologyProps) {
             {profile.requires_full_name && (
               <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
                 <p className="text-text-muted text-xs mb-2">
-                  {ru ? "Для полного анализа введи полное имя (имя + фамилия)" : "For full analysis enter your full name"}
+                  {t("numerology.enter_full_name")}
                 </p>
                 <div className="flex gap-2">
                   <input className={inputCls + " flex-1"} value={fullNameInput} onChange={e => setFullNameInput(e.target.value)}
-                    placeholder={ru ? "Иванов Иван" : "John Smith"} />
+                    placeholder={t("numerology.name_example")} />
                   <Button variant="primary" size="sm" onClick={saveFullName} disabled={savingName || !fullNameInput.trim()}>
                     {savingName ? "..." : "OK"}
                   </Button>
@@ -201,22 +203,22 @@ export function Numerology({ onNavigate }: NumerologyProps) {
             {/* Block 1: Main numbers grid */}
             <div>
               <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {ru ? "Главные числа" : "Core Numbers"}
+                {t("numerology.core_numbers")}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <NumberCard entry={profile.life_path} label={ru ? "Жизненный путь" : "Life Path"} />
-                <NumberCard entry={profile.destiny} label={ru ? "Число Судьбы" : "Destiny"} />
-                <NumberCard entry={profile.soul} label={ru ? "Число Души" : "Soul"} />
-                <NumberCard entry={profile.personality} label={ru ? "Число Личности" : "Personality"} />
-                <NumberCard entry={profile.birthday} label={ru ? "День рождения" : "Birthday"} />
-                <NumberCard entry={profile.personal_year} label={ru ? "Персональный год" : "Personal Year"} />
+                <NumberCard entry={profile.life_path} label={t("numerology.life_path")} />
+                <NumberCard entry={profile.destiny} label={t("numerology.destiny")} />
+                <NumberCard entry={profile.soul} label={t("numerology.soul")} />
+                <NumberCard entry={profile.personality} label={t("numerology.personality")} />
+                <NumberCard entry={profile.birthday} label={t("numerology.birthday")} />
+                <NumberCard entry={profile.personal_year} label={t("numerology.personal_year")} />
               </div>
             </div>
 
             {/* Block 2: Pythagoras Square */}
             <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {ru ? "Квадрат Пифагора" : "Pythagoras Square"}
+                {t("numerology.pythagoras")}
               </p>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => {
@@ -241,7 +243,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
               {profile.pythagoras_square.lines.filter(l => l.filled).length > 0 && (
                 <div className="flex flex-col gap-1">
                   <p className="font-cinzel uppercase mb-1" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                    {ru ? "Сильные линии" : "Strong Lines"}
+                    {t("numerology.strong_lines")}
                   </p>
                   {profile.pythagoras_square.lines.filter(l => l.filled).map((l, i) => (
                     <div key={i} className="flex items-start gap-2">
@@ -259,13 +261,13 @@ export function Numerology({ onNavigate }: NumerologyProps) {
             {/* Block 3: Forecast */}
             <div>
               <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {ru ? "Прогноз" : "Forecast"}
+                {t("numerology.forecast")}
               </p>
               <div className="flex flex-col gap-2">
                 {[
-                  { e: profile.personal_year, l: ru ? "Персональный год" : "Personal Year" },
-                  { e: profile.personal_month, l: ru ? "Персональный месяц" : "Personal Month" },
-                  { e: profile.personal_day, l: ru ? "Персональный день" : "Personal Day" },
+                  { e: profile.personal_year, l: t("numerology.personal_year") },
+                  { e: profile.personal_month, l: t("numerology.personal_month") },
+                  { e: profile.personal_day, l: t("numerology.personal_day") },
                 ].map(({ e, l }) => (
                   <div key={l} className="flex items-center gap-3 px-3 py-2.5"
                     style={{ borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
@@ -287,7 +289,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                 {profile.karmic_numbers.length > 0 && (
                   <>
                     <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                      {ru ? "Кармические числа" : "Karmic Numbers"}
+                      {t("numerology.karmic")}
                     </p>
                     <div className="flex flex-col gap-2 mb-3">
                       {profile.karmic_numbers.map(k => (
@@ -295,7 +297,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                           style={{ borderRadius: 16, background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)" }}>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-cormorant" style={{ fontSize: 28, color: "#f87171" }}>{k.number}</span>
-                            <span className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{ru ? "Кармический долг" : "Karmic Debt"}</span>
+                            <span className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{t("numerology.karmic_debt")}</span>
                           </div>
                           <p className="text-text-muted text-[10px] leading-relaxed">{k.description}</p>
                         </div>
@@ -306,7 +308,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                 {profile.missing_numbers.length > 0 && (
                   <>
                     <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                      {ru ? "Что развивать" : "Areas to Develop"}
+                      {t("numerology.missing")}
                     </p>
                     <div className="flex gap-2 flex-wrap mb-2">
                       {profile.missing_numbers.map(n => (
@@ -324,10 +326,10 @@ export function Numerology({ onNavigate }: NumerologyProps) {
             {/* Block 5: Angel Numbers */}
             <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
               <p className="font-cinzel uppercase mb-2" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {ru ? "Ангельская нумерология" : "Angel Numerology"}
+                {t("numerology.angel")}
               </p>
               <p className="text-text-muted text-[10px] mb-2">
-                {ru ? "Введи число которое часто видишь (11:11, 444...)" : "Enter a number you often see (11:11, 444...)"}
+                {t("numerology.angel_hint")}
               </p>
               <div className="flex gap-2 mb-2">
                 <input
@@ -347,7 +349,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
             {/* Block 6: AI Interpretation */}
             <div style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {ru ? "AI интерпретация" : "AI Interpretation"}
+                {t("numerology.ai_interpretation")}
               </p>
               <div className="flex gap-1 mb-3">
                 {AI_SECTIONS.map(s => (
@@ -388,7 +390,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
       {showShareCard && profile && (
         <ShareCard
           type="numerology"
-          title={ru ? "Число жизненного пути" : "Life Path Number"}
+          title={t("numerology.life_path_number")}
           number={profile.life_path.number}
           numberLabel={profile.life_path.data?.title}
           onClose={() => setShowShareCard(false)}

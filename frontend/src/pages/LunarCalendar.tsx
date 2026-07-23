@@ -160,7 +160,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               <p className="text-text-muted text-xs leading-relaxed">{today.day_desc}</p>
               {today.energy === "hecat" && (
                 <p className="text-xs mt-2" style={{ color: "#ef4444" }}>
-                  {"⚠"} {lang === "ru" ? "День Гекаты — будьте осторожны" : "Hecate Day — be careful"}
+                  {"⚠"} {t("lunar.hecate_warning")}
                 </p>
               )}
             </div>
@@ -177,7 +177,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#4ade80", marginBottom: 8 }}>
-                    {"✓"} {lang === "ru" ? "Благоприятно" : "Favorable"}
+                    {"✓"} {t("lunar.favorable")}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {today.favorable.map(f => (
@@ -187,7 +187,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 </div>
                 <div>
                   <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#f87171", marginBottom: 8 }}>
-                    {"✗"} {lang === "ru" ? "Избегать" : "Avoid"}
+                    {"✗"} {t("lunar.avoid")}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {today.unfavorable.map(f => (
@@ -267,7 +267,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
             {today.upcoming_events && today.upcoming_events.length > 0 && (
               <div>
                 <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
-                  {lang === "ru" ? "Ближайшие события" : "Upcoming Events"}
+                  {t("lunar.upcoming_events")}
                 </p>
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {today.upcoming_events.map((ev, i) => {
@@ -289,8 +289,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                         </div>
                         <p className="text-text-faint text-[9px]">{ev.date}</p>
                         <p className="text-[9px]" style={{ color: isToday ? "#C9A84C" : isSoon ? "#E8CD7E" : "#9B8FBB" }}>
-                          {isToday ? (lang === "ru" ? "Сегодня!" : "Today!")
-                            : lang === "ru" ? `через ${ev.days_until} дн.` : `in ${ev.days_until} days`}
+                          {isToday ? t("lunar.today_excl") : t("lunar.in_days", { count: ev.days_until })}
                         </p>
                       </div>
                     );
@@ -309,7 +308,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               }}
             >
               <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 8 }}>
-                {"♦"} {lang === "ru" ? "Камни дня" : "Day Stones"}
+                {"♦"} {t("lunar.day_stones")}
               </p>
               <p className="text-text-muted text-xs">{today.stones}</p>
             </div>
@@ -367,18 +366,18 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               }}
             >
               <p className="font-cinzel uppercase" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C", marginBottom: 12 }}>
-                {lang === "ru" ? "AI рекомендация" : "AI Recommendation"}
+                {t("lunar.ai_recommendation")}
                 {user?.tier !== "pro" && <span className="ml-1" style={{ color: "#C9A84C" }}>Pro</span>}
               </p>
               <input className={inputCls + " mb-2"} value={question} onChange={e => setQuestion(e.target.value)}
-                placeholder={lang === "ru" ? "Задай вопрос лунному календарю..." : "Ask the lunar calendar..."} />
+                placeholder={t("lunar.ask_placeholder")} />
               {aiText ? (
                 <p className="text-text-muted text-xs leading-relaxed mb-2">
                   {aiText}{aiLoading && <span className="animate-pulse">{"▍"}</span>}
                 </p>
               ) : null}
               <Button variant="primary" size="sm" className="w-full" style={{ borderRadius: 14 }} onClick={handleAI} disabled={aiLoading}>
-                {aiLoading ? "..." : (lang === "ru" ? "Получить рекомендацию" : "Get recommendation")}
+                {aiLoading ? "..." : t("lunar.get_recommendation")}
               </Button>
             </div>
           </>

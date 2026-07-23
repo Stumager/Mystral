@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Kişilik",
+      "planets": "Gezegenler",
+      "houses": "Evler",
+      "aspects": "Açılar",
+      "transits": "Transitler"
+    },
     "title": "Doğum haritası",
     "subtitle": "Haritayı hesaplamak için doğum bilgilerini gir",
     "name": "İsim",
@@ -420,7 +427,17 @@
     "recommendations": "Günün önerileri",
     "calendar": "Ay takvimi",
     "loading": "Yükleniyor...",
-    "weekdays": "Pzt,Sal,Çar,Per,Cum,Cmt,Paz"
+    "weekdays": "Pzt,Sal,Çar,Per,Cum,Cmt,Paz",
+    "hecate_warning": "Hekate Günü — dikkatli olun",
+    "favorable": "Elverişli",
+    "avoid": "Kaçının",
+    "upcoming_events": "Yaklaşan olaylar",
+    "today_excl": "Bugün!",
+    "in_days": "{{count}} gün içinde",
+    "day_stones": "Günün taşları",
+    "ai_recommendation": "AI önerisi",
+    "ask_placeholder": "Ay takvimine sor...",
+    "get_recommendation": "Öneri al"
   },
   "compat": {
     "title": "Uyumluluk",
@@ -442,7 +459,18 @@
     "choose_type": "Analiz türünü seç",
     "add_partner": "Partner ekle",
     "your_partners": "Partnerlerin",
-    "partner_added": "Partner eklendi"
+    "partner_added": "Partner eklendi",
+    "types": {
+      "signs": "Burçlara göre",
+      "elements": "Elementlere göre",
+      "numerology": "Numeroloji",
+      "chinese": "Çin",
+      "moon": "Ay",
+      "synastry": "Sinastri",
+      "composite": "Bileşik harita",
+      "overall": "Tam analiz"
+    },
+    "another_analysis": "Başka analiz"
   },
   "numerology": {
     "title": "Numeroloji",
@@ -480,7 +508,10 @@
     "get_interpretation": "Tam yorum",
     "reading": "Analiz ediliyor...",
     "error": "Hata. Tekrar dene.",
-    "back": "Yeni hesaplama"
+    "back": "Yeni hesaplama",
+    "enter_name_title": "Tam adını gir",
+    "name_example": "Ahmet Yılmaz",
+    "life_path_number": "Yaşam yolu sayısı"
   },
   "runes": {
     "title": "Runlar",

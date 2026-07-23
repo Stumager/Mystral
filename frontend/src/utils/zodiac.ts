@@ -29,3 +29,21 @@ export function getZodiacSign(birthDate: string): ZodiacInfo {
   }
   return { sign: "Козерог", symbol: "♑", en: "Capricorn" };
 }
+
+// QA-008: the sign name used to render as `ru ? sign : en`, so es/pt/tr/uk
+// showed the English name ("Scorpio") right next to a correctly-translated
+// element/quality. These mirror the backend's canonical names (horoscope.py
+// SIGNS_I18N); keyed by the English name that getZodiacSign already returns.
+const SIGN_NAMES_I18N: Record<string, Record<string, string>> = {
+  es: { Aries: "Aries", Taurus: "Tauro", Gemini: "Géminis", Cancer: "Cáncer", Leo: "Leo", Virgo: "Virgo", Libra: "Libra", Scorpio: "Escorpio", Sagittarius: "Sagitario", Capricorn: "Capricornio", Aquarius: "Acuario", Pisces: "Piscis" },
+  pt: { Aries: "Áries", Taurus: "Touro", Gemini: "Gêmeos", Cancer: "Câncer", Leo: "Leão", Virgo: "Virgem", Libra: "Libra", Scorpio: "Escorpião", Sagittarius: "Sagitário", Capricorn: "Capricórnio", Aquarius: "Aquário", Pisces: "Peixes" },
+  tr: { Aries: "Koç", Taurus: "Boğa", Gemini: "İkizler", Cancer: "Yengeç", Leo: "Aslan", Virgo: "Başak", Libra: "Terazi", Scorpio: "Akrep", Sagittarius: "Yay", Capricorn: "Oğlak", Aquarius: "Kova", Pisces: "Balık" },
+  uk: { Aries: "Овен", Taurus: "Телець", Gemini: "Близнюки", Cancer: "Рак", Leo: "Лев", Virgo: "Діва", Libra: "Терези", Scorpio: "Скорпіон", Sagittarius: "Стрілець", Capricorn: "Козеріг", Aquarius: "Водолій", Pisces: "Риби" },
+};
+
+/** Zodiac sign name in the active UI language (ru/en inline, others mapped). */
+export function signLabel(info: ZodiacInfo, lang: string): string {
+  if (lang === "ru") return info.sign;
+  if (lang === "en") return info.en;
+  return SIGN_NAMES_I18N[lang]?.[info.en] ?? info.en;
+}

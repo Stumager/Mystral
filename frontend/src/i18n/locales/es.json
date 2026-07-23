@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Personalidad",
+      "planets": "Planetas",
+      "houses": "Casas",
+      "aspects": "Aspectos",
+      "transits": "Tránsitos"
+    },
     "title": "Carta natal",
     "subtitle": "Introduce tus datos de nacimiento para calcular la carta",
     "name": "Nombre",
@@ -420,7 +427,17 @@
     "recommendations": "Recomendaciones del día",
     "calendar": "Calendario lunar",
     "loading": "Cargando...",
-    "weekdays": "lun,mar,mié,jue,vie,sáb,dom"
+    "weekdays": "lun,mar,mié,jue,vie,sáb,dom",
+    "hecate_warning": "Día de Hécate — ten cuidado",
+    "favorable": "Favorable",
+    "avoid": "Evitar",
+    "upcoming_events": "Próximos eventos",
+    "today_excl": "¡Hoy!",
+    "in_days": "en {{count}} días",
+    "day_stones": "Piedras del día",
+    "ai_recommendation": "Recomendación IA",
+    "ask_placeholder": "Pregunta al calendario lunar...",
+    "get_recommendation": "Obtener recomendación"
   },
   "compat": {
     "title": "Compatibilidad",
@@ -442,7 +459,18 @@
     "choose_type": "Elige el tipo de análisis",
     "add_partner": "Añadir pareja",
     "your_partners": "Tus parejas",
-    "partner_added": "Pareja añadida"
+    "partner_added": "Pareja añadida",
+    "types": {
+      "signs": "Por signos",
+      "elements": "Por elementos",
+      "numerology": "Numerología",
+      "chinese": "Chino",
+      "moon": "Lunar",
+      "synastry": "Sinastría",
+      "composite": "Carta compuesta",
+      "overall": "Análisis completo"
+    },
+    "another_analysis": "Otro análisis"
   },
   "numerology": {
     "title": "Numerología",
@@ -480,7 +508,10 @@
     "get_interpretation": "Interpretación completa",
     "reading": "Analizando...",
     "error": "Error. Inténtalo de nuevo.",
-    "back": "Nuevo cálculo"
+    "back": "Nuevo cálculo",
+    "enter_name_title": "Ingresa tu nombre completo",
+    "name_example": "Juan Pérez",
+    "life_path_number": "Número del camino de vida"
   },
   "runes": {
     "title": "Runas",

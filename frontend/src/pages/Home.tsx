@@ -5,7 +5,7 @@ import { PaywallSheet } from "../components/PaywallSheet";
 import { ZodiacGlyph } from "../components/ZodiacGlyph";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
-import { getZodiacSign, ZodiacInfo } from "../utils/zodiac";
+import { getZodiacSign, signLabel, ZodiacInfo } from "../utils/zodiac";
 
 interface HomeProps { onNavigate: (page: string) => void; }
 
@@ -57,7 +57,6 @@ export function Home({ onNavigate }: HomeProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
   const lang = user?.lang ?? "ru";
-  const ru = lang === "ru";
 
   const [horoscope, setHoroscope] = useState("");
   const [horoscopeLoading, setHoroscopeLoading] = useState(true);
@@ -96,7 +95,7 @@ export function Home({ onNavigate }: HomeProps) {
     load();
   }, []);
 
-  const zodiacLabel = zodiac ? (ru ? zodiac.sign : zodiac.en) : null;
+  const zodiacLabel = zodiac ? signLabel(zodiac, lang) : null;
   const userSign = zodiac?.en ?? "Leo";
   const meta = zodiac ? ZODIAC_META[zodiac.en] : null;
   const isPro = user?.tier === "pro";

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getZodiacSign } from "../../utils/zodiac";
+import { getZodiacSign, signLabel } from "../../utils/zodiac";
 
 interface LunarInfo {
   lunar_day: number;
@@ -34,7 +34,7 @@ export function RightPanel() {
   }, []);
 
   const zodiac = birthDate ? getZodiacSign(birthDate) : null;
-  const zodiacLabel = zodiac ? (user?.lang === "en" ? zodiac.en : zodiac.sign) : null;
+  const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
 
   return (
     <aside

@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Особистість",
+      "planets": "Планети",
+      "houses": "Доми",
+      "aspects": "Аспекти",
+      "transits": "Транзити"
+    },
     "title": "Натальна карта",
     "subtitle": "Введіть дані народження для розрахунку карти",
     "name": "Ім'я",
@@ -420,7 +427,17 @@
     "recommendations": "Рекомендації дня",
     "calendar": "Місячний календар",
     "loading": "Завантаження...",
-    "weekdays": "пн,вт,ср,чт,пт,сб,нд"
+    "weekdays": "пн,вт,ср,чт,пт,сб,нд",
+    "hecate_warning": "День Гекати — будьте обережні",
+    "favorable": "Сприятливо",
+    "avoid": "Уникати",
+    "upcoming_events": "Найближчі події",
+    "today_excl": "Сьогодні!",
+    "in_days": "через {{count}} дн.",
+    "day_stones": "Камені дня",
+    "ai_recommendation": "AI рекомендація",
+    "ask_placeholder": "Запитай місячний календар...",
+    "get_recommendation": "Отримати рекомендацію"
   },
   "compat": {
     "title": "Сумісність",
@@ -442,7 +459,18 @@
     "choose_type": "Оберіть тип аналізу",
     "add_partner": "Додати партнера",
     "your_partners": "Ваші партнери",
-    "partner_added": "Партнера додано"
+    "partner_added": "Партнера додано",
+    "types": {
+      "signs": "За знаками",
+      "elements": "За стихіями",
+      "numerology": "Нумерологія",
+      "chinese": "Китайський",
+      "moon": "Місячна",
+      "synastry": "Синастрія",
+      "composite": "Композитна карта",
+      "overall": "Повний аналіз"
+    },
+    "another_analysis": "Інший аналіз"
   },
   "numerology": {
     "title": "Нумерологія",
@@ -480,7 +508,10 @@
     "get_interpretation": "Повна інтерпретація",
     "reading": "Аналізую...",
     "error": "Помилка. Спробуйте ще раз.",
-    "back": "Новий розрахунок"
+    "back": "Новий розрахунок",
+    "enter_name_title": "Введи повне ім'я",
+    "name_example": "Іван Іваненко",
+    "life_path_number": "Число життєвого шляху"
   },
   "runes": {
     "title": "Руни",

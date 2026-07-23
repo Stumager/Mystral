@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Personalidade",
+      "planets": "Planetas",
+      "houses": "Casas",
+      "aspects": "Aspectos",
+      "transits": "Trânsitos"
+    },
     "title": "Mapa natal",
     "subtitle": "Insira os dados de nascimento para calcular o mapa",
     "name": "Nome",
@@ -420,7 +427,17 @@
     "recommendations": "Recomendações do dia",
     "calendar": "Calendário lunar",
     "loading": "Carregando...",
-    "weekdays": "seg,ter,qua,qui,sex,sáb,dom"
+    "weekdays": "seg,ter,qua,qui,sex,sáb,dom",
+    "hecate_warning": "Dia de Hécate — tenha cuidado",
+    "favorable": "Favorável",
+    "avoid": "Evitar",
+    "upcoming_events": "Próximos eventos",
+    "today_excl": "Hoje!",
+    "in_days": "em {{count}} dias",
+    "day_stones": "Pedras do dia",
+    "ai_recommendation": "Recomendação IA",
+    "ask_placeholder": "Pergunte ao calendário lunar...",
+    "get_recommendation": "Obter recomendação"
   },
   "compat": {
     "title": "Compatibilidade",
@@ -442,7 +459,18 @@
     "choose_type": "Escolha o tipo de análise",
     "add_partner": "Adicionar parceiro(a)",
     "your_partners": "Seus parceiros",
-    "partner_added": "Parceiro(a) adicionado(a)"
+    "partner_added": "Parceiro(a) adicionado(a)",
+    "types": {
+      "signs": "Por signos",
+      "elements": "Por elementos",
+      "numerology": "Numerologia",
+      "chinese": "Chinês",
+      "moon": "Lunar",
+      "synastry": "Sinastria",
+      "composite": "Mapa composto",
+      "overall": "Análise completa"
+    },
+    "another_analysis": "Outra análise"
   },
   "numerology": {
     "title": "Numerologia",
@@ -480,7 +508,10 @@
     "get_interpretation": "Interpretação completa",
     "reading": "Analisando...",
     "error": "Erro. Tente novamente.",
-    "back": "Novo cálculo"
+    "back": "Novo cálculo",
+    "enter_name_title": "Digite o nome completo",
+    "name_example": "João Silva",
+    "life_path_number": "Número do caminho de vida"
   },
   "runes": {
     "title": "Runas",

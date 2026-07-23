@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getZodiacSign, ZodiacInfo } from "../../utils/zodiac";
+import { getZodiacSign, signLabel, ZodiacInfo } from "../../utils/zodiac";
 import { ZodiacGlyph } from "../ZodiacGlyph";
 
 interface LunarData {
@@ -11,7 +11,6 @@ interface LunarData {
 export function DesktopRightPanel() {
   const { t } = useTranslation();
   const { user, token } = useAuth();
-  const ru = (user?.lang ?? "ru") === "ru";
   const isPro = user?.tier === "pro";
 
   const [lunar, setLunar] = useState<LunarData | null>(null);
@@ -30,7 +29,7 @@ export function DesktopRightPanel() {
     }
   }, []);
 
-  const zodiacLabel = zodiac ? (ru ? zodiac.sign : zodiac.en) : null;
+  const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
   const userSign = zodiac?.en ?? "Leo";
 
   return (

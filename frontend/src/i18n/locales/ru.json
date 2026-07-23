@@ -222,6 +222,13 @@
     }
   },
   "natal": {
+    "sections": {
+      "personality": "Личность",
+      "planets": "Планеты",
+      "houses": "Дома",
+      "aspects": "Аспекты",
+      "transits": "Транзиты"
+    },
     "title": "Натальная карта",
     "subtitle": "Введи данные рождения для расчёта карты",
     "name": "Имя",
@@ -420,7 +427,17 @@
     "recommendations": "Рекомендации дня",
     "calendar": "Лунный календарь",
     "loading": "Загрузка...",
-    "weekdays": "пн,вт,ср,чт,пт,сб,вс"
+    "weekdays": "пн,вт,ср,чт,пт,сб,вс",
+    "hecate_warning": "День Гекаты — будьте осторожны",
+    "favorable": "Благоприятно",
+    "avoid": "Избегать",
+    "upcoming_events": "Ближайшие события",
+    "today_excl": "Сегодня!",
+    "in_days": "через {{count}} дн.",
+    "day_stones": "Камни дня",
+    "ai_recommendation": "AI рекомендация",
+    "ask_placeholder": "Задай вопрос лунному календарю...",
+    "get_recommendation": "Получить рекомендацию"
   },
   "compat": {
     "title": "Совместимость",
@@ -442,7 +459,18 @@
     "choose_type": "Выбери тип анализа",
     "add_partner": "Добавить партнёра",
     "your_partners": "Ваши партнёры",
-    "partner_added": "Партнёр добавлен"
+    "partner_added": "Партнёр добавлен",
+    "types": {
+      "signs": "По знакам",
+      "elements": "По стихиям",
+      "numerology": "Нумерология",
+      "chinese": "Китайский",
+      "moon": "Лунная",
+      "synastry": "Синастрия",
+      "composite": "Композитная карта",
+      "overall": "Полный анализ"
+    },
+    "another_analysis": "Другой анализ"
   },
   "numerology": {
     "title": "Нумерология",
@@ -480,7 +508,10 @@
     "get_interpretation": "Полная интерпретация",
     "reading": "Анализирую...",
     "error": "Ошибка. Попробуй ещё раз.",
-    "back": "Новый расчёт"
+    "back": "Новый расчёт",
+    "enter_name_title": "Введи полное имя",
+    "name_example": "Иванов Иван",
+    "life_path_number": "Число жизненного пути"
   },
   "runes": {
     "title": "Руны",
