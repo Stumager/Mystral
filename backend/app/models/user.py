@@ -84,6 +84,24 @@ class RuneReading(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class ReadingInterpretation(SQLModel, table=True):
+    """TZ-092: caches a generated AI interpretation to the (reading_id, lang)
+    that produced it — same compound-key pattern as SeoContent's
+    (page_type, slug, lang) — so a persisted tarot/rune reading (TZ-092/
+    QA-003's day/year read-back) doesn't re-bill OpenRouter and doesn't
+    show different wording on every re-view of the same reading."""
+    __tablename__ = "reading_interpretations"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    reading_id: UUID = Field(index=True)
+    reading_type: str  # "tarot" | "rune" — reading_id alone is already
+    # collision-free (independent UUID4 spaces), this is for clear,
+    # indexable querying/debugging, not disambiguation.
+    lang: str = Field(default="ru")
+    text: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class ReferralLog(SQLModel, table=True):
     __tablename__ = "referral_log"
 

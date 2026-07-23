@@ -33,6 +33,7 @@ export function Tarot({ onNavigate }: TarotProps) {
   const [schemeIdx, setSchemeIdx] = useState(0);
   const [question, setQuestion] = useState("");
   const [cards, setCards] = useState<DrawnCard[]>([]);
+  const [readingId, setReadingId] = useState<string | null>(null);
   const [positions, setPositions] = useState<string[]>([]);
   const [revealed, setRevealed] = useState<boolean[]>([]);
   const [interpretation, setInterpretation] = useState("");
@@ -69,12 +70,13 @@ export function Tarot({ onNavigate }: TarotProps) {
     setLoading(true);
     setError("");
     try {
-      const data = await apiRequest<{ cards: DrawnCard[] }>(
+      const data = await apiRequest<{ cards: DrawnCard[]; reading_id: string }>(
         "/tarot/spread",
         { spread_id: s.id, positions: pos, question: question || null, lang, force },
         token ?? undefined,
       );
       setCards(data.cards);
+      setReadingId(data.reading_id);
       setPositions(pos);
       setRevealed(new Array(data.cards.length).fill(false));
       setInterpretation("");
@@ -105,7 +107,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     try {
       await streamRequest(
         "/tarot/interpret",
-        { spread_id: spread.id, cards, positions, question: question || null, lang },
+        { spread_id: spread.id, cards, positions, question: question || null, lang, reading_id: readingId },
         (chunk) => setInterpretation(prev => prev + chunk),
         () => setIsReading(false),
         token ?? undefined,
@@ -123,6 +125,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     setStep("select");
     setSpread(null);
     setCards([]);
+    setReadingId(null);
     setInterpretation("");
     setError("");
   }

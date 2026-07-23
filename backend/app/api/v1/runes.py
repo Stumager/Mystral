@@ -17,6 +17,7 @@ from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.periods import period_start
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.reading_cache import get_cached_interpretation, store_interpretation
 from app.core.structural_i18n import pick, pick_list
 from app.data.numerology import life_path as calc_life_path
 from app.data.runes import RUNE_BY_ID, RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
@@ -118,6 +119,7 @@ def _reconstruct_result(reading: RuneReading, spread: dict, req: "DrawRequest") 
         "positions": positions,
         "drawn_runes": result_runes,
         "question": reading.question,
+        "reading_id": str(reading.id),
         "persisted": True,
     }
 
@@ -184,6 +186,7 @@ async def draw(
         "positions": positions,
         "drawn_runes": result_runes,
         "question": req.question,
+        "reading_id": str(reading.id),
         "persisted": False,
     }
 
@@ -193,6 +196,12 @@ class InterpretRequest(BaseModel):
     drawn_runes: list[dict]
     question: Optional[str] = None
     lang: str = "ru"
+    # TZ-092: links this interpretation to the persisted reading it's for
+    # (from /runes/draw's response) so it can be cached to (reading_id,
+    # lang) instead of re-generated on every re-view of the same reading.
+    # Optional: the personal-rune AI path has no drawn reading behind it and
+    # simply keeps the old always-generate behavior.
+    reading_id: Optional[UUID] = None
 
 
 @router.post("/runes/interpret")
@@ -201,9 +210,25 @@ async def interpret(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    # TZ-092: check the cache with the session get_current_user already pulled
+    # a connection for, before releasing it — a cache hit needs no further DB
+    # access and must skip the free-tier limit below (no LLM call happens).
+    cached_text = None
+    if req.reading_id:
+        cached_text = await get_cached_interpretation(session, req.reading_id, "rune", req.lang)
+
     # get_current_user pulls a pooled connection via its own Depends(get_session);
     # release it now instead of holding it for the whole SSE stream below.
     await session.close()
+
+    if cached_text:
+        async def replay():
+            for ch in cached_text:
+                yield f"data: {json.dumps({'text': ch})}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(replay(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     if req.spread_type != "rune_of_day" and current_user.subscription_tier == "free":
         raise HTTPException(402, "FREE_LIMIT_REACHED")
 
@@ -309,7 +334,21 @@ async def interpret(
         max_tok = 1000
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=max_tok, lang=req.lang),
+    async def generate():
+        full_text = ""
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=max_tok, lang=req.lang):
+            yield chunk_data
+            if chunk_data.startswith("data: {"):
+                try:
+                    parsed = json.loads(chunk_data[6:].strip())
+                    if "text" in parsed:
+                        full_text += parsed["text"]
+                except Exception:
+                    pass
+        if full_text and req.reading_id:
+            await store_interpretation(req.reading_id, "rune", req.lang, full_text)
+
+    return StreamingResponse(generate(),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 

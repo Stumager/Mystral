@@ -27,6 +27,7 @@ interface SpreadInfo {
 
 interface DrawResult {
   spread_type: string; spread_name: string; positions: string[]; drawn_runes: DrawnRune[]; question: string | null;
+  reading_id: string;
 }
 
 interface PersonalData {
@@ -121,7 +122,7 @@ export function Runes({ onNavigate }: RunesProps) {
       await streamRequest("/runes/interpret", {
         spread_type: drawResult.spread_type,
         drawn_runes: drawResult.drawn_runes.map(r => ({ id: r.id, name: r.name, reversed: r.reversed, position_name: r.position_name })),
-        question: drawResult.question, lang,
+        question: drawResult.question, lang, reading_id: drawResult.reading_id,
       }, (c) => setInterpretation(prev => prev + c), () => setInterpretLoading(false), token ?? undefined,
         (msg) => { setInterpretation(msg); setInterpretLoading(false); });
     } catch (e: unknown) {

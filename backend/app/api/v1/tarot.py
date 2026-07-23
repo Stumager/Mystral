@@ -18,6 +18,7 @@ from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.periods import period_start
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
+from app.core.reading_cache import get_cached_interpretation, store_interpretation
 from app.core.structural_i18n import localized_field
 from app.data.tarot_i18n import CARD_NAMES_I18N
 from app.models.user import TarotReading, User
@@ -136,6 +137,12 @@ class InterpretRequest(BaseModel):
     positions: list[str] = []
     question: Optional[str] = None
     lang: str = "ru"
+    # TZ-092: links this interpretation to the persisted reading it's for
+    # (from /tarot/spread's response) so it can be cached to (reading_id,
+    # lang) instead of re-generated — and re-billed — on every re-view of
+    # the same reading. Optional: callers with no reading (e.g. none today)
+    # simply get the old always-generate behavior.
+    reading_id: Optional[UUID] = None
 
 
 @router.post("/tarot/spread")
@@ -206,9 +213,26 @@ async def tarot_interpret(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    # TZ-092: check the cache with the session get_current_user already pulled
+    # a connection for, before releasing it — a cache hit needs no further DB
+    # access and, crucially, must skip the free-tier daily limit below (no
+    # LLM call happens, so it shouldn't consume that quota).
+    cached_text = None
+    if req.reading_id:
+        cached_text = await get_cached_interpretation(session, req.reading_id, "tarot", req.lang)
+
     # get_current_user pulls a pooled connection via its own Depends(get_session);
     # release it now instead of holding it for the whole SSE stream below.
     await session.close()
+
+    if cached_text:
+        async def replay():
+            for ch in cached_text:
+                yield f"data: {json.dumps({'text': ch})}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(replay(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     if current_user.subscription_tier == "free":
         today = date.today().isoformat()
         key = f"tarot_interp:{current_user.id}:{today}"
@@ -270,7 +294,21 @@ async def tarot_interpret(
     max_tokens = 1000 if len(req.cards) <= 5 else 1700
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=max_tokens, lang=req.lang),
+    async def generate():
+        full_text = ""
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=max_tokens, lang=req.lang):
+            yield chunk_data
+            if chunk_data.startswith("data: {"):
+                try:
+                    parsed = json.loads(chunk_data[6:].strip())
+                    if "text" in parsed:
+                        full_text += parsed["text"]
+                except Exception:
+                    pass
+        if full_text and req.reading_id:
+            await store_interpretation(req.reading_id, "tarot", req.lang, full_text)
+
+    return StreamingResponse(generate(),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
