@@ -65,13 +65,13 @@ export function Tarot({ onNavigate }: TarotProps) {
     }
   }
 
-  async function doSpread(s: SpreadType, pos: string[]) {
+  async function doSpread(s: SpreadType, pos: string[], force = false) {
     setLoading(true);
     setError("");
     try {
       const data = await apiRequest<{ cards: DrawnCard[] }>(
         "/tarot/spread",
-        { spread_id: s.id, positions: pos, question: question || null, lang },
+        { spread_id: s.id, positions: pos, question: question || null, lang, force },
         token ?? undefined,
       );
       setCards(data.cards);
@@ -333,7 +333,12 @@ export function Tarot({ onNavigate }: TarotProps) {
             )}
 
             {allRevealed && !isReading && (
-              <Button variant="gold" className="w-full" style={{ height: 50, borderRadius: 14 }} onClick={reset}>
+              <Button
+                variant="gold"
+                className="w-full"
+                style={{ height: 50, borderRadius: 14 }}
+                onClick={() => spread?.id === "card_of_day" ? doSpread(spread, positions, true) : reset()}
+              >
                 {t("tarot.new_spread")}
               </Button>
             )}

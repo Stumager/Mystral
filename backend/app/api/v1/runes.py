@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import date
+from uuid import UUID
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,10 +15,11 @@ from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
+from app.core.periods import period_start
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.core.structural_i18n import pick, pick_list
 from app.data.numerology import life_path as calc_life_path
-from app.data.runes import RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
+from app.data.runes import RUNE_BY_ID, RUNES, SPREADS_RUNES, draw_runes, personal_rune, year_rune
 from app.data.runes_i18n import RUNES_I18N, SPREADS_RUNES_I18N, STAVES_I18N
 from app.data.staves import STAVES
 from app.models.user import RuneReading, User, UserProfile
@@ -61,10 +63,63 @@ def _spread_positions(spread_id: str, spread: dict, lang: str) -> list[str]:
     return pick_list(spread, "positions", lang, SPREADS_RUNES_I18N, spread_id)
 
 
+# Spreads that represent a fixed reading for a period rather than an on-demand
+# draw: rune of the day persists for the calendar day, the year spread for the
+# calendar year. Re-entering must show the same set until the period ends (or
+# the user forces a new one). All other spreads are fresh question-based draws.
+PERIOD_SPREADS = {
+    "rune_of_day": "day",
+    "year_spread": "year",
+}
+
+
 class DrawRequest(BaseModel):
     spread_type: str = "rune_of_day"
     question: Optional[str] = None
     lang: str = "ru"
+    # Explicit "New spread" on a period spread: skip the read-back below and
+    # draw fresh (still subject to the free-tier daily limit where it applies).
+    force: bool = False
+
+
+async def _current_period_reading(
+    session: AsyncSession, user_id: UUID, spread_type: str, period: str
+) -> Optional[RuneReading]:
+    """The user's most recent reading of this spread within the current
+    period, or None if they haven't drawn it yet this period."""
+    result = await session.exec(
+        select(RuneReading)
+        .where(RuneReading.user_id == user_id)
+        .where(RuneReading.spread_type == spread_type)
+        .where(col(RuneReading.created_at) >= period_start(period))
+        .order_by(col(RuneReading.created_at).desc())
+        .limit(1)
+    )
+    return result.first()
+
+
+def _reconstruct_result(reading: RuneReading, spread: dict, req: "DrawRequest") -> dict:
+    """Rebuild the full draw response from a stored reading, re-deriving rune
+    text and position names in the *current* request language (only id +
+    reversed are period-stable)."""
+    stored = json.loads(reading.runes_json) if reading.runes_json else []
+    positions = _spread_positions(req.spread_type, spread, req.lang)
+    result_runes = []
+    for i, r in enumerate(stored):
+        rune = RUNE_BY_ID.get(r["id"])
+        if not rune:
+            continue
+        out = _rune_out(rune, req.lang, r.get("reversed", False))
+        out["position_name"] = positions[i] if i < len(positions) else f"#{i+1}"
+        result_runes.append(out)
+    return {
+        "spread_type": req.spread_type,
+        "spread_name": _spread_name(req.spread_type, spread, req.lang),
+        "positions": positions,
+        "drawn_runes": result_runes,
+        "question": reading.question,
+        "persisted": True,
+    }
 
 
 @router.post("/runes/draw")
@@ -80,6 +135,16 @@ async def draw(
     is_pro = current_user.subscription_tier != "free"
     if spread["tier"] == "pro" and not is_pro:
         raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    # Period spread: return the reading already drawn this period so re-entry
+    # shows the same runes. Runs before the free-tier limit so a re-view
+    # neither re-rolls nor consumes the daily quota. force=true (the explicit
+    # "New spread" button) skips this and draws fresh below.
+    period = PERIOD_SPREADS.get(req.spread_type)
+    if period and not req.force:
+        existing = await _current_period_reading(session, current_user.id, req.spread_type, period)
+        if existing:
+            return _reconstruct_result(existing, spread, req)
 
     if not is_pro and req.spread_type in ("rune_of_day", "three_norns"):
         r = aioredis.from_url(redis_url)
@@ -119,6 +184,7 @@ async def draw(
         "positions": positions,
         "drawn_runes": result_runes,
         "question": req.question,
+        "persisted": False,
     }
 
 

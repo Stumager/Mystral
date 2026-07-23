@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -9,13 +9,14 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
+from app.core.periods import period_start
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.core.structural_i18n import localized_field
 from app.data.tarot_i18n import CARD_NAMES_I18N
@@ -76,12 +77,57 @@ SPREADS = {
     "year":         {"count": 13, "tier": "pro"},
 }
 
+# Spreads that represent a fixed reading for a period rather than an on-demand
+# draw: re-entering the section must show the same result until the period
+# ends (or the user explicitly forces a new one). Card of the Day is the only
+# such tarot spread; every other spread is a fresh question-based draw.
+PERIOD_SPREADS = {
+    "card_of_day": "day",
+}
+
 
 class SpreadRequest(BaseModel):
     spread_id: str
     positions: list[str] = []
     question: Optional[str] = None
     lang: str = "ru"
+    # Explicit "New spread" on a period spread: skip the read-back below and
+    # draw fresh (still subject to the free-tier daily limit).
+    force: bool = False
+
+
+async def _current_period_reading(
+    session: AsyncSession, user_id: UUID, spread_id: str, period: str
+) -> Optional[TarotReading]:
+    """The user's most recent reading of this spread within the current
+    period, or None if they haven't drawn it yet this period."""
+    result = await session.exec(
+        select(TarotReading)
+        .where(TarotReading.user_id == user_id)
+        .where(TarotReading.spread_id == spread_id)
+        .where(col(TarotReading.created_at) >= period_start(period))
+        .order_by(col(TarotReading.created_at).desc())
+        .limit(1)
+    )
+    return result.first()
+
+
+def _reconstruct_cards(reading: TarotReading, lang: str) -> list[dict]:
+    """Rebuild the card list from a stored reading, re-deriving the localized
+    display name in the *current* request language (only id + reversed are
+    period-stable; names follow the active UI language)."""
+    stored = json.loads(reading.cards_json)
+    cards = []
+    for c in stored:
+        card_id = c["id"]
+        cards.append({
+            "id": card_id,
+            "name": CARD_NAMES.get(card_id, f"Card {card_id}"),
+            "name_ru": CARD_NAMES_RU.get(card_id, f"Карта {card_id}"),
+            "name_display": _card_name(card_id, lang),
+            "reversed": c["reversed"],
+        })
+    return cards
 
 
 class InterpretRequest(BaseModel):
@@ -104,6 +150,21 @@ async def tarot_spread(
 
     if spread["tier"] == "pro" and current_user.subscription_tier == "free":
         raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    # Period spread (Card of the Day): return the reading already drawn this
+    # period instead of a fresh random one, so navigating back into the
+    # section shows the same card. This runs before the free-tier limit so a
+    # re-view neither re-rolls nor consumes the daily quota. force=true (the
+    # explicit "New spread" button) skips this and draws fresh below.
+    period = PERIOD_SPREADS.get(req.spread_id)
+    if period and not req.force:
+        existing = await _current_period_reading(session, current_user.id, req.spread_id, period)
+        if existing:
+            return {
+                "cards": _reconstruct_cards(existing, req.lang),
+                "reading_id": str(existing.id),
+                "persisted": True,
+            }
 
     if current_user.subscription_tier == "free":
         today = date.today().isoformat()
@@ -136,7 +197,7 @@ async def tarot_spread(
     await session.commit()
     await session.refresh(reading)
 
-    return {"cards": cards, "reading_id": str(reading.id)}
+    return {"cards": cards, "reading_id": str(reading.id), "persisted": False}
 
 
 @router.post("/tarot/interpret")

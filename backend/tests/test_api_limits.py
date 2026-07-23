@@ -28,7 +28,10 @@ class TestHoroscope:
 
 
 class TestTarotLimits:
-    async def test_tarot_free_limit(self, client, auth_headers):
+    async def test_tarot_free_reentry_returns_same_card(self, client, auth_headers):
+        """Card of the Day persists for the day: a free user re-entering the
+        section gets the same card (200), not the 402 the raw daily limit
+        used to raise on the second call (that blocked even a re-view)."""
         first = await client.post("/v1/tarot/spread", headers=auth_headers,
                                   json={"spread_id": "card_of_day"})
         assert first.status_code == 200
@@ -36,7 +39,19 @@ class TestTarotLimits:
 
         second = await client.post("/v1/tarot/spread", headers=auth_headers,
                                    json={"spread_id": "card_of_day"})
-        assert second.status_code == 402
+        assert second.status_code == 200
+        assert second.json()["persisted"] is True
+        assert second.json()["reading_id"] == first.json()["reading_id"]
+
+    async def test_tarot_free_force_redraw_hits_daily_limit(self, client, auth_headers):
+        """The daily limit still caps *new* draws: a free user forcing a
+        second card the same day is blocked."""
+        first = await client.post("/v1/tarot/spread", headers=auth_headers,
+                                  json={"spread_id": "card_of_day"})
+        assert first.status_code == 200
+        forced = await client.post("/v1/tarot/spread", headers=auth_headers,
+                                   json={"spread_id": "card_of_day", "force": True})
+        assert forced.status_code == 402
 
     async def test_tarot_pro_spread_blocked_for_free(self, client, auth_headers):
         res = await client.post("/v1/tarot/spread", headers=auth_headers,
@@ -56,13 +71,26 @@ class TestTarotLimits:
 
 
 class TestRunesLimits:
-    async def test_runes_free_daily_limit(self, client, auth_headers):
+    async def test_runes_free_reentry_returns_same_rune(self, client, auth_headers):
+        """Rune of the Day persists for the day: re-entry returns the same
+        rune (200), not the 402 the raw daily limit used to raise."""
         first = await client.post("/v1/runes/draw", headers=auth_headers,
                                   json={"spread_type": "rune_of_day"})
         assert first.status_code == 200
         second = await client.post("/v1/runes/draw", headers=auth_headers,
                                    json={"spread_type": "rune_of_day"})
-        assert second.status_code == 402
+        assert second.status_code == 200
+        assert second.json()["persisted"] is True
+
+    async def test_runes_free_force_redraw_hits_daily_limit(self, client, auth_headers):
+        """The daily limit still caps *new* draws: forcing a second rune the
+        same day is blocked for a free user."""
+        first = await client.post("/v1/runes/draw", headers=auth_headers,
+                                  json={"spread_type": "rune_of_day"})
+        assert first.status_code == 200
+        forced = await client.post("/v1/runes/draw", headers=auth_headers,
+                                   json={"spread_type": "rune_of_day", "force": True})
+        assert forced.status_code == 402
 
     async def test_runes_pro_spread_blocked_for_free(self, client, auth_headers):
         res = await client.post("/v1/runes/draw", headers=auth_headers,

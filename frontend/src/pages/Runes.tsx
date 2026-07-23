@@ -88,13 +88,13 @@ export function Runes({ onNavigate }: RunesProps) {
     setQuestion(""); setScreen("question");
   }
 
-  async function doDrawRunes(spreadType: string, q: string) {
+  async function doDrawRunes(spreadType: string, q: string, force = false) {
     setError(""); setInterpretation(""); setRevealedCount(0);
     setScreen("drawing");
     try {
       const data = await apiRequest<DrawResult>(
         "/runes/draw",
-        { spread_type: spreadType, question: q || null, lang },
+        { spread_type: spreadType, question: q || null, lang, force },
         token ?? undefined,
       );
       setDrawResult(data);
@@ -334,7 +334,15 @@ export function Runes({ onNavigate }: RunesProps) {
               </button>
             )}
 
-            <Button variant="ghost" className="w-full" onClick={reset}>{t("runes.new_draw")}</Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => (drawResult.spread_type === "rune_of_day" || drawResult.spread_type === "year_spread")
+                ? doDrawRunes(drawResult.spread_type, drawResult.question ?? "", true)
+                : reset()}
+            >
+              {t("runes.new_draw")}
+            </Button>
           </>
         )}
 
