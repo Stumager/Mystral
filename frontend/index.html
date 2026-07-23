@@ -21,8 +21,18 @@
     <meta property="og:url" content="https://mystral.space">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TZ-090: a plain rel="stylesheet" here blocks first paint (~1090ms per
+         Lighthouse) waiting on fonts.googleapis.com. Load it non-blocking via
+         the loadCSS pattern (media="print" is fetched at low priority and
+         doesn't block rendering, then swapped to "all" once loaded) and keep
+         a <noscript> fallback for the no-JS case. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+    <!-- defer instead of a blocking synchronous <script>: nothing needs the
+         Telegram SDK before DOMContentLoaded, and defer still runs it ahead
+         of the app's own module script in document order. -->
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Mystral","url":"https://mystral.space","description":"Эзотерическая платформа: гороскопы, Таро, руны, нумерология и натальная карта.","inLanguage":"ru"}</script>
     <style>
       /* Matches the app's dark/gold theme so the pre-hydration content

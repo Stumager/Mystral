@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./i18n";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -6,23 +6,36 @@ import { Logo } from "./components/Logo";
 import { MergeAccountPrompt } from "./components/MergeAccountPrompt";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Admin } from "./pages/Admin";
-import { Compatibility } from "./pages/Compatibility";
-import { ForgotPassword } from "./pages/ForgotPassword";
-import { ResetPassword } from "./pages/ResetPassword";
 import { Home } from "./pages/Home";
 import { LoginScreen } from "./pages/LoginScreen";
-import { LunarCalendar } from "./pages/LunarCalendar";
-import { Privacy } from "./pages/Privacy";
-import { Terms } from "./pages/Terms";
-import { NatalChart } from "./pages/NatalChart";
-import { Numerology } from "./pages/Numerology";
-import { PaymentReturn } from "./pages/PaymentReturn";
-import { Profile } from "./pages/Profile";
-import { Runes } from "./pages/Runes";
-import { Tarot } from "./pages/Tarot";
+
+// TZ-090: these used to be eager imports, so every page's code shipped in
+// the single main bundle (370 KB / 103 KB gzip) even though only one of
+// them ever renders per session before the user navigates. Home and
+// LoginScreen stay eager — one of the two is always the first paint.
+const Admin = lazy(() => import("./pages/Admin").then(m => ({ default: m.Admin })));
+const Compatibility = lazy(() => import("./pages/Compatibility").then(m => ({ default: m.Compatibility })));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
+const LunarCalendar = lazy(() => import("./pages/LunarCalendar").then(m => ({ default: m.LunarCalendar })));
+const Privacy = lazy(() => import("./pages/Privacy").then(m => ({ default: m.Privacy })));
+const Terms = lazy(() => import("./pages/Terms").then(m => ({ default: m.Terms })));
+const NatalChart = lazy(() => import("./pages/NatalChart").then(m => ({ default: m.NatalChart })));
+const Numerology = lazy(() => import("./pages/Numerology").then(m => ({ default: m.Numerology })));
+const PaymentReturn = lazy(() => import("./pages/PaymentReturn").then(m => ({ default: m.PaymentReturn })));
+const Profile = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
+const Runes = lazy(() => import("./pages/Runes").then(m => ({ default: m.Runes })));
+const Tarot = lazy(() => import("./pages/Tarot").then(m => ({ default: m.Tarot })));
 
 type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "admin";
+
+function PageFallback() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07060F" }}>
+      <span style={{ width: 28, height: 28, border: "2px solid rgba(201,168,76,.3)", borderTopColor: "#C9A84C", borderRadius: "50%", display: "inline-block" }} className="animate-spin" />
+    </div>
+  );
+}
 
 function AppInner() {
   const { t } = useTranslation();
@@ -61,19 +74,27 @@ function AppInner() {
 
   // Public pages (no auth required)
   const path = window.location.pathname;
-  if (path === "/privacy") return <Privacy />;
-  if (path === "/terms") return <Terms />;
+  if (path === "/privacy") return <Suspense fallback={<PageFallback />}><Privacy /></Suspense>;
+  if (path === "/terms") return <Suspense fallback={<PageFallback />}><Terms /></Suspense>;
 
-  if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin") return <Admin />;
+  if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin")
+    return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
 
-  if (window.location.search.includes("token=")) return <ResetPassword />;
+  if (window.location.search.includes("token="))
+    return <Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>;
 
   const hash = window.location.hash.replace(/\/+$/, "");
-  if (hash === "#forgot-password") return <ForgotPassword onBack={() => { window.location.hash = ""; window.location.reload(); }} />;
+  if (hash === "#forgot-password")
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <ForgotPassword onBack={() => { window.location.hash = ""; window.location.reload(); }} />
+      </Suspense>
+    );
 
   if (!user) return <LoginScreen />;
 
-  if (window.location.search.includes("payment_id=")) return <PaymentReturn />;
+  if (window.location.search.includes("payment_id="))
+    return <Suspense fallback={<PageFallback />}><PaymentReturn /></Suspense>;
 
   const showOnboarding = !onboardingDismissed && !user.has_birth_date;
 
@@ -121,7 +142,7 @@ function AppInner() {
 
   return (
     <AppLayout page={page} onNavigate={navigate} user={user}>
-      {content}
+      <Suspense fallback={<PageFallback />}>{content}</Suspense>
       {modals}
     </AppLayout>
   );
