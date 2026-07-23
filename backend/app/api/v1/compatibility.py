@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -159,7 +159,8 @@ def _parse_partner_id(partner_id: str) -> UUID:
 
 
 class PartnerCreate(BaseModel):
-    name: str
+    # QA-030: mirrors the same 100-char cap added to NatalRequest.name.
+    name: str = Field(min_length=1, max_length=100)
     birth_date: str
     birth_hour: Optional[int] = None
     birth_minute: Optional[int] = None
@@ -206,17 +207,12 @@ async def create_partner(
 
     lat, lng = None, None
     if req.birth_city:
-        try:
-            import httpx
-            async with httpx.AsyncClient(timeout=10) as http:
-                r = await http.get("https://nominatim.openstreetmap.org/search",
-                                   params={"q": req.birth_city, "format": "json", "limit": 1},
-                                   headers={"User-Agent": "Mystral/1.0"})
-                data = r.json()
-                if data:
-                    lat, lng = float(data[0]["lat"]), float(data[0]["lon"])
-        except Exception:
-            pass
+        # QA-001/004: this used to swallow a bad city silently (lat/lng just
+        # stayed None) while natal/calculate raised a 422 for the identical
+        # input. Reusing natal's geocode_city gives both the same behavior
+        # and the same localized message instead of two divergent ones.
+        from app.api.v1.natal import geocode_city
+        lat, lng = await geocode_city(req.birth_city, current_user.lang or "ru")
 
     partner = UserPartner(
         user_id=current_user.id, label=req.name, birth_date=bd, birth_time=bt,

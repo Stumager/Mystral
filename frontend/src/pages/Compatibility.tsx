@@ -124,9 +124,12 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
       setShowAddForm(false);
       setAddForm({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
     } catch (e: unknown) {
-      const err = e as { code?: string };
+      const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
-      else setError(lang === "ru" ? "Ошибка" : "Error");
+      // QA-001/004: the backend now rejects an unresolvable birth_city
+      // instead of silently accepting it — surface its actual message
+      // (e.g. "City not found, check the spelling") instead of a generic one.
+      else setError(err.message || (lang === "ru" ? "Ошибка" : "Error"));
     } finally { setLoading(false); }
   }
 

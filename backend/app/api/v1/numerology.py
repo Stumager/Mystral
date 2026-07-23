@@ -13,7 +13,7 @@ from typing import Optional
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
-from app.core.limiter import check_rate_limit
+from app.core.limiter import check_not_in_flight, check_rate_limit, release_in_flight
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
 from app.core.structural_i18n import localized_field
 from app.data.numerology import (
@@ -158,6 +158,13 @@ async def interpret(
     ru = req.lang == "ru"
     today = date.today()
 
+    # QA-035/036: this is the only DB access the request needs. Left open via
+    # the Depends(get_session) dependency, it stays checked out of the pool
+    # for the entire SSE stream below (13-48s+ observed) — closing it here
+    # frees the connection immediately instead of holding it hostage for the
+    # LLM call's duration.
+    await session.close()
+
     lp = life_path(bd)
     bd_num = birthday_number(bd)
 
@@ -263,9 +270,17 @@ async def interpret(
     prompt += get_lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "numerology_interpret", 2, 20)
+    await check_not_in_flight(str(current_user.id), "numerology_interpret")
     sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+    async def stream():
+        try:
+            async for chunk in safe_groq_stream(msgs, max_tokens=900, lang=req.lang):
+                yield chunk
+        finally:
+            await release_in_flight(str(current_user.id), "numerology_interpret")
+
+    return StreamingResponse(stream(),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

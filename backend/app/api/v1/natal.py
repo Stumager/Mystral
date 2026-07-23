@@ -1,7 +1,7 @@
 import json
 import os
 import tempfile
-from datetime import datetime
+from datetime import date as date_cls, datetime
 from typing import Optional
 
 import httpx
@@ -9,7 +9,7 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from kerykeion import AstrologicalSubject
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from timezonefinder import TimezoneFinder
 
 from app.core.deps import get_current_user
@@ -118,7 +118,20 @@ def _sign_from_abs(abs_pos: float) -> str:
     return SIGN_ORDER[int(abs_pos / 30) % 12]
 
 
-async def geocode_city(city: str) -> tuple[float, float]:
+# QA-001/004: natal used to raise a raw "City not found: {city}" 422 while
+# compatibility's partner form silently accepted the same bad input. Both now
+# go through this one localized message instead of each inventing their own.
+CITY_NOT_FOUND_MSGS = {
+    "ru": "Город не найден, проверьте написание",
+    "en": "City not found, check the spelling",
+    "es": "Ciudad no encontrada, comprueba la ortografía",
+    "pt": "Cidade não encontrada, verifique a ortografia",
+    "tr": "Şehir bulunamadı, yazımı kontrol edin",
+    "uk": "Місто не знайдено, перевірте написання",
+}
+
+
+async def geocode_city(city: str, lang: str = "ru") -> tuple[float, float]:
     async with httpx.AsyncClient(timeout=10.0) as http:
         resp = await http.get(
             "https://nominatim.openstreetmap.org/search",
@@ -127,7 +140,8 @@ async def geocode_city(city: str) -> tuple[float, float]:
         )
     data = resp.json()
     if not data:
-        raise HTTPException(status_code=422, detail=f"City not found: {city}")
+        msg = CITY_NOT_FOUND_MSGS.get(lang, CITY_NOT_FOUND_MSGS["en"])
+        raise HTTPException(status_code=422, detail=msg)
     return float(data[0]["lat"]), float(data[0]["lon"])
 
 
@@ -354,32 +368,71 @@ def build_full_chart(subj: AstrologicalSubject, lang: str = "ru") -> dict:
 
 
 class NatalRequest(BaseModel):
-    name: str; year: int; month: int; day: int
-    hour: int = 12; minute: int = 0; city: str; lang: str = "ru"
+    # QA-029/030: a direct POST bypassing the frontend's own validation used
+    # to reach kerykeion with e.g. month=13/day=32 (raw 500) or a 5000-char
+    # name (silently accepted, HTTP 200). Field bounds below turn those into
+    # a clean 422 before any calculation is attempted.
+    name: str = Field(min_length=1, max_length=100)
+    year: int
+    month: int = Field(ge=1, le=12)
+    day: int = Field(ge=1, le=31)
+    # QA-002: None (not 12/0) means "birth time not provided" — distinct from
+    # an explicit midnight/noon entry, so the endpoint can flag the result as
+    # approximate instead of silently substituting a default.
+    hour: Optional[int] = Field(default=None, ge=0, le=23)
+    minute: Optional[int] = Field(default=None, ge=0, le=59)
+    city: str
+    lang: str = "ru"
+
+    @model_validator(mode="after")
+    def _validate_calendar_date(self):
+        try:
+            date_cls(self.year, self.month, self.day)
+        except ValueError as e:
+            raise ValueError(f"Invalid calendar date: {e}")
+        return self
 
 
 class InterpretRequest(NatalRequest):
     section: str = "personality"
 
 
+DEFAULT_BIRTH_HOUR = 12
+DEFAULT_BIRTH_MINUTE = 0
+
+
+def _resolve_birth_time(req: NatalRequest) -> tuple[int, int, bool]:
+    """Returns (hour, minute, time_known) — substituting the documented
+    default only when the client left birth time unset."""
+    time_known = req.hour is not None
+    hour = req.hour if time_known else DEFAULT_BIRTH_HOUR
+    minute = req.minute if req.minute is not None else DEFAULT_BIRTH_MINUTE
+    return hour, minute, time_known
+
+
 @router.post("/natal/calculate")
 async def natal_calculate(req: NatalRequest, current_user: User = Depends(get_current_user)):
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_calculate", 10, 10, window=60)
-    lat, lon = await geocode_city(req.city)
+    lat, lon = await geocode_city(req.city, req.lang)
+    hour, minute, time_known = _resolve_birth_time(req)
     try:
-        subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
-        return build_full_chart(subj, lang=req.lang)
+        subj = _build_subject(req.name, req.year, req.month, req.day, hour, minute, lat, lon)
+        chart = build_full_chart(subj, lang=req.lang)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chart calculation failed: {e}")
+    chart["time_known"] = time_known
+    chart["time_used"] = f"{hour:02d}:{minute:02d}"
+    return chart
 
 
 @router.post("/natal/svg")
 async def natal_svg(req: NatalRequest, current_user: User = Depends(get_current_user)):
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "natal_svg", 10, 10, window=60)
-    lat, lon = await geocode_city(req.city)
+    lat, lon = await geocode_city(req.city, req.lang)
+    hour, minute, _ = _resolve_birth_time(req)
     try:
         from kerykeion import KerykeionChartSVG
-        subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
+        subj = _build_subject(req.name, req.year, req.month, req.day, hour, minute, lat, lon)
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False, dir="/tmp") as tmp:
             tmp_path = tmp.name
         chart_svg = KerykeionChartSVG(subj, new_output_directory="/tmp")
@@ -403,8 +456,9 @@ async def natal_svg(req: NatalRequest, current_user: User = Depends(get_current_
 
 @router.post("/natal/transits")
 async def natal_transits(req: NatalRequest, current_user: User = Depends(get_current_user)):
-    lat, lon = await geocode_city(req.city)
-    natal = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
+    lat, lon = await geocode_city(req.city, req.lang)
+    hour, minute, _ = _resolve_birth_time(req)
+    natal = _build_subject(req.name, req.year, req.month, req.day, hour, minute, lat, lon)
     now = datetime.utcnow()
     transit = _build_subject("Transit", now.year, now.month, now.day, now.hour, now.minute, lat, lon)
 
@@ -521,14 +575,15 @@ async def natal_interpret(req: InterpretRequest, current_user: User = Depends(ge
             raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
 
     try:
-        lat, lon = await geocode_city(req.city)
+        lat, lon = await geocode_city(req.city, req.lang)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Geocoding failed: {e}")
 
+    hour, minute, _ = _resolve_birth_time(req)
     try:
-        subj = _build_subject(req.name, req.year, req.month, req.day, req.hour, req.minute, lat, lon)
+        subj = _build_subject(req.name, req.year, req.month, req.day, hour, minute, lat, lon)
         # lang is threaded through purely so the chart's planet/sign fields are
         # internally consistent; the prompt templates below are still ru/en-only
         # (TZ-080 Module 5, handled separately) and don't read the new fields.

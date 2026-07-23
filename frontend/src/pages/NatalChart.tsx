@@ -36,6 +36,7 @@ interface ChartResult {
   element_balance: { fire: number; earth: number; air: number; water: number };
   modality_balance: { cardinal: number; fixed: number; mutable: number };
   dominant_sign: string; dominant_sign_ru: string; dominant_sign_local: string;
+  time_known: boolean; time_used: string;
 }
 
 const SECTIONS = ["personality", "planets", "houses", "aspects", "transits"] as const;
@@ -103,7 +104,12 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
 
   const buildBody = () => ({
     name: form.name, year: parseInt(form.year), month: parseInt(form.month),
-    day: parseInt(form.day), hour: parseInt(form.hour || "12"), minute: parseInt(form.minute || "0"),
+    day: parseInt(form.day),
+    // QA-002: null (not a silent 12/0 default) so the backend can tell
+    // "birth time not provided" apart from an explicit midnight/noon entry
+    // and flag the result as approximate.
+    hour: form.hour !== "" ? parseInt(form.hour) : null,
+    minute: form.minute !== "" ? parseInt(form.minute) : null,
     city: form.city, lang,
   });
 
@@ -329,6 +335,13 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
                   </div>
                 ))}
               </div>
+              {!chart.time_known && (
+                <p className="text-text-faint text-[10px] mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}>
+                  {lang === "ru"
+                    ? `Время рождения не указано — расчёт приблизительный (использовано ${chart.time_used}). Асцендент и дома могут отличаться от реальных.`
+                    : `Birth time not provided — this is an approximate calculation (used ${chart.time_used}). Ascendant and houses may differ from the actual chart.`}
+                </p>
+              )}
             </Card>
 
             {/* All Planets */}
