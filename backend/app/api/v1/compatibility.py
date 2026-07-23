@@ -375,7 +375,7 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
         from kerykeion import AstrologicalSubject
         from app.api.v1.natal import (
             PLANET_NAMES_EN, PLANET_NAMES_RU, _normalize_sign,
-            ASPECT_TYPES as NATAL_ASPECTS, resolve_timezone,
+            ASPECT_TYPES as NATAL_ASPECTS, _aspect_name, resolve_timezone,
         )
 
         lat1, lon1 = (prof.birth_lat or 55.75), (prof.birth_lng or 37.62)
@@ -410,7 +410,7 @@ async def compat_synastry(req: CompatTypeRequest, current_user: User = Depends(g
                         aspects.append({
                             "user_planet": pnames.get(k1, k1),
                             "partner_planet": pnames.get(k2, k2),
-                            "aspect": name_ru if ru else name_en, "symbol": sym,
+                            "aspect": _aspect_name(atype, name_ru, name_en, req.lang), "symbol": sym,
                             "orb": round(orb, 1),
                             "harmony": atype in ("trine", "sextile"),
                         })

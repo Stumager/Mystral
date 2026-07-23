@@ -75,6 +75,24 @@ ASPECT_TYPES = [
     (180, 8, "opposition", "Оппозиция", "Opposition", "☍"),
 ]
 
+# QA-011: aspect names were ru/en-only, so es/pt/tr/uk showed English
+# ("Conjunction", "Trine") in the natal chart, transits and compatibility
+# synastry. Canonical astrological terms for the other four languages.
+ASPECT_NAMES_I18N = {
+    "es": {"conjunction": "Conjunción", "sextile": "Sextil", "square": "Cuadratura", "trine": "Trígono", "opposition": "Oposición"},
+    "pt": {"conjunction": "Conjunção", "sextile": "Sextil", "square": "Quadratura", "trine": "Trígono", "opposition": "Oposição"},
+    "tr": {"conjunction": "Kavuşum", "sextile": "Sekstil", "square": "Kare", "trine": "Üçgen", "opposition": "Karşıtlık"},
+    "uk": {"conjunction": "Сполучення", "sextile": "Секстиль", "square": "Квадрат", "trine": "Тригон", "opposition": "Опозиція"},
+}
+
+
+def _aspect_name(atype: str, name_ru: str, name_en: str, lang: str) -> str:
+    if lang == "ru":
+        return name_ru
+    if lang == "en":
+        return name_en
+    return ASPECT_NAMES_I18N.get(lang, {}).get(atype, name_en)
+
 HOUSE_NUM = {
     "First_House": 1, "Second_House": 2, "Third_House": 3, "Fourth_House": 4,
     "Fifth_House": 5, "Sixth_House": 6, "Seventh_House": 7, "Eighth_House": 8,
@@ -206,7 +224,7 @@ def _extract_planet(subj: AstrologicalSubject, key: str, ptype: str = "planet", 
         return None
 
 
-def _calc_aspects(planets: list[dict]) -> list[dict]:
+def _calc_aspects(planets: list[dict], lang: str = "ru") -> list[dict]:
     aspects = []
     for i in range(len(planets)):
         for j in range(i + 1, len(planets)):
@@ -222,7 +240,8 @@ def _calc_aspects(planets: list[dict]) -> list[dict]:
                         "planet1_local": p1.get("name_local", p1["name"]),
                         "planet2": p2["name"], "planet2_ru": p2["name_ru"], "planet2_en": p2.get("name_en", p2["name"]),
                         "planet2_local": p2.get("name_local", p2["name"]),
-                        "type": atype, "name_ru": name_ru, "name_en": name_en, "symbol": symbol,
+                        "type": atype, "name_ru": name_ru, "name_en": name_en,
+                        "name_local": _aspect_name(atype, name_ru, name_en, lang), "symbol": symbol,
                         "orb": round(orb, 1), "harmony": atype in ("trine", "sextile"),
                     })
                     break
@@ -264,7 +283,7 @@ def build_full_chart(subj: AstrologicalSubject, lang: str = "ru") -> dict:
         extra.append(chiron)
 
     all_planets = planets + extra
-    aspects = _calc_aspects(planets)
+    aspects = _calc_aspects(planets, lang)
 
     # Houses
     house_attrs = ["first_house", "second_house", "third_house", "fourth_house",
@@ -480,7 +499,7 @@ async def natal_transits(req: NatalRequest, current_user: User = Depends(get_cur
                     active.append({
                         "transit_planet": tp["name_local"], "transit_sign": tp["sign_local"],
                         "natal_planet": np["name_local"], "natal_sign": np["sign_local"],
-                        "aspect": name_ru if ru else name_en, "aspect_symbol": symbol, "orb": round(orb, 1),
+                        "aspect": _aspect_name(atype, name_ru, name_en, req.lang), "aspect_symbol": symbol, "orb": round(orb, 1),
                     })
                     break
     active.sort(key=lambda a: a["orb"])
