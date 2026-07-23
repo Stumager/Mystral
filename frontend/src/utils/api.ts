@@ -2,8 +2,13 @@ import { parseApiError, parseNetworkError, parseStreamError } from "./errorHandl
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
+// Keep ASCII, Latin-1 Supplement + Latin Extended-A/B (ES/PT accents, Turkish
+// ĞğİıŞşÇçÖöÜü, Spanish ¡¿ñ), Cyrillic (RU/UK), and the app's typographic +
+// zodiac glyphs. Previously only ASCII + Cyrillic survived, so every Latin
+// diacritic was silently stripped from streamed AI text (não→no, için→iin,
+// gün→gn) for ES/PT/TR. Mirrors the backend allow-list in groq_client._clean_chunk.
 const cleanChunk = (text: string) =>
-  text.replace(/[^\x00-\x7fЀ-ӿ\s\n\r«»„""\'\-–—…°%№♈-♓☽✦★]/g, "");
+  text.replace(/[^\x00-\x7f -ɏЀ-ӿ\s«»„""'–—…°%№♈-♓☽✦★]/g, "");
 
 export async function streamRequest(
   endpoint: string,
@@ -38,13 +43,20 @@ export async function streamRequest(
 
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
+  // Buffer across reads: a multi-byte UTF-8 char (any accented Latin/Cyrillic
+  // glyph) or a whole SSE line can be split across two network chunks.
+  // decode({stream:true}) holds an incomplete byte sequence until its
+  // continuation arrives — without it, split diacritics decoded to � and
+  // corrupted PT/TR mid-word. `buffer` does the same at the line level.
+  let buffer = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split("\n");
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
 
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;

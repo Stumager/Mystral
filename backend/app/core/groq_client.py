@@ -10,7 +10,7 @@ _client = None
 _async_client = None
 _CLEAN_RE = re.compile(
     r'[^\x20-\x7E'      # Basic Latin: letters, digits, standard punctuation/symbols
-    r'À-ɏ'    # Latin Extended: ES/PT diacritics, Turkish ĞğİıŞş
+    r'¡-ɏ'    # Latin-1 Supplement + Extended: ES/PT accents, Turkish ĞğİıŞş, Spanish ¡¿
     r'Ѐ-ӿ'    # Cyrillic: RU/UK incl. ЄєІіЇїҐґ
     r'\n\r\t'
     r'«»„""''–—…°№'
