@@ -88,12 +88,18 @@ async def validation_handler(request: Request, exc: RequestValidationError):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # QA-035/036: this rebuilt the response from scratch and dropped
+    # exc.headers along the way, so a raise HTTPException(..., headers={
+    # "Retry-After": ...}) anywhere in the app silently lost that header —
+    # not just for the rate limiter.
     detail = exc.detail
+    headers = exc.headers or None
     if isinstance(detail, dict):
-        return JSONResponse(status_code=exc.status_code, content=detail)
+        return JSONResponse(status_code=exc.status_code, content=detail, headers=headers)
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.status_code, "message": str(detail)},
+        headers=headers,
     )
 
 

@@ -133,7 +133,11 @@ class InterpretRequest(BaseModel):
 async def interpret(
     req: InterpretRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
     if req.spread_type != "rune_of_day" and current_user.subscription_tier == "free":
         raise HTTPException(402, "FREE_LIMIT_REACHED")
 

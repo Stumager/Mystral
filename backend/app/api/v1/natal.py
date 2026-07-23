@@ -10,8 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from kerykeion import AstrologicalSubject
 from pydantic import BaseModel, Field, model_validator
+from sqlmodel.ext.asyncio.session import AsyncSession
 from timezonefinder import TimezoneFinder
 
+from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
@@ -564,7 +566,14 @@ SECTION_PROMPTS_EN = {
 
 
 @router.post("/natal/interpret")
-async def natal_interpret(req: InterpretRequest, current_user: User = Depends(get_current_user)):
+async def natal_interpret(
+    req: InterpretRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
     if req.section != "personality" and current_user.subscription_tier == "free":
         raise HTTPException(status_code=402, detail="FREE_LIMIT_REACHED")
 

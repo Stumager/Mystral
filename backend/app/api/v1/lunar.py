@@ -7,7 +7,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
@@ -278,7 +280,11 @@ class AIRecommendRequest(BaseModel):
 async def lunar_ai_recommend(
     req: AIRecommendRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
     if current_user.subscription_tier == "free":
         raise HTTPException(402, "FREE_LIMIT_REACHED")
 

@@ -7,7 +7,9 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.prompts import lang_enforce, system_prompt
@@ -58,7 +60,14 @@ class HoroscopeRequest(BaseModel):
 
 
 @router.post("/horoscope/stream")
-async def horoscope_stream(req: HoroscopeRequest, current_user: User = Depends(get_current_user)):
+async def horoscope_stream(
+    req: HoroscopeRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
     # Whitelist both params: they form the Redis cache key and each unique
     # combination triggers a fresh (paid) Groq generation.
     if req.sign not in VALID_SIGNS:

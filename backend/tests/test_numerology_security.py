@@ -68,3 +68,22 @@ class TestNumerologyInterpretInFlightGuard:
         with patch("app.api.v1.numerology.safe_groq_stream", side_effect=fast_stream):
             other_user = await client.post("/v1/numerology/interpret", headers=pro_headers, json={"section": "core", "lang": "ru"})
         assert other_user.status_code == 200
+
+
+class TestRetryAfterHeaderReachesClient:
+    """TZ-091: main.py's StarletteHTTPException handler rebuilt the response
+    from exc.detail alone and dropped exc.headers along the way, so the
+    Retry-After set by check_not_in_flight (and check_rate_limit) never
+    actually reached the client — app-wide, not just here. TestNumerology-
+    InterpretInFlightGuard.test_blocked_while_lock_held above only checks
+    the JSON body's retry_after field for exactly that reason; this asserts
+    the raw HTTP header specifically, now that the handler forwards it."""
+
+    async def test_in_flight_429_carries_retry_after_header(self, client, auth_headers, auth_user):
+        user, _ = auth_user
+        await check_not_in_flight(str(user.id), "numerology_interpret")
+
+        res = await client.post("/v1/numerology/interpret", headers=auth_headers, json={"section": "core", "lang": "ru"})
+        assert res.status_code == 429
+        assert "Retry-After" in res.headers
+        assert int(res.headers["Retry-After"]) == res.json()["retry_after"]

@@ -143,7 +143,11 @@ async def tarot_spread(
 async def tarot_interpret(
     req: InterpretRequest,
     current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
     if current_user.subscription_tier == "free":
         today = date.today().isoformat()
         key = f"tarot_interp:{current_user.id}:{today}"

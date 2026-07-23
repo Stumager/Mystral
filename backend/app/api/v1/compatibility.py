@@ -659,6 +659,8 @@ async def composite_interpret(
     if not partner or partner.user_id != current_user.id:
         raise HTTPException(404, "Partner not found")
 
+    await session.close()  # release pooled connection before the long-lived SSE stream
+
     try:
         from kerykeion import AstrologicalSubject
         from app.api.v1.natal import resolve_timezone
@@ -732,6 +734,7 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
 
     prof, partner = await _get_user_and_partner(
         CompatTypeRequest(partner_id=req.partner_id, lang=req.lang), current_user, session)
+    await session.close()  # release pooled connection before the long-lived SSE stream
 
     i1, i2 = _sign_idx(prof.birth_date), _sign_idx(partner.birth_date)
     s1, s2 = SIGNS[i1], SIGNS[i2]

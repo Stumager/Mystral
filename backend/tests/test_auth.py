@@ -64,6 +64,17 @@ class TestRegister:
                                     json={**REG, "email": f"badname-b{i}@test.com", "name": bad})
             assert res.status_code == 400, f"expected 400 for name={bad!r}, got {res.status_code}"
 
+    async def test_register_oversized_name_rejected(self, client):
+        """QA-030: natal/calculate and compatibility's partner name had no
+        server-side length cap and returned 200 on 5000+ char input. Unlike
+        those, /register's _validate_name (TZ-059) already runs its 50-char
+        check before any DB write regardless of how far over the limit the
+        input is — this locks in that a wildly oversized payload still 400s
+        instead of slipping through on some length-check edge case."""
+        res = await client.post("/v1/auth/register",
+                                json={**REG, "email": "hugename@test.com", "name": "A" * 5000})
+        assert res.status_code == 400, f"expected 400, got {res.status_code}: {res.text}"
+
     async def test_register_valid_names_with_punctuation_allowed(self, client):
         """Space/hyphen/apostrophe inside a name must not be blocked, and any
         of the platform's 6 languages' alphabets must count as a letter —
