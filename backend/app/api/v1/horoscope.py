@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 from datetime import date
 
@@ -15,8 +16,17 @@ from app.core.groq_client import safe_groq_stream
 from app.core.prompts import lang_enforce, system_prompt
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
+
+# Was 700 — tight for a "three paragraphs, 150-250 words" prompt once you
+# account for less token-efficient output languages (diacritics/agglutination
+# fragment into more subword tokens) and the model's documented tendency to
+# ramble before committing (same lesson already learned for SEO/offline-
+# horoscope generation, see those modules). A generous ceiling costs nothing
+# on responses that finish well under it.
+GENERATION_MAX_TOKENS = 1400
 
 VALID_SIGNS = {"aries", "taurus", "gemini", "cancer", "leo", "virgo",
                "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces"}
@@ -112,8 +122,14 @@ async def horoscope_stream(
             return
 
         full_text = ""
+        truncated = False
+
+        def _on_finish(reason):
+            nonlocal truncated
+            truncated = reason == "length"
+
         msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
-        async for chunk_data in safe_groq_stream(msgs, max_tokens=700, lang=req.lang):
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=GENERATION_MAX_TOKENS, lang=req.lang, on_finish=_on_finish):
             yield chunk_data
             if chunk_data.startswith("data: {"):
                 try:
@@ -123,7 +139,12 @@ async def horoscope_stream(
                 except Exception:
                     pass
 
-        if full_text:
+        if full_text and truncated:
+            # Don't cache a cut-off result — it would otherwise serve the
+            # same broken text to every viewer of this sign/lang/day for the
+            # full 24h TTL instead of letting the next request try again.
+            logger.warning("Horoscope %s/%s truncated mid-generation, not caching", req.sign, req.lang)
+        elif full_text:
             await redis_client.set(cache_key, full_text, ex=86400)
 
     return StreamingResponse(

@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import re
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +153,7 @@ async def safe_groq_stream(
     messages: list[dict],
     max_tokens: int = 2048,
     lang: str = "ru",
+    on_finish: Optional[Callable[[Optional[str]], None]] = None,
 ) -> AsyncIterator[str]:
     # Append the universal quality directive to the caller's system message so
     # every router benefits without duplicating it in each prompt.
@@ -171,12 +172,23 @@ async def safe_groq_stream(
             temperature=0.75,
             top_p=0.95,
         )
+        finish_reason = None
         async for chunk in stream:
-            text = chunk.choices[0].delta.content
+            choice = chunk.choices[0]
+            if choice.finish_reason:
+                finish_reason = choice.finish_reason
+            text = choice.delta.content
             if text:
                 text = _clean_chunk(text)
                 if text:
                     yield f"data: {json.dumps({'text': text})}\n\n"
+        # Same class of bug as SEO/offline-horoscope generation (see those
+        # modules' finish_reason checks) but this streaming path never had
+        # the check, so truncated live generations went undetected here.
+        if finish_reason == "length":
+            logger.warning("Groq stream truncated by max_tokens (finish_reason=length), lang=%s", lang)
+        if on_finish:
+            on_finish(finish_reason)
         yield "data: [DONE]\n\n"
     except Exception as e:
         ename = type(e).__name__.lower()

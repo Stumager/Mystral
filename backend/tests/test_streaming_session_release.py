@@ -46,9 +46,11 @@ def close_tracker():
 
 
 def _fake_stream_factory(state):
-    async def _fake_stream(messages, max_tokens=900, lang="ru"):
+    async def _fake_stream(messages, max_tokens=900, lang="ru", on_finish=None):
         state["closed_when_stream_started"] = state["closed"]
         yield 'data: {"text": "ok"}\n\n'
+        if on_finish:
+            on_finish("stop")
         yield "data: [DONE]\n\n"
     return _fake_stream
 
