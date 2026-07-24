@@ -92,6 +92,50 @@ PROMPTS = {
         "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
         "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
     ),
+    "natal_house": (
+        "Напиши подробное значение {number}-го дома гороскопа «{name}» в натальной карте. "
+        "Включи секции: 1) За что отвечает дом, 2) Планеты в этом доме, "
+        "3) Управитель дома и его значение, 4) Пустой дом — что это значит, "
+        "5) Сильное проявление дома, 6) Слабое или проблемное проявление, "
+        "7) Аспекты к куспиду дома, 8) Практические советы. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "ascendant": (
+        "Напиши подробное значение асцендента (восходящего знака) в натальной карте. "
+        "Включи секции: 1) Что такое асцендент и как он рассчитывается, 2) Асцендент и внешность, "
+        "3) Асцендент и первое впечатление, 4) Асцендент в разных знаках зодиака — кратко по каждому знаку, "
+        "5) Асцендент и характер в сравнении с Солнцем, 6) Управитель асцендента, "
+        "7) Асцендент и здоровье (первый дом), 8) Как использовать асцендент в жизни. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "compatibility_pillar": (
+        "Напиши исчерпывающее руководство по совместимости знаков зодиака. "
+        "Включи секции: 1) Как определяется совместимость знаков, 2) Совместимость по стихиям "
+        "(Огонь, Земля, Воздух, Вода), 3) Совместимость по полярности и качеству "
+        "(кардинальный/фиксированный/мутабельный), 4) Самые гармоничные пары знаков, "
+        "5) Самые сложные пары знаков и как их гармонизировать, 6) Совместимость в любви и браке, "
+        "7) Совместимость в дружбе и на работе, "
+        "8) Почему полная совместимость требует натальной карты и синастрии. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "compat_sign": (
+        "Напиши подробный анализ совместимости знака зодиака {name} с другими знаками. "
+        "Используй как основу: лучшая совместимость — {best_text}; сложная совместимость — {worst_text}. "
+        "Включи секции: 1) Общий обзор совместимости {name}, "
+        "2) Совместимость с {best_text} — почему это лучшие пары, "
+        "3) Совместимость с {worst_text} — в чём сложность и как её преодолеть, "
+        "4) {name} в любви, 5) {name} в браке, 6) {name} в дружбе, 7) {name} в работе и бизнесе, "
+        "8) Советы для гармоничных отношений {name}. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
 }
 
 # For the 5 prefixed languages: English master templates with an explicit
@@ -163,6 +207,43 @@ PROMPTS_I18N = {
         "Include sections: 1) General overview of the day, 2) Health, 3) Beauty, "
         "4) Money and finances, 5) Love and relationships, 6) Work, "
         "7) Spiritual practice, 8) Dreams on this day. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "natal_house": (
+        "Write the detailed meaning of house {number} of the horoscope, \"{name}\", in the natal chart. "
+        "Include sections: 1) What the house governs, 2) Planets placed in this house, "
+        "3) The house ruler and its meaning, 4) An empty house — what it means, "
+        "5) Strong expression of the house, 6) Weak or challenging expression, "
+        "7) Aspects to the house cusp, 8) Practical advice. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "ascendant": (
+        "Write the detailed meaning of the Ascendant (rising sign) in the natal chart. "
+        "Include sections: 1) What the Ascendant is and how it's calculated, "
+        "2) The Ascendant and physical appearance, 3) The Ascendant and first impressions, "
+        "4) The Ascendant across zodiac signs, briefly for each sign, "
+        "5) The Ascendant vs the Sun sign — character differences, 6) The ruler of the Ascendant, "
+        "7) The Ascendant and health (the first house), 8) How to use your Ascendant in daily life. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "compatibility_pillar": (
+        "Write a comprehensive guide to zodiac sign compatibility. "
+        "Include sections: 1) How sign compatibility is determined, "
+        "2) Compatibility by element (Fire, Earth, Air, Water), "
+        "3) Compatibility by polarity and modality (cardinal/fixed/mutable), "
+        "4) The most harmonious sign pairs, 5) The most challenging sign pairs and how to work through them, "
+        "6) Compatibility in love and marriage, 7) Compatibility in friendship and at work, "
+        "8) Why true compatibility requires a full natal chart and synastry. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "compat_sign": (
+        "Write a detailed compatibility analysis for the zodiac sign {name} with other signs. "
+        "Use as a basis: best compatibility — {best_text}; challenging compatibility — {worst_text}. "
+        "Include sections: 1) General compatibility overview for {name}, "
+        "2) Compatibility with {best_text} — why these are the best matches, "
+        "3) Compatibility with {worst_text} — what makes it hard and how to work through it, "
+        "4) {name} in love, 5) {name} in marriage, 6) {name} in friendship, 7) {name} at work and in business, "
+        "8) Advice for harmonious relationships with {name}. "
         "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
     ),
 }
@@ -433,13 +514,21 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
     warm cache and the batch script; page handlers localize via seo_i18n
     directly). Tarot gets a target-language "name" key for the i18n prompt.
 
-    lunar_day is special-cased ahead of the `lang == "ru"` shortcut: unlike
-    every other section, its seo_data.py entry (slug/number/keywords only)
-    has no ru content of its own either — localize_lunar_day() always merges
-    in the real content from lunar_days.py/lunar_i18n.py regardless of lang."""
-    from app.data.seo_i18n import localize_lunar_day, localize_natal_planet, localize_num, localize_rune, localize_sign, tarot_display_name
+    lunar_day and compat_sign are special-cased ahead of the `lang == "ru"`
+    shortcut: lunar_day's seo_data.py entry (slug/number/keywords only) has
+    no ru content of its own either, so localize_lunar_day() always merges in
+    the real content from lunar_days.py/lunar_i18n.py regardless of lang.
+    compat_sign's raw entry (a plain seo_data.ZODIAC_SIGNS item) has real ru
+    content, but its best_text/worst_text (used by the compat_sign prompt)
+    only exist after localize_compat_sign() builds them — needed for ru too."""
+    from app.data.seo_i18n import (
+        localize_ascendant, localize_compat_sign, localize_lunar_day, localize_natal_house,
+        localize_natal_planet, localize_num, localize_rune, localize_sign, tarot_display_name,
+    )
     if page_type == "lunar_day":
         return localize_lunar_day(data, lang)
+    if page_type == "compat_sign":
+        return localize_compat_sign(data, lang)
     if lang == "ru":
         return data
     if page_type == "zodiac":
@@ -452,12 +541,19 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
         return localize_num(data, lang)
     if page_type == "natal_planet":
         return localize_natal_planet(data, lang)
+    if page_type == "natal_house":
+        return localize_natal_house(data, lang)
+    if page_type == "ascendant":
+        return localize_ascendant(data, lang)
     return data
 
 
 def seo_page_items() -> list[tuple[str, str, dict]]:
     """(page_type, slug, raw ru data) for all individual SEO pages."""
-    from app.data.seo_data import LUNAR_DAY_SEO, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS
+    from app.data.seo_data import (
+        ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS,
+        NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS,
+    )
 
     items: list[tuple[str, str, dict]] = []
     for s in ZODIAC_SIGNS:
@@ -472,6 +568,12 @@ def seo_page_items() -> list[tuple[str, str, dict]]:
         items.append(("natal_planet", p["slug"], p))
     for d in LUNAR_DAY_SEO:
         items.append(("lunar_day", d["slug"], d))
+    for h in NATAL_HOUSES:
+        items.append(("natal_house", h["slug"], h))
+    items.append(("ascendant", ASCENDANT_SEO["slug"], ASCENDANT_SEO))
+    items.append(("compatibility_pillar", COMPATIBILITY_PILLAR["slug"], COMPATIBILITY_PILLAR))
+    for s in ZODIAC_SIGNS:
+        items.append(("compat_sign", s["slug"], s))
     return items
 
 

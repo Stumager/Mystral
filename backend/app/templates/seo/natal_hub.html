@@ -9,4 +9,7 @@
 {% endblock %}
 {% block links %}
 <div class="links">{% for p in planets %}<a href="{{ prefix }}/natal-chart/planets/{{ p.slug }}">{{ p.symbol }} {{ p.name }}</a>{% endfor %}</div>
+<h2>{{ t.natal_houses_title }}</h2>
+<div class="links">{% for h in houses %}<a href="{{ prefix }}/natal-chart/houses/{{ h.slug }}">{{ h.number }}. {{ h.name }}</a>{% endfor %}</div>
+<div class="links"><a href="{{ prefix }}/natal-chart/ascendant">{{ ascendant_name }}</a></div>
 {% endblock %}

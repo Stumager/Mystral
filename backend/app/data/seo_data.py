@@ -113,3 +113,47 @@ LUNAR_DAY_SEO = [
     for n in range(1, 31)
 ]
 LUNAR_DAY_BY_SLUG = {d["slug"]: d for d in LUNAR_DAY_SEO}
+
+# TZ-094: the 12 astrological houses. Unlike lunar_day, there is no existing
+# curated dataset anywhere in the app to reuse (the live natal chart feature
+# only computes house *numbers* per user, never generic per-house meaning
+# text) — name/name_en here are the only reference data, real content is
+# fully LLM-generated (natal_house prompt in seo_generator.py). Slug is the
+# plain house number as a string ("1".."12"), matching /natal-chart/houses/{n}.
+_NATAL_HOUSE_NAMES = [
+    ("Дом Личности", "House of Self"),
+    ("Дом Денег", "House of Money"),
+    ("Дом Общения", "House of Communication"),
+    ("Дом Семьи", "House of Home and Family"),
+    ("Дом Творчества", "House of Creativity"),
+    ("Дом Здоровья и Работы", "House of Health and Work"),
+    ("Дом Партнёрства", "House of Partnership"),
+    ("Дом Трансформации", "House of Transformation"),
+    ("Дом Философии", "House of Philosophy"),
+    ("Дом Карьеры", "House of Career"),
+    ("Дом Дружбы", "House of Friendship"),
+    ("Дом Подсознания", "House of the Subconscious"),
+]
+NATAL_HOUSES = [
+    {"slug": str(n), "number": n, "name": name_ru, "name_en": name_en,
+     "keywords": [f"{n} дом гороскопа", f"{n}-й дом натальной карты"]}
+    for n, (name_ru, name_en) in enumerate(_NATAL_HOUSE_NAMES, 1)
+]
+NATAL_HOUSES_BY_SLUG = {h["slug"]: h for h in NATAL_HOUSES}
+
+# TZ-094: single page, no per-item list — mirrors NATAL_HOUSES' "no existing
+# curated dataset" situation (content fully LLM-generated).
+ASCENDANT_SEO = {
+    "slug": "ascendant", "name": "Асцендент", "name_en": "Ascendant",
+    "keywords": ["асцендент значение", "восходящий знак зодиака"],
+}
+
+# TZ-094: the /compatibility pillar page — unlike the other hubs (zodiac/
+# tarot/runes/natal-chart/lunar-calendar), this one carries its own
+# LLM-generated content (a general compatibility overview) in addition to
+# linking out to the 12 /compatibility/{sign} pages, so it needs a
+# seo_page_items() entry like any other individually-generated page.
+COMPATIBILITY_PILLAR = {
+    "slug": "compatibility",
+    "keywords": ["совместимость знаков зодиака", "совместимость по гороскопу"],
+}

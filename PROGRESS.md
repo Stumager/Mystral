@@ -756,3 +756,100 @@ tier был ленивый, в `deps.get_current_user`, только при за
 
 ### Next step
 - Не коммитил/не пушил — жду подтверждения.
+
+## 2026-07-24 — ТЗ-094: SEO-страницы для compatibility, houses, ascendant (фаза 2 ТЗ-083)
+
+### Completed
+- **Скоуп**: закрывает ровно то, что ТЗ-083 (1/2) отложило — 12 домов
+  гороскопа, асцендент (1 страница), compatibility-пиллар и 12
+  compatibility/{sign}. Итого 26 новых страниц × 6 языков.
+- **Проверка коллизии `/compatibility`** — отдельно от того, что уже
+  проверялось для natal-chart/lunar-calendar в ТЗ-083: `App.tsx`
+  проверяет `window.location.pathname` только для `/privacy`, `/terms`,
+  `/ref/:code` (regex/точное совпадение), нигде не проверяет
+  `/compatibility` — авторизованный in-app раздел «Совместимость»
+  живёт целиком в `useState<Page>` через клиентскую навигацию
+  (`onNavigate("compat")`), никогда не через URL-путь. Коллизии нет,
+  добавлен явный тест-кейс это документирующий.
+- **`nginx/nginx.prod.conf`** — не трогал. Regex уже содержит все три
+  префикса с ТЗ-083 (`natal-chart|lunar-calendar|compatibility`),
+  подтверждено чтением файла, не предполагалось.
+- **`seo_data.py`** — `NATAL_HOUSES` (12, slug = номер строкой "1".."12",
+  имена — общепринятые короткие астрологические названия домов, нет
+  существующего датасета для переиспользования, в отличие от
+  lunar_day/natal_planet в прошлой фазе), `ASCENDANT_SEO` (одна запись,
+  без списка), `COMPATIBILITY_PILLAR` (одна запись для /compatibility
+  — в отличие от остальных hub-страниц (zodiac/tarot/runes/natal-chart/
+  lunar-calendar), pillar-страница сама несёт LLM-контент, не только
+  ссылки). compatibility/{sign} переиспользует существующий
+  `ZODIAC_SIGNS` (те же 12 slug'ов, что и /zodiac/{slug}) — не
+  дублировал.
+- **`seo_i18n.py`** — новые UI-строки на всех 6 языках (~20 ключей × 6),
+  `HOUSE_I18N`/`localize_natal_house` и `localize_ascendant` (ручной
+  перевод названий — нет существующего i18n-модуля для домов/
+  асцендента, как был `natal_i18n.PLANET_NAMES_I18N` для планет),
+  `localize_compat_sign` (мержит `best`/`worst` slug-массивы знака в
+  локализованные имена + готовые `best_text`/`worst_text` для промпта,
+  как `favorable_text`/`unfavorable_text` у lunar_day).
+- **`seo_generator.py`** — промпты `natal_house`/`ascendant`/
+  `compatibility_pillar`/`compat_sign` (ru + i18n), `localize_data()`
+  дополнен (compat_sign специально вынесен перед `lang == "ru"`
+  шорткатом — как и lunar_day, но по другой причине: сырые данные уже
+  на русском, но `best_text`/`worst_text` не существуют до вызова
+  `localize_compat_sign()`, нужны промпту даже для ru), `seo_page_items()`
+  дополнен всеми 26 новыми позициями (189 итого, было 163).
+- **`seo_pages.py`** — 4 новых роута (`/natal-chart/houses/{slug}`,
+  `/natal-chart/ascendant`, `/compatibility`, `/compatibility/{sign}`,
+  каждый в паре root+`/{lang}`), существующий `/natal-chart` hub
+  дополнен ссылками на дома и асцендент (не создавал отдельный
+  `/natal-chart/houses` hub — по образцу того, как planets уже висят
+  прямо на общем natal-chart hub'е). Sitemap дополнен (194 пути вместо
+  168, +26).
+- **Шаблоны** — `natal_house.html`, `ascendant.html` (по образцу
+  `natal_planet.html`), `compat_hub.html` (по образцу `zodiac_sign.html`
+  — Article+FAQPage schema, а не тонкий BreadcrumbList-only hub, т.к.
+  несёт LLM-контент), `compat_sign.html` (по образцу `zodiac_sign.html`
+  + best/worst карточка как у `lunar_day.html`'s favorable/unfavorable).
+  `natal_hub.html` — добавлен блок домов+асцендента. `base.html` —
+  добавлен `nav_compat` в шапку (6 → 7 пунктов).
+- **`generate_seo_translations.py`** — `PAGE_TYPES` дополнен
+  `natal_house`, `ascendant`, `compatibility_pillar`, `compat_sign`.
+- **Тесты** — `TestNatalHousesAndAscendantPages`/`TestCompatibilityPages`
+  (200/404/traversal/canonical/h1 + best/worst содержимого),
+  `TestAllHousesAndCompatSignsPages` (полный обход 12 домов + 1
+  асцендент + 12 compat-знаков × ru + 5 языков — тот же паттерн ТЗ-073/
+  082/083), 3 новых кейса в `TestLangPages` (es-дом, tr-асцендент,
+  uk-compat-знак с реально различающимся написанием — Gemini
+  «Близнецы»/«Близнюки», не как в ТЗ-083's `test_uk_compat_sign`
+  черновике с Aries, где ru/uk совпадают буквально), sitemap count
+  обновлён (1009 → 1165) и полный список новых URL в
+  `test_sitemap_contains_lang_urls`.
+
+### Problems found
+- Ничего вне периметра.
+
+### Verified
+- `py_compile` — чисто.
+- `tsc --noEmit` (фронтенд не трогал, но по стандарту прогнал) — 0 ошибок.
+- Полный `pytest` — **1068 passed, 8 skipped** (было 1068-175=893 до
+  этого ТЗ). Живая docker-compose.prod.yml/nginx проверка не делал в
+  этот раз — nginx-конфиг не менялся (пути уже покрыты с ТЗ-083), новой
+  инфраструктурной поверхности нет, ТЗ явно просило «tsc/py_compile/
+  pytest по стандарту», не живую проверку.
+
+### Next step
+- **Реальная генерация контента** (26 страниц × 6 языков = 156
+  генераций) НЕ запускалась — по правилу проекта, платные прогоны
+  только вручную на VPS, в tmux (не в голой SSH-сессии — сама генерация
+  не быстрая, 1-3 мин/страницу, несколько часов на весь объём). RU
+  генерируется сам по факту первого захода (`warm_seo_cache()`/
+  on-demand после деплоя), для 5 остальных языков нужен ручной прогон:
+  ```
+  tmux new -s seo-gen-094
+  docker compose exec backend python scripts/generate_seo_translations.py \
+    --types natal_house,ascendant,compatibility_pillar,compat_sign
+  ```
+  (дефолтные `--langs` = 5 префиксных, ru не нужен отдельно; `Ctrl+B D`
+  чтобы отсоединиться от tmux не прерывая прогон, `tmux attach -t
+  seo-gen-094` — вернуться и проверить прогресс).
+- Не коммитил/не пушил — жду подтверждения.

@@ -26,7 +26,8 @@ from app.core.seo_generator import _generate_and_store, localize_data, seo_page_
 from app.data.seo_i18n import PREFIX_LANGS  # noqa: E402
 from app.models.user import SeoContent  # noqa: E402
 
-PAGE_TYPES = ("zodiac", "tarot", "rune", "numerology", "natal_planet", "lunar_day")
+PAGE_TYPES = ("zodiac", "tarot", "rune", "numerology", "natal_planet", "lunar_day",
+              "natal_house", "ascendant", "compatibility_pillar", "compat_sign")
 BACKOFF_STEPS = (30, 60, 120)
 
 

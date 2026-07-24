@@ -1,0 +1,19 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+{% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_natal }}","item":"https://mystral.space{{ prefix }}/natal-chart"},{"@type":"ListItem","position":3,"name":"{{ asc.name }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › <a href="{{ prefix }}/natal-chart">{{ t.bc_natal }}</a> › {{ asc.name }}{% endblock %}
+{% block content %}
+<h1>{{ h1 }}</h1>
+<div class="card" style="text-align:center">
+  <span style="font-family:'Cinzel',serif;font-size:40px;letter-spacing:.15em;color:#A99BE0">ASC</span>
+  <p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.3em;color:#E8CD7E;margin-top:8px">{{ asc.name|upper }}</p>
+</div>
+<p>{{ content.intro }}</p>
+{% for sec in content.sections %}
+<h2>{{ sec.title }}</h2>
+<p>{{ sec.text }}</p>
+{% endfor %}
+{% endblock %}

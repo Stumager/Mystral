@@ -10,6 +10,7 @@ from app.core.structural_i18n import localized_field, pick, pick_list
 from app.data.lunar_days import LUNAR_DAYS
 from app.data.lunar_i18n import LUNAR_DAYS_I18N
 from app.data.natal_i18n import PLANET_NAMES_I18N
+from app.data.seo_data import ZODIAC_BY_SLUG
 
 BASE_URL = "https://mystral.space"
 
@@ -107,6 +108,23 @@ UI = {
         "lunar_day_desc": "{number}-й лунный день «{title}» — подробное значение, благоприятные и неблагоприятные дела, талисманы и советы.",
         "other_lunar_days": "Другие лунные дни",
         "label_favorable": "Благоприятно", "label_unfavorable": "Неблагоприятно", "label_stones": "Камни-талисманы",
+        "nav_compat": "Совместимость", "bc_compat": "Совместимость",
+        "compat_hub_h1": "Совместимость знаков зодиака",
+        "compat_hub_title": "Совместимость знаков зодиака — полное руководство | Mystral",
+        "compat_hub_desc": "Совместимость всех знаков зодиака в любви, браке и дружбе. Как стихии, полярность и планеты влияют на отношения. Бесплатный расчёт совместимости на Mystral.",
+        "compat_by_sign": "Совместимость по знаку",
+        "compat_sign_h1": "Совместимость {name} с другими знаками зодиака",
+        "compat_sign_title": "Совместимость {name} — с кем подходит по гороскопу | Mystral",
+        "compat_sign_desc": "Совместимость знака {name} в любви, браке и дружбе с другими знаками зодиака. Лучшие и сложные пары.",
+        "label_best": "Лучшая совместимость", "label_worst": "Сложная совместимость",
+        "other_compat_signs": "Совместимость других знаков",
+        "natal_house_h1": "{number}-й дом гороскопа — {name}",
+        "natal_house_title": "{number}-й дом гороскопа — {name} | Mystral",
+        "natal_house_desc": "Значение {number}-го дома натальной карты «{name}»: за что отвечает, какие планеты усиливают, как трактовать в гороскопе.",
+        "other_houses": "Другие дома гороскопа", "natal_houses_title": "Дома гороскопа",
+        "ascendant_h1": "Асцендент в натальной карте — значение",
+        "ascendant_title": "Асцендент — значение восходящего знака | Mystral",
+        "ascendant_desc": "Что такое асцендент в натальной карте, как он влияет на внешность и первое впечатление, как рассчитать восходящий знак.",
     },
     "en": {
         "nav_home": "Home", "nav_zodiac": "Zodiac", "nav_tarot": "Tarot", "nav_runes": "Runes",
@@ -168,6 +186,23 @@ UI = {
         "lunar_day_desc": "Lunar day {number}, \"{title}\" — detailed meaning, favorable and unfavorable activities, talismans and advice.",
         "other_lunar_days": "Other Lunar Days",
         "label_favorable": "Favorable", "label_unfavorable": "Unfavorable", "label_stones": "Talisman Stones",
+        "nav_compat": "Compatibility", "bc_compat": "Compatibility",
+        "compat_hub_h1": "Zodiac Sign Compatibility",
+        "compat_hub_title": "Zodiac Sign Compatibility — the Complete Guide | Mystral",
+        "compat_hub_desc": "The compatibility of every zodiac sign in love, marriage and friendship. How elements, polarity and ruling planets shape a relationship. Free compatibility calculation on Mystral.",
+        "compat_by_sign": "Compatibility by Sign",
+        "compat_sign_h1": "{name} Compatibility with Other Zodiac Signs",
+        "compat_sign_title": "{name} Compatibility — Who {name} Matches With | Mystral",
+        "compat_sign_desc": "The compatibility of {name} in love, marriage and friendship with other zodiac signs. Best and challenging matches.",
+        "label_best": "Best Compatibility", "label_worst": "Challenging Compatibility",
+        "other_compat_signs": "Compatibility of Other Signs",
+        "natal_house_h1": "House {number} of the Horoscope — {name}",
+        "natal_house_title": "House {number} of the Horoscope — {name} | Mystral",
+        "natal_house_desc": "The meaning of house {number} of the natal chart, \"{name}\": what it governs, which planets strengthen it, how to interpret it in a horoscope.",
+        "other_houses": "Other Horoscope Houses", "natal_houses_title": "Horoscope Houses",
+        "ascendant_h1": "The Ascendant in the Natal Chart — Meaning",
+        "ascendant_title": "Ascendant — the Meaning of the Rising Sign | Mystral",
+        "ascendant_desc": "What the ascendant is in a natal chart, how it shapes appearance and first impressions, and how to calculate your rising sign.",
     },
     "es": {
         "nav_home": "Inicio", "nav_zodiac": "Zodiaco", "nav_tarot": "Tarot", "nav_runes": "Runas",
@@ -229,6 +264,23 @@ UI = {
         "lunar_day_desc": "El día lunar {number}, «{title}» — significado detallado, actividades favorables y desfavorables, talismanes y consejos.",
         "other_lunar_days": "Otros Días Lunares",
         "label_favorable": "Favorable", "label_unfavorable": "Desfavorable", "label_stones": "Piedras Talismán",
+        "nav_compat": "Compatibilidad", "bc_compat": "Compatibilidad",
+        "compat_hub_h1": "Compatibilidad de los signos del zodiaco",
+        "compat_hub_title": "Compatibilidad de los signos del zodiaco — la guía completa | Mystral",
+        "compat_hub_desc": "La compatibilidad de todos los signos del zodiaco en el amor, el matrimonio y la amistad. Cómo los elementos, la polaridad y los planetas regentes moldean una relación. Cálculo de compatibilidad gratis en Mystral.",
+        "compat_by_sign": "Compatibilidad por signo",
+        "compat_sign_h1": "Compatibilidad de {name} con otros signos del zodiaco",
+        "compat_sign_title": "Compatibilidad de {name} — con quién combina | Mystral",
+        "compat_sign_desc": "La compatibilidad de {name} en el amor, el matrimonio y la amistad con otros signos del zodiaco. Las mejores parejas y las más difíciles.",
+        "label_best": "Mejor compatibilidad", "label_worst": "Compatibilidad difícil",
+        "other_compat_signs": "Compatibilidad de otros signos",
+        "natal_house_h1": "Casa {number} del horóscopo — {name}",
+        "natal_house_title": "Casa {number} del horóscopo — {name} | Mystral",
+        "natal_house_desc": "El significado de la casa {number} de la carta natal, «{name}»: qué rige, qué planetas la fortalecen, cómo interpretarla en un horóscopo.",
+        "other_houses": "Otras casas del horóscopo", "natal_houses_title": "Casas del horóscopo",
+        "ascendant_h1": "El Ascendente en la Carta Natal — Significado",
+        "ascendant_title": "Ascendente — el significado del signo ascendente | Mystral",
+        "ascendant_desc": "Qué es el ascendente en una carta natal, cómo moldea la apariencia y la primera impresión, y cómo calcular tu signo ascendente.",
     },
     "pt": {
         "nav_home": "Início", "nav_zodiac": "Zodíaco", "nav_tarot": "Tarô", "nav_runes": "Runas",
@@ -290,6 +342,23 @@ UI = {
         "lunar_day_desc": "O dia lunar {number}, «{title}» — significado detalhado, atividades favoráveis e desfavoráveis, talismãs e conselhos.",
         "other_lunar_days": "Outros Dias Lunares",
         "label_favorable": "Favorável", "label_unfavorable": "Desfavorável", "label_stones": "Pedras Talismã",
+        "nav_compat": "Compatibilidade", "bc_compat": "Compatibilidade",
+        "compat_hub_h1": "Compatibilidade dos signos do zodíaco",
+        "compat_hub_title": "Compatibilidade dos signos do zodíaco — o guia completo | Mystral",
+        "compat_hub_desc": "A compatibilidade de todos os signos do zodíaco no amor, no casamento e na amizade. Como os elementos, a polaridade e os planetas regentes moldam um relacionamento. Cálculo de compatibilidade grátis no Mystral.",
+        "compat_by_sign": "Compatibilidade por signo",
+        "compat_sign_h1": "Compatibilidade de {name} com outros signos do zodíaco",
+        "compat_sign_title": "Compatibilidade de {name} — com quem combina | Mystral",
+        "compat_sign_desc": "A compatibilidade de {name} no amor, no casamento e na amizade com outros signos do zodíaco. As melhores combinações e as mais difíceis.",
+        "label_best": "Melhor compatibilidade", "label_worst": "Compatibilidade difícil",
+        "other_compat_signs": "Compatibilidade de outros signos",
+        "natal_house_h1": "Casa {number} do horóscopo — {name}",
+        "natal_house_title": "Casa {number} do horóscopo — {name} | Mystral",
+        "natal_house_desc": "O significado da casa {number} do mapa astral, «{name}»: o que rege, quais planetas a fortalecem, como interpretá-la num horóscopo.",
+        "other_houses": "Outras casas do horóscopo", "natal_houses_title": "Casas do horóscopo",
+        "ascendant_h1": "O Ascendente no Mapa Astral — Significado",
+        "ascendant_title": "Ascendente — o significado do signo ascendente | Mystral",
+        "ascendant_desc": "O que é o ascendente num mapa astral, como molda a aparência e a primeira impressão, e como calcular o seu signo ascendente.",
     },
     "tr": {
         "nav_home": "Ana Sayfa", "nav_zodiac": "Burçlar", "nav_tarot": "Tarot", "nav_runes": "Rünler",
@@ -351,6 +420,23 @@ UI = {
         "lunar_day_desc": "{number}. ay günü, «{title}» — ayrıntılı anlamı, uğurlu ve uğursuz faaliyetler, tılsımlar ve öneriler.",
         "other_lunar_days": "Diğer Ay Günleri",
         "label_favorable": "Uğurlu", "label_unfavorable": "Uğursuz", "label_stones": "Tılsım Taşları",
+        "nav_compat": "Uyum", "bc_compat": "Uyum",
+        "compat_hub_h1": "Burç uyumu",
+        "compat_hub_title": "Burç uyumu — eksiksiz rehber | Mystral",
+        "compat_hub_desc": "Tüm burçların aşkta, evlilikte ve arkadaşlıkta uyumu. Elementler, kutupluluk ve yönetici gezegenler bir ilişkiyi nasıl şekillendirir. Mystral'da ücretsiz uyum hesaplama.",
+        "compat_by_sign": "Burca göre uyum",
+        "compat_sign_h1": "{name} burcunun diğer burçlarla uyumu",
+        "compat_sign_title": "{name} uyumu — kimle uyumlu | Mystral",
+        "compat_sign_desc": "{name} burcunun aşkta, evlilikte ve arkadaşlıkta diğer burçlarla uyumu. En iyi ve en zor eşleşmeler.",
+        "label_best": "En iyi uyum", "label_worst": "Zor uyum",
+        "other_compat_signs": "Diğer burçların uyumu",
+        "natal_house_h1": "Burç haritasının {number}. evi — {name}",
+        "natal_house_title": "Burç haritasının {number}. evi — {name} | Mystral",
+        "natal_house_desc": "Doğum haritasının {number}. evinin, «{name}», anlamı: neyi yönettiği, hangi gezegenlerin güçlendirdiği, burç haritasında nasıl yorumlanacağı.",
+        "other_houses": "Diğer burç evleri", "natal_houses_title": "Burç evleri",
+        "ascendant_h1": "Doğum Haritasında Yükselen Burç — Anlamı",
+        "ascendant_title": "Yükselen Burç — anlamı | Mystral",
+        "ascendant_desc": "Doğum haritasında yükselen burç nedir, görünüşü ve ilk izlenimi nasıl şekillendirir, yükselen burcunuzu nasıl hesaplarsınız.",
     },
     "uk": {
         "nav_home": "Головна", "nav_zodiac": "Зодіак", "nav_tarot": "Таро", "nav_runes": "Руни",
@@ -412,6 +498,23 @@ UI = {
         "lunar_day_desc": "{number}-й місячний день «{title}» — детальне значення, сприятливі та несприятливі справи, талісмани і поради.",
         "other_lunar_days": "Інші місячні дні",
         "label_favorable": "Сприятливо", "label_unfavorable": "Несприятливо", "label_stones": "Камені-талісмани",
+        "nav_compat": "Сумісність", "bc_compat": "Сумісність",
+        "compat_hub_h1": "Сумісність знаків зодіаку",
+        "compat_hub_title": "Сумісність знаків зодіаку — повний гід | Mystral",
+        "compat_hub_desc": "Сумісність усіх знаків зодіаку в коханні, шлюбі та дружбі. Як стихії, полярність і керуючі планети впливають на стосунки. Безкоштовний розрахунок сумісності на Mystral.",
+        "compat_by_sign": "Сумісність за знаком",
+        "compat_sign_h1": "Сумісність {name} з іншими знаками зодіаку",
+        "compat_sign_title": "Сумісність {name} — з ким підходить | Mystral",
+        "compat_sign_desc": "Сумісність знака {name} в коханні, шлюбі та дружбі з іншими знаками зодіаку. Найкращі та складні пари.",
+        "label_best": "Найкраща сумісність", "label_worst": "Складна сумісність",
+        "other_compat_signs": "Сумісність інших знаків",
+        "natal_house_h1": "{number}-й дім гороскопу — {name}",
+        "natal_house_title": "{number}-й дім гороскопу — {name} | Mystral",
+        "natal_house_desc": "Значення {number}-го дому натальної карти «{name}»: за що відповідає, які планети підсилюють, як тлумачити в гороскопі.",
+        "other_houses": "Інші доми гороскопу", "natal_houses_title": "Доми гороскопу",
+        "ascendant_h1": "Асцендент у натальній карті — значення",
+        "ascendant_title": "Асцендент — значення висхідного знака | Mystral",
+        "ascendant_desc": "Що таке асцендент у натальній карті, як він впливає на зовнішність і перше враження, як розрахувати висхідний знак.",
     },
 }
 
@@ -725,4 +828,69 @@ def localize_lunar_day(day_seo: dict, lang: str) -> dict:
         # joined strings for prompt building — str.format(**data) can't join a list
         "favorable_text": ", ".join(favorable),
         "unfavorable_text": ", ".join(unfavorable),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Natal houses + ascendant (TZ-094): no existing structural dataset to reuse
+# (unlike lunar_day/natal_planet), so names are hand-translated here directly,
+# the same way ZODIAC_I18N hand-translates sign names further up this file.
+# House order matches seo_data.NATAL_HOUSES (house 1..12).
+# ---------------------------------------------------------------------------
+
+_HOUSE_NAMES_LANG = {
+    "en": ["House of Self", "House of Money", "House of Communication", "House of Home and Family",
+           "House of Creativity", "House of Health and Work", "House of Partnership", "House of Transformation",
+           "House of Philosophy", "House of Career", "House of Friendship", "House of the Subconscious"],
+    "es": ["Casa del Yo", "Casa del Dinero", "Casa de la Comunicación", "Casa del Hogar y la Familia",
+           "Casa de la Creatividad", "Casa de la Salud y el Trabajo", "Casa de la Pareja", "Casa de la Transformación",
+           "Casa de la Filosofía", "Casa de la Carrera", "Casa de la Amistad", "Casa del Subconsciente"],
+    "pt": ["Casa do Eu", "Casa do Dinheiro", "Casa da Comunicação", "Casa do Lar e da Família",
+           "Casa da Criatividade", "Casa da Saúde e do Trabalho", "Casa da Parceria", "Casa da Transformação",
+           "Casa da Filosofia", "Casa da Carreira", "Casa da Amizade", "Casa do Subconsciente"],
+    "tr": ["Benlik Evi", "Para Evi", "İletişim Evi", "Ev ve Aile Evi",
+           "Yaratıcılık Evi", "Sağlık ve Çalışma Evi", "Ortaklık Evi", "Dönüşüm Evi",
+           "Felsefe Evi", "Kariyer Evi", "Arkadaşlık Evi", "Bilinçaltı Evi"],
+    "uk": ["Дім Особистості", "Дім Грошей", "Дім Спілкування", "Дім Родини",
+           "Дім Творчості", "Дім Здоров'я і Праці", "Дім Партнерства", "Дім Трансформації",
+           "Дім Філософії", "Дім Кар'єри", "Дім Дружби", "Дім Підсвідомості"],
+}
+HOUSE_I18N = {
+    lang: {str(i + 1): name for i, name in enumerate(names)}
+    for lang, names in _HOUSE_NAMES_LANG.items()
+}
+
+_ASCENDANT_NAME = {
+    "en": "Ascendant", "es": "Ascendente", "pt": "Ascendente",
+    "tr": "Yükselen Burç", "uk": "Асцендент",
+}
+
+
+def localize_natal_house(house: dict, lang: str) -> dict:
+    if lang == "ru":
+        return house
+    return {**house, "name": HOUSE_I18N[lang][house["slug"]]}
+
+
+def localize_ascendant(asc: dict, lang: str) -> dict:
+    if lang == "ru":
+        return asc
+    return {**asc, "name": _ASCENDANT_NAME[lang]}
+
+
+# ---------------------------------------------------------------------------
+# Compatibility (TZ-094): /compatibility/{sign} reuses seo_data.ZODIAC_SIGNS
+# directly (same 12 signs, same slugs as /zodiac/{slug}) rather than a
+# separate dataset — best/worst are the arrays already on each sign entry.
+# ---------------------------------------------------------------------------
+
+def localize_compat_sign(sign_raw: dict, lang: str) -> dict:
+    sign = localize_sign(sign_raw, lang)
+    best = [localize_sign(ZODIAC_BY_SLUG[s], lang)["name"] for s in sign_raw["best"]]
+    worst = [localize_sign(ZODIAC_BY_SLUG[s], lang)["name"] for s in sign_raw["worst"]]
+    return {
+        **sign,
+        "best_names": best, "worst_names": worst,
+        # joined strings for prompt building — str.format(**data) can't join a list
+        "best_text": ", ".join(best), "worst_text": ", ".join(worst),
     }

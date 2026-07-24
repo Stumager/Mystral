@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.data.seo_data import LUNAR_DAY_SEO, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO
+from app.data.seo_data import (
+    LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, ZODIAC_SIGNS,
+)
 from app.data.seo_i18n import PREFIX_LANGS
 
 
@@ -160,6 +162,93 @@ class TestLunarCalendarPages:
         assert "Лунный камень" in res.text  # LUNAR_DAYS[1]["stones_ru"]
 
 
+class TestNatalHousesAndAscendantPages:
+    async def test_natal_house_returns_html(self, client):
+        res = await client.get("/natal-chart/houses/1")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_natal_house_has_h1(self, client):
+        res = await client.get("/natal-chart/houses/1")
+        assert "<h1" in res.text
+
+    async def test_natal_house_has_canonical(self, client):
+        res = await client.get("/natal-chart/houses/1")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/natal-chart/houses/1" in res.text
+
+    async def test_natal_house_invalid_slug(self, client):
+        res = await client.get("/natal-chart/houses/13")
+        assert res.status_code == 404
+
+    async def test_natal_house_traversal_slug(self, client):
+        res = await client.get("/natal-chart/houses/..%2F..%2Fetc%2Fpasswd")
+        assert res.status_code == 404
+
+    async def test_natal_chart_hub_lists_houses_and_ascendant(self, client):
+        res = await client.get("/natal-chart")
+        assert res.status_code == 200
+        assert '/natal-chart/houses/1"' in res.text
+        assert '/natal-chart/houses/12"' in res.text
+        assert '/natal-chart/ascendant"' in res.text
+
+    async def test_ascendant_returns_html(self, client):
+        res = await client.get("/natal-chart/ascendant")
+        assert res.status_code == 200
+        assert "<h1" in res.text
+
+    async def test_ascendant_has_canonical(self, client):
+        res = await client.get("/natal-chart/ascendant")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/natal-chart/ascendant" in res.text
+
+
+class TestCompatibilityPages:
+    async def test_compatibility_hub_returns_html(self, client):
+        res = await client.get("/compatibility")
+        assert res.status_code == 200
+        assert "<h1" in res.text
+
+    async def test_compatibility_hub_lists_all_signs(self, client):
+        res = await client.get("/compatibility")
+        for s in ZODIAC_SIGNS:
+            assert f'/compatibility/{s["slug"]}"' in res.text, s["slug"]
+
+    async def test_compat_sign_returns_html(self, client):
+        res = await client.get("/compatibility/aries")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_compat_sign_has_canonical(self, client):
+        res = await client.get("/compatibility/aries")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/compatibility/aries" in res.text
+
+    async def test_compat_sign_shows_best_and_worst(self, client):
+        res = await client.get("/compatibility/aries")
+        # ZODIAC_BY_SLUG["aries"]["best"] = ["leo", "sagittarius", "gemini"]
+        assert "Лев" in res.text
+        assert "Стрелец" in res.text
+
+    async def test_compat_sign_invalid_slug(self, client):
+        res = await client.get("/compatibility/dragonborn")
+        assert res.status_code == 404
+
+    async def test_compat_sign_traversal_slug(self, client):
+        res = await client.get("/compatibility/..%2F..%2Fetc%2Fpasswd")
+        assert res.status_code == 404
+
+    async def test_compat_sign_does_not_collide_with_in_app_spa_section(self, client):
+        # TZ-094: /compatibility is a new public path; the authenticated
+        # in-app section of the same name lives entirely behind client-side
+        # SPA state (page === "compat"), never a URL path, so there is no
+        # ambiguity for nginx/FastAPI to resolve here — this just documents
+        # that the route returns the public SEO page, not a 401/redirect.
+        res = await client.get("/compatibility")
+        assert res.status_code == 200
+        assert "text/html" in res.headers["content-type"]
+
+
 class TestAllRunesAndNumerologyPages:
     """TZ-073 regression: a SEO crawler found 21/123 pages returning 500 —
     12/24 runes and 9/9 numerology pages — because a real fixture only
@@ -217,6 +306,51 @@ class TestAllNatalPlanetsAndLunarDaysPages:
     async def test_every_lunar_day_slug_all_langs(self, client, lang, day):
         res = await client.get(f"/{lang}/lunar-calendar/day/{day['slug']}")
         assert res.status_code == 200, f"/{lang}/lunar-calendar/day/{day['slug']} -> {res.status_code}"
+
+
+class TestAllHousesAndCompatSignsPages:
+    """TZ-094, following the same TZ-073/TZ-082/TZ-083 precedent: walk every
+    slug, not a sample, on ru and every prefixed language."""
+
+    @pytest.mark.parametrize("house", NATAL_HOUSES, ids=lambda h: h["slug"])
+    async def test_every_house_slug_ru(self, client, house):
+        res = await client.get(f"/natal-chart/houses/{house['slug']}")
+        assert res.status_code == 200, f"/natal-chart/houses/{house['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("sign", ZODIAC_SIGNS, ids=lambda s: s["slug"])
+    async def test_every_compat_sign_slug_ru(self, client, sign):
+        res = await client.get(f"/compatibility/{sign['slug']}")
+        assert res.status_code == 200, f"/compatibility/{sign['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("house", NATAL_HOUSES, ids=lambda h: h["slug"])
+    async def test_every_house_slug_all_langs(self, client, lang, house):
+        res = await client.get(f"/{lang}/natal-chart/houses/{house['slug']}")
+        assert res.status_code == 200, f"/{lang}/natal-chart/houses/{house['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("sign", ZODIAC_SIGNS, ids=lambda s: s["slug"])
+    async def test_every_compat_sign_slug_all_langs(self, client, lang, sign):
+        res = await client.get(f"/{lang}/compatibility/{sign['slug']}")
+        assert res.status_code == 200, f"/{lang}/compatibility/{sign['slug']} -> {res.status_code}"
+
+    async def test_ascendant_ru(self, client):
+        res = await client.get("/natal-chart/ascendant")
+        assert res.status_code == 200
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    async def test_ascendant_all_langs(self, client, lang):
+        res = await client.get(f"/{lang}/natal-chart/ascendant")
+        assert res.status_code == 200, f"/{lang}/natal-chart/ascendant -> {res.status_code}"
+
+    async def test_compatibility_hub_ru(self, client):
+        res = await client.get("/compatibility")
+        assert res.status_code == 200
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    async def test_compatibility_hub_all_langs(self, client, lang):
+        res = await client.get(f"/{lang}/compatibility")
+        assert res.status_code == 200, f"/{lang}/compatibility -> {res.status_code}"
 
 
 def _fake_llm_response(payload: str):
@@ -355,8 +489,27 @@ class TestLangPages:
         assert '<html lang="pt">' in res.text
         assert "Dia das Intenções" in res.text  # Portuguese title for lunar day 1
 
+    async def test_es_natal_house(self, client):
+        res = await client.get("/es/natal-chart/houses/1")
+        assert res.status_code == 200
+        assert '<html lang="es">' in res.text
+        assert "Casa del Yo" in res.text  # Spanish name for house 1
+
+    async def test_tr_ascendant(self, client):
+        res = await client.get("/tr/natal-chart/ascendant")
+        assert res.status_code == 200
+        assert '<html lang="tr">' in res.text
+        assert "Yükselen Burç" in res.text
+
+    async def test_uk_compat_sign(self, client):
+        res = await client.get("/uk/compatibility/gemini")
+        assert res.status_code == 200
+        assert '<html lang="uk">' in res.text
+        assert "Близнюки" in res.text  # Ukrainian name for Gemini (ru would be "Близнецы")
+
     async def test_lang_hubs(self, client):
-        for path in ("/es/zodiac", "/es/tarot", "/es/runes", "/es/natal-chart", "/es/lunar-calendar"):
+        for path in ("/es/zodiac", "/es/tarot", "/es/runes", "/es/natal-chart",
+                     "/es/lunar-calendar", "/es/compatibility"):
             res = await client.get(path)
             assert res.status_code == 200, path
             assert '<html lang="es">' in res.text, path
@@ -470,6 +623,11 @@ class TestSitemapI18n:
         assert "<loc>https://mystral.space/uk/lunar-calendar/day/1</loc>" in res.text
         assert "<loc>https://mystral.space/natal-chart</loc>" in res.text
         assert "<loc>https://mystral.space/lunar-calendar</loc>" in res.text
+        assert "<loc>https://mystral.space/compatibility</loc>" in res.text
+        assert "<loc>https://mystral.space/natal-chart/ascendant</loc>" in res.text
+        assert "<loc>https://mystral.space/natal-chart/houses/1</loc>" in res.text
+        assert "<loc>https://mystral.space/es/compatibility/aries</loc>" in res.text
+        assert "<loc>https://mystral.space/uk/natal-chart/houses/12</loc>" in res.text
 
     async def test_sitemap_has_xhtml_alternates(self, client):
         res = await client.get("/sitemap.xml")
@@ -479,9 +637,9 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 168 paths x 6 languages (126 original + 2 new hubs
-        # + 10 natal planets + 30 lunar days, added in TZ-083)
-        assert count == 1009, f"sitemap has {count} URLs"
+        # 1 homepage + 194 paths x 6 languages (168 from TZ-083 + 26 new in
+        # TZ-094: 1 compatibility hub + 12 compat signs + 12 houses + 1 ascendant)
+        assert count == 1165, f"sitemap has {count} URLs"
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

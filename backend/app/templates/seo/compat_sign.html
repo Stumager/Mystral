@@ -1,0 +1,26 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+{% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_compat }}","item":"https://mystral.space{{ prefix }}/compatibility"},{"@type":"ListItem","position":3,"name":"{{ sign.name }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › <a href="{{ prefix }}/compatibility">{{ t.bc_compat }}</a> › {{ sign.name }}{% endblock %}
+{% block content %}
+<h1>{{ h1 }}</h1>
+<div class="card" style="text-align:center">
+  <p style="font-size:13px;color:#C9A84C">{{ sign.dates }} · {{ sign.element }}</p>
+</div>
+<p>{{ content.intro }}</p>
+{% for sec in content.sections %}
+<h2>{{ sec.title }}</h2>
+<p>{{ sec.text }}</p>
+{% endfor %}
+<div class="card">
+  <p><strong>{{ t.label_best }}:</strong> {{ sign.best_text }}</p>
+  <p><strong>{{ t.label_worst }}:</strong> {{ sign.worst_text }}</p>
+</div>
+{% endblock %}
+{% block links %}
+<h2>{{ t.other_compat_signs }}</h2>
+<div class="links">{% for s in all_signs %}<a href="{{ prefix }}/compatibility/{{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>
+{% endblock %}

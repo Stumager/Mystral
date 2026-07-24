@@ -11,13 +11,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
 from app.data.seo_data import (
-    LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
+    ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO,
+    NATAL_HOUSES, NATAL_HOUSES_BY_SLUG, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
     NUMEROLOGY_BY_SLUG, NUMEROLOGY_SEO, RUNE_BY_SLUG, RUNE_SEO,
     SUITS, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
 )
 from app.data.seo_i18n import (
     ALL_LANGS, LANG_NATIVE, OG_LOCALE, PREFIX_LANGS, SUITS_HDR, UI,
-    abs_url, hreflang_alternates, localize_card, localize_lunar_day,
+    abs_url, hreflang_alternates, localize_ascendant, localize_card,
+    localize_compat_sign, localize_lunar_day, localize_natal_house,
     localize_natal_planet, localize_num, localize_rune, localize_sign,
     url_prefix,
 )
@@ -245,6 +247,52 @@ async def natal_chart_hub(request: Request):
     return templates.TemplateResponse(request, "seo/natal_hub.html", _ctx(
         lang, "/natal-chart", t["natal_hub_title"], t["natal_hub_desc"],
         planets=[localize_natal_planet(p, lang) for p in NATAL_PLANETS],
+        houses=[localize_natal_house(h, lang) for h in NATAL_HOUSES],
+        ascendant_name=localize_ascendant(ASCENDANT_SEO, lang)["name"],
+    ))
+
+
+@router.get("/natal-chart/houses/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/natal-chart/houses/{slug}", response_class=HTMLResponse)
+async def natal_house_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/natal-chart/houses/{slug}")
+    if redirect:
+        return redirect
+    raw = NATAL_HOUSES_BY_SLUG.get(slug)
+    if not raw:
+        raise HTTPException(404)
+    house = localize_natal_house(raw, lang)
+    content = await get_seo_content("natal_house", slug, house, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/natal_house.html", _ctx(
+        lang, f"/natal-chart/houses/{slug}",
+        t["natal_house_title"].format(**house),
+        t["natal_house_desc"].format(**house),
+        content=content,
+        house=house,
+        all_houses=[localize_natal_house(h, lang) for h in NATAL_HOUSES],
+        h1=t["natal_house_h1"].format(**house),
+        today=TODAY(),
+    ))
+
+
+@router.get("/natal-chart/ascendant", response_class=HTMLResponse)
+@router.get("/{lang}/natal-chart/ascendant", response_class=HTMLResponse)
+async def ascendant_page(request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/natal-chart/ascendant")
+    if redirect:
+        return redirect
+    asc = localize_ascendant(ASCENDANT_SEO, lang)
+    content = await get_seo_content("ascendant", asc["slug"], asc, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/ascendant.html", _ctx(
+        lang, "/natal-chart/ascendant", t["ascendant_title"], t["ascendant_desc"],
+        content=content,
+        asc=asc,
+        h1=t["ascendant_h1"],
+        today=TODAY(),
     ))
 
 
@@ -316,6 +364,49 @@ async def lunar_day_page(slug: str, request: Request, session: AsyncSession = De
     ))
 
 
+@router.get("/compatibility", response_class=HTMLResponse)
+@router.get("/{lang}/compatibility", response_class=HTMLResponse)
+async def compatibility_pillar(request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/compatibility")
+    if redirect:
+        return redirect
+    content = await get_seo_content("compatibility_pillar", COMPATIBILITY_PILLAR["slug"], COMPATIBILITY_PILLAR, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/compat_hub.html", _ctx(
+        lang, "/compatibility", t["compat_hub_title"], t["compat_hub_desc"],
+        content=content,
+        signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS],
+        h1=t["compat_hub_h1"],
+        today=TODAY(),
+    ))
+
+
+@router.get("/compatibility/{sign}", response_class=HTMLResponse)
+@router.get("/{lang}/compatibility/{sign}", response_class=HTMLResponse)
+async def compat_sign_page(sign: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/compatibility/{sign}")
+    if redirect:
+        return redirect
+    raw = ZODIAC_BY_SLUG.get(sign)
+    if not raw:
+        raise HTTPException(404)
+    csign = localize_compat_sign(raw, lang)
+    content = await get_seo_content("compat_sign", sign, csign, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/compat_sign.html", _ctx(
+        lang, f"/compatibility/{sign}",
+        t["compat_sign_title"].format(**csign),
+        t["compat_sign_desc"].format(**csign),
+        content=content,
+        sign=csign,
+        all_signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS if s["slug"] != sign],
+        h1=t["compat_sign_h1"].format(**csign),
+        today=TODAY(),
+    ))
+
+
 CONSTELLATIONS = {
     "aries": {"pts": [[28,48],[45,38],[68,30]], "lines": [[0,1],[1,2]], "bright": [2]},
     "taurus": {"pts": [[22,20],[40,45],[28,58],[22,52],[50,58],[52,72],[60,40]], "lines": [[0,1],[1,2],[2,3],[1,4],[4,5],[3,5],[0,6]], "bright": [0,5]},
@@ -359,7 +450,8 @@ async def constellation_svg(slug: str, request: Request):
 @router.get("/sitemap.xml", response_class=Response)
 async def sitemap():
     today = date.today().isoformat()
-    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"), ("/lunar-calendar", "0.9")]
+    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"),
+             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9")]
     for s in ZODIAC_SIGNS:
         paths.append((f"/zodiac/{s['slug']}", "0.9"))
     for c in TAROT_CARDS:
@@ -372,6 +464,11 @@ async def sitemap():
         paths.append((f"/natal-chart/planets/{p['slug']}", "0.8"))
     for d in LUNAR_DAY_SEO:
         paths.append((f"/lunar-calendar/day/{d['slug']}", "0.8"))
+    for h in NATAL_HOUSES:
+        paths.append((f"/natal-chart/houses/{h['slug']}", "0.8"))
+    paths.append(("/natal-chart/ascendant", "0.8"))
+    for s in ZODIAC_SIGNS:
+        paths.append((f"/compatibility/{s['slug']}", "0.8"))
 
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n')
