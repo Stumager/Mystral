@@ -80,10 +80,10 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
             <div style={{ fontSize: 11, color: "#C9A84C" }}>{zodiacLabel ?? "—"} · {isPro ? "Pro" : "Free"}</div>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: "#6E6757", paddingLeft: 2 }}>
-          <a href="/privacy" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.privacy")}</a>
+        <div style={{ fontSize: 11, color: "#827A69", paddingLeft: 2 }}>
+          <a href="/privacy" style={{ color: "#827A69", textDecoration: "none" }}>{t("legal.privacy")}</a>
           {" · "}
-          <a href="/terms" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.terms")}</a>
+          <a href="/terms" style={{ color: "#827A69", textDecoration: "none" }}>{t("legal.terms")}</a>
         </div>
       </div>
     </aside>

@@ -187,15 +187,15 @@ export function Admin() {
             fontSize: 10, padding: "3px 10px", borderRadius: 99, flexShrink: 0, marginLeft: 8,
             background: u.tier === "pro" ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.05)",
             border: u.tier === "pro" ? "1px solid rgba(201,168,76,.3)" : "1px solid rgba(255,255,255,.08)",
-            color: u.tier === "pro" ? "#E8CD7E" : "#6E6757",
+            color: u.tier === "pro" ? "#E8CD7E" : "#827A69",
           }}>{u.tier.toUpperCase()}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 11, color: "#6E6757" }}>
+          <div style={{ fontSize: 11, color: "#827A69" }}>
             {u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}
             {u.tier === "pro" && u.subscription_expires_at && ` · до ${formatExpiresAt(u.subscription_expires_at)}`}
           </div>
-          <div style={{ fontSize: 10, color: "#6E6757", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</div>
+          <div style={{ fontSize: 10, color: "#827A69", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {u.tier !== "pro" ? (
@@ -216,7 +216,7 @@ export function Admin() {
     const statusColor = r.status === "pending" ? "#C9A84C"
       : r.status === "completed" ? "#6E9A8A"
       : r.status === "rejected" || r.status === "failed" ? "#D98A8A"
-      : "#6E6757";
+      : "#827A69";
     return (
       <div style={{ padding: 16, borderRadius: 14, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -238,7 +238,7 @@ export function Admin() {
         {r.reason && <div style={{ fontSize: 12, color: "#8A8170" }}>Причина: {r.reason}</div>}
         {r.admin_comment && <div style={{ fontSize: 12, color: "#8A8170" }}>Комментарий: {r.admin_comment}</div>}
         {r.error_detail && <div style={{ fontSize: 12, color: "#D98A8A" }}>Ошибка: {r.error_detail}</div>}
-        <div style={{ fontSize: 11, color: "#6E6757" }}>
+        <div style={{ fontSize: 11, color: "#827A69" }}>
           {r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : ""}
           {r.resolved_at && ` → ${new Date(r.resolved_at).toLocaleString("ru-RU")}`}
         </div>
@@ -284,7 +284,7 @@ export function Admin() {
               На модерации ({reviews.filter(r => !r.is_published).length}) · Опубликовано ({reviews.filter(r => r.is_published).length})
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {reviews.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Нет отзывов</p>}
+              {reviews.length === 0 && <p style={{ color: "#827A69", textAlign: "center", padding: 40 }}>Нет отзывов</p>}
               {reviews.map(r => (
                 <div key={r.id} style={{ padding: 16, borderRadius: 14, background: "rgba(255,255,255,.025)", border: `1px solid ${r.is_published ? "rgba(110,154,138,.3)" : "rgba(255,255,255,.06)"}`, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -305,7 +305,7 @@ export function Admin() {
                   </div>
                   {r.text && <p style={{ fontSize: 13, color: "#B6AC98", lineHeight: 1.5 }}>{r.text}</p>}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "#6E6757" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
+                    <span style={{ fontSize: 11, color: "#827A69" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
                     <div style={{ display: "flex", gap: 6 }}>
                       {!r.is_published && (
                         <button onClick={() => publishReview(r.id)} style={actionBtn("#6E9A8A", "rgba(110,154,138,.4)")}>Опубликовать</button>
@@ -359,7 +359,7 @@ export function Admin() {
                   {refStats.recent.map((r, i) => (
                     <div key={i} style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.02)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, flexWrap: "wrap", gap: 6 }}>
                       <span style={{ color: "#B6AC98" }}>{r.referrer_name} → {r.referred_name}</span>
-                      <span style={{ color: "#6E6757" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
+                      <span style={{ color: "#827A69" }}>{r.created_at ? new Date(r.created_at).toLocaleDateString("ru-RU") : ""}</span>
                     </div>
                   ))}
                 </div>
@@ -375,14 +375,14 @@ export function Admin() {
               На рассмотрении ({refundsPending.length})
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-              {refundsPending.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Нет заявок на рассмотрении</p>}
+              {refundsPending.length === 0 && <p style={{ color: "#827A69", textAlign: "center", padding: 40 }}>Нет заявок на рассмотрении</p>}
               {refundsPending.map(r => <RefundCard key={r.id} r={r} />)}
             </div>
             <p className="font-cinzel" style={{ fontSize: 10, letterSpacing: ".2em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 16 }}>
               История
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {refundsResolved.length === 0 && <p style={{ color: "#6E6757", textAlign: "center", padding: 40 }}>Пусто</p>}
+              {refundsResolved.length === 0 && <p style={{ color: "#827A69", textAlign: "center", padding: 40 }}>Пусто</p>}
               {refundsResolved.map(r => <RefundCard key={r.id} r={r} />)}
             </div>
           </div>
@@ -404,7 +404,7 @@ export function Admin() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
           <input placeholder="Поиск..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
             style={{ flex: 1, minWidth: 200, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", color: "#F0E9DA", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-          <span style={{ fontSize: 12, color: "#6E6757", flexShrink: 0 }}>{total} users</span>
+          <span style={{ fontSize: 12, color: "#827A69", flexShrink: 0 }}>{total} users</span>
         </div>
 
         {/* Mobile: cards / Desktop: table */}
@@ -416,11 +416,11 @@ export function Admin() {
           </div>
           {users.map(u => (
             <div key={u.id} style={{ display: "grid", gridTemplateColumns: gridCols, padding: "14px 20px", alignItems: "center", borderTop: "1px solid rgba(255,255,255,.06)" }}>
-              <span style={{ fontSize: 11, color: "#6E6757", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</span>
+              <span style={{ fontSize: 11, color: "#827A69", fontFamily: "monospace" }}>{u.id.slice(0, 8)}</span>
               <div>
                 {u.email && <div style={{ fontSize: 13, color: "#F0E9DA" }}>{u.email}</div>}
                 {u.telegram_id && <div style={{ fontSize: 11, color: "#A89E8B" }}>TG: {u.telegram_id}</div>}
-                {!u.email && !u.telegram_id && <span style={{ color: "#6E6757" }}>—</span>}
+                {!u.email && !u.telegram_id && <span style={{ color: "#827A69" }}>—</span>}
               </div>
               <span style={{ fontSize: 13, color: "#B6AC98" }}>{u.display_name || "—"}</span>
               <div>
@@ -428,13 +428,13 @@ export function Admin() {
                   fontSize: 10, padding: "3px 8px", borderRadius: 99,
                   background: u.tier === "pro" ? "rgba(201,168,76,.15)" : "rgba(255,255,255,.05)",
                   border: u.tier === "pro" ? "1px solid rgba(201,168,76,.3)" : "none",
-                  color: u.tier === "pro" ? "#E8CD7E" : "#6E6757",
+                  color: u.tier === "pro" ? "#E8CD7E" : "#827A69",
                 }}>{u.tier.toUpperCase()}</span>
                 {u.tier === "pro" && u.subscription_expires_at && (
-                  <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>до {formatExpiresAt(u.subscription_expires_at)}</div>
+                  <div style={{ fontSize: 10, color: "#827A69", marginTop: 2 }}>до {formatExpiresAt(u.subscription_expires_at)}</div>
                 )}
               </div>
-              <span style={{ fontSize: 12, color: "#6E6757" }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}</span>
+              <span style={{ fontSize: 12, color: "#827A69" }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("ru-RU") : "—"}</span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {u.tier !== "pro" ? (
                   <>
@@ -449,7 +449,7 @@ export function Admin() {
             </div>
           ))}
           {users.length === 0 && (
-            <div style={{ padding: "40px 20px", textAlign: "center", color: "#6E6757" }}>Нет пользователей</div>
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "#827A69" }}>Нет пользователей</div>
           )}
         </div>
 
@@ -457,7 +457,7 @@ export function Admin() {
         <div className="admin-cards-mobile" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {users.map(u => <UserCard key={u.id} u={u} />)}
           {users.length === 0 && (
-            <div style={{ padding: "40px 20px", textAlign: "center", color: "#6E6757" }}>Нет пользователей</div>
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "#827A69" }}>Нет пользователей</div>
           )}
         </div>
 

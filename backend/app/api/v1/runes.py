@@ -429,7 +429,17 @@ async def get_history(
     for r in readings:
         spread = SPREADS_RUNES.get(r.spread_type, {})
         runes_data = json.loads(r.runes_json) if r.runes_json else []
-        preview = [rd.get("id", "") for rd in runes_data[:3]]
+        preview = []
+        for rd in runes_data[:3]:
+            rune = RUNE_BY_ID.get(rd.get("id", ""))
+            if rune:
+                preview.append({
+                    "id": rune["id"],
+                    "symbol": rune["symbol"],
+                    "name": pick(rune, "name", lang, RUNES_I18N, rune["id"]),
+                })
+            else:
+                preview.append({"id": rd.get("id", ""), "symbol": "?", "name": rd.get("id", "")})
         out.append({
             "id": str(r.id),
             "spread_type": r.spread_type,

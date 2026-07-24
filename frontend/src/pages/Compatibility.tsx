@@ -31,7 +31,7 @@ function SynastryAspects({ aspects, lang }: { aspects: SynAspect[]; lang: string
       <p className="text-text-faint text-[9px] uppercase tracking-widest mb-1">{lang === "ru" ? "Аспекты" : "Aspects"}</p>
       {aspects.slice(0, 7).map((a, i) => (
         <div key={i} className="flex items-center justify-between text-xs">
-          <span className="text-text-muted">{a.user_planet} {a.symbol} {a.partner_planet}</span>
+          <span className="text-text-muted">{a.user_planet} <span title={a.aspect}>{a.symbol}</span> {a.partner_planet}</span>
           <span style={{ color: a.harmony ? "#4ade80" : "#f87171" }}>{a.aspect} {a.orb}°</span>
         </div>
       ))}
@@ -336,6 +336,10 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
 
             {loading && <p className="text-text-muted text-xs text-center animate-pulse">{lang === "ru" ? "Расчёт..." : "Calculating..."}</p>}
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+
+            <Button variant="ghost" className="w-full mt-1" onClick={() => setStep("partners")}>
+              {t("common.back")}
+            </Button>
           </div>
         )}
 
@@ -361,9 +365,15 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
               {/* Type-specific details */}
               {result.type === "signs" && (
                 <div className="flex items-center justify-center gap-4 mt-3">
-                  <span className="text-2xl">{result.user_symbol as string}</span>
+                  <div className="text-center">
+                    <span className="text-2xl">{result.user_symbol as string}</span>
+                    <p className="text-text-faint text-[10px]">{result.user_sign as string}</p>
+                  </div>
                   <span className="text-text-faint">+</span>
-                  <span className="text-2xl">{result.partner_symbol as string}</span>
+                  <div className="text-center">
+                    <span className="text-2xl">{result.partner_symbol as string}</span>
+                    <p className="text-text-faint text-[10px]">{result.partner_sign as string}</p>
+                  </div>
                 </div>
               )}
 
@@ -425,11 +435,16 @@ export function Compatibility({ onNavigate }: CompatibilityProps) {
 
         {/* Step: Composite Chart */}
         {step === "composite" && compositePartnerId && (
-          <CompositeChart
-            partnerId={compositePartnerId}
-            partnerName={compositePartnerName}
-            onClose={() => setStep("types")}
-          />
+          <>
+            <CompositeChart
+              partnerId={compositePartnerId}
+              partnerName={compositePartnerName}
+              onClose={() => setStep("types")}
+            />
+            <Button variant="ghost" className="w-full" style={{ maxWidth: 480, margin: "0 auto", display: "flex" }} onClick={() => setStep("types")}>
+              {t("common.back")}
+            </Button>
+          </>
         )}
 
       </main>

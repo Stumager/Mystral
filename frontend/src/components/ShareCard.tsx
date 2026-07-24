@@ -118,7 +118,7 @@ export function ShareCard({
             </div>
           ))}
           {type === "runes" && runes?.some(r => r.reversed) && (
-            <div style={{ flexBasis: "100%", textAlign: "center", fontSize: 9, color: "#6E6757", marginTop: 4 }}>
+            <div style={{ flexBasis: "100%", textAlign: "center", fontSize: 9, color: "#827A69", marginTop: 4 }}>
               {t("share.reversed_hint")}
             </div>
           )}
@@ -172,7 +172,15 @@ export function ShareCard({
 
           {type === "lunar" && lunarDay != null && (
             <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <div style={{ fontSize: 48, lineHeight: 1 }}>🌙</div>
+              {/* QA-021: crescent built from two overlapping divs instead of
+                  the 🌙 emoji, so it renders in the card's own lavender
+                  palette instead of the OS's flat emoji glyph — plain boxes
+                  (not an SVG mask) because html2canvas, used to capture this
+                  card to PNG below, doesn't reliably render SVG <mask>. */}
+              <div style={{ position: "relative", width: 40, height: 40, margin: "0 auto", filter: "drop-shadow(0 0 10px rgba(169,155,224,.5))" }}>
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#A99BE0" }} />
+                <div style={{ position: "absolute", top: -5, left: 12, width: 40, height: 40, borderRadius: "50%", background: "#0F0A26" }} />
+              </div>
               <div className="font-cormorant" style={{ fontSize: 36, color: "#F0E9DA", marginTop: 4 }}>{lunarDay}</div>
               {lunarPhase && <div style={{ fontSize: 12, color: "#A99BE0", marginTop: 4 }}>{lunarPhase}</div>}
             </div>
@@ -183,9 +191,9 @@ export function ShareCard({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", paddingTop: 10, borderTop: "1px solid rgba(201,168,76,.12)" }}>
           <div>
             <div className="font-cinzel" style={{ fontSize: 10, color: "#C9A84C", letterSpacing: ".15em" }}>mystral.space</div>
-            <div style={{ fontSize: 10, color: "#6E6757", marginTop: 2 }}>{t("share.your_reading")}</div>
+            <div style={{ fontSize: 10, color: "#827A69", marginTop: 2 }}>{t("share.your_reading")}</div>
           </div>
-          <div className="font-cinzel" style={{ fontSize: 8, color: "#6E6757", letterSpacing: ".1em", textAlign: "right" }}>
+          <div className="font-cinzel" style={{ fontSize: 8, color: "#827A69", letterSpacing: ".1em", textAlign: "right" }}>
             {t("share.try_free")}
           </div>
         </div>
@@ -205,7 +213,7 @@ export function ShareCard({
       {feedback && (
         <p style={{ fontSize: 12, color: "#C9A84C", textAlign: "center", marginTop: 12, maxWidth: 320, lineHeight: 1.5 }}>{feedback}</p>
       )}
-      <p style={{ fontSize: 11, color: "#6E6757", textAlign: "center", marginTop: 10 }}>{t("share.promo")}</p>
+      <p style={{ fontSize: 11, color: "#827A69", textAlign: "center", marginTop: 10 }}>{t("share.promo")}</p>
     </div>
   );
 }

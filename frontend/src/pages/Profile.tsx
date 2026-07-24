@@ -362,7 +362,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             {t("profile.push_enable")}
           </button>
         ) : (
-          <span style={{ fontSize: 11, color: "#6E6757" }}>{t("profile.push_allow_settings")}</span>
+          <span style={{ fontSize: 11, color: "#827A69" }}>{t("profile.push_allow_settings")}</span>
         )}
       </div>
     );
@@ -645,13 +645,17 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                 {t("profile.copy")}
               </button>
             </div>
-            <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(refData.ref_url)}&text=${encodeURIComponent(t("profile.share_text"))}`, "_blank")}
+            {/* QA-033: share the Mini App deep link (t.me/<bot>/app?startapp=CODE),
+                not the mystral.space URL — Telegram delivers CODE to
+                initDataUnsafe.start_param on open (see main.tsx), so the
+                friend lands straight in the TMA instead of a browser tab. */}
+            <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(`https://t.me/Mystrallbot/app?startapp=${refData.ref_code}`)}&text=${encodeURIComponent(t("profile.share_text"))}`, "_blank")}
               style={{ width: "100%", height: 44, marginTop: 10, borderRadius: 12, border: "1px solid rgba(255,255,255,.1)", background: "transparent", color: "#B6AC98", fontSize: 13, cursor: "pointer" }}>
               {t("profile.share_telegram")}
             </button>
             {refData.referrals.length > 0 && (
               <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,.06)", paddingTop: 14 }}>
-                <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".15em", color: "#6E6757", textTransform: "uppercase", marginBottom: 8 }}>
+                <p className="font-cinzel" style={{ fontSize: 9, letterSpacing: ".15em", color: "#827A69", textTransform: "uppercase", marginBottom: 8 }}>
                   {t("profile.invited")}
                 </p>
                 {refData.referrals.map((r, i) => (
@@ -680,7 +684,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             placeholder={t("profile.review_placeholder")}
             style={{ width: "100%", minHeight: 100, padding: "14px 16px", borderRadius: 14, resize: "none", background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", color: "#F0E9DA", fontSize: 14, lineHeight: 1.6, marginTop: 16, outline: "none", boxSizing: "border-box" }}
           />
-          <p style={{ textAlign: "right", fontSize: 11, color: "#6E6757", marginTop: 4 }}>{reviewText.length}/500</p>
+          <p style={{ textAlign: "right", fontSize: 11, color: "#827A69", marginTop: 4 }}>{reviewText.length}/500</p>
           <Button variant="primary" className="w-full" style={{ marginTop: 12 }}
             disabled={reviewRating === 0 || reviewSaving}
             onClick={async () => {
@@ -694,7 +698,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
             }}>
             {reviewSaving ? "..." : reviewExists ? t("profile.update_review") : t("profile.submit_review")}
           </Button>
-          <p style={{ fontSize: 12, color: "#6E6757", textAlign: "center", marginTop: 8 }}>
+          <p style={{ fontSize: 12, color: "#827A69", textAlign: "center", marginTop: 8 }}>
             {t("profile.review_moderation")}
           </p>
         </Card>
@@ -722,7 +726,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
                       { ok: /[A-Z]/.test(newPw), label: t("profile.uppercase_letter") },
                       { ok: /[0-9]/.test(newPw), label: t("profile.digit") },
                     ].map(c => (
-                      <span key={c.label} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#6E6757" }}>{c.ok ? "✓" : "✗"} {c.label}</span>
+                      <span key={c.label} style={{ fontSize: 11, color: c.ok ? "#6E9A8A" : "#827A69" }}>{c.ok ? "✓" : "✗"} {c.label}</span>
                     ))}
                   </div>
                   <input type="password" placeholder={t("profile.confirm_new")}

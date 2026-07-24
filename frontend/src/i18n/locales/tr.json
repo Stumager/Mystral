@@ -437,7 +437,9 @@
     "day_stones": "Günün taşları",
     "ai_recommendation": "AI önerisi",
     "ask_placeholder": "Ay takvimine sor...",
-    "get_recommendation": "Öneri al"
+    "get_recommendation": "Öneri al",
+    "generating": "Oluşturuluyor...",
+    "get_recommendation_again": "Öneriyi yenile"
   },
   "compat": {
     "title": "Uyumluluk",
@@ -579,6 +581,7 @@
   "common": {
     "error": "Hata",
     "loading": "Yükleniyor...",
+    "back": "Geri",
     "open_profile": "Profili aç",
     "pro_activated_banner": "Tebrikler — artık Mystral Pro'ya sahipsiniz!",
     "pro_deactivated_banner": "Mystral Pro aboneliğiniz artık aktif değil"

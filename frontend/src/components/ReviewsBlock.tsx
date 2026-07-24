@@ -47,7 +47,7 @@ export function ReviewsBlock() {
                 <div style={{ flex: 1, height: 6, borderRadius: 99, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
                   <div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8A6E2E,#E8CD7E)" }} />
                 </div>
-                <span style={{ fontSize: 12, color: "#6E6757", width: 24 }}>{count}</span>
+                <span style={{ fontSize: 12, color: "#827A69", width: 24 }}>{count}</span>
               </div>
             );
           })}
@@ -71,7 +71,7 @@ export function ReviewsBlock() {
             </div>
             {r.text && <p style={{ fontSize: 14, lineHeight: 1.7, color: "#B6AC98", marginTop: 10 }}>{r.text}</p>}
             {r.created_at && (
-              <p style={{ fontSize: 11, color: "#6E6757", marginTop: 8 }}>
+              <p style={{ fontSize: 11, color: "#827A69", marginTop: 8 }}>
                 {new Date(r.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             )}

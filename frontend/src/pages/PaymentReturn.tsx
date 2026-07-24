@@ -60,7 +60,7 @@ export function PaymentReturn() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", background: "var(--gradient-page)" }}>
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", background: "var(--gradient-page)" }}>
       <div style={{ animation: "mystral-float 7s ease-in-out infinite", filter: "drop-shadow(0 0 30px rgba(201,168,76,.5))" }}>
         <Logo size={64} />
       </div>
@@ -137,7 +137,7 @@ export function PaymentReturn() {
           <button onClick={goHome} style={btnStyle}>{ru ? "На главную" : "Go home"}</button>
         </>
       )}
-    </div>
+    </main>
   );
 }
 

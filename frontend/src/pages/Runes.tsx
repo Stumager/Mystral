@@ -12,6 +12,33 @@ const RUNE_SPREAD_ICONS: Record<string, string> = {
   relationship: "♡", yes_no: "?", yggdrasil: "⚘", year_spread: "▦",
 };
 
+// QA-022: runic_cross and yggdrasil rendered as the same flex-wrap row as
+// every other spread. Percent-based slots (relative to a fixed-height
+// canvas) arrange them into an actual plus/cross and a wide-narrow-wide
+// tree silhouette instead. Any spread id without an entry here keeps the
+// existing flex-wrap layout, unchanged.
+interface RuneSpreadLayout { height: number; scale: number; positions: { x: number; y: number }[]; }
+const NAMED_RUNE_LAYOUTS: Record<string, RuneSpreadLayout> = {
+  runic_cross: {
+    height: 340, scale: 1,
+    positions: [
+      { x: 50, y: 50 }, // situation (center)
+      { x: 15, y: 50 }, // past (left)
+      { x: 85, y: 50 }, // future (right)
+      { x: 50, y: 10 }, // help (top)
+      { x: 50, y: 90 }, // obstacle (bottom)
+    ],
+  },
+  yggdrasil: {
+    height: 420, scale: 0.75,
+    positions: [
+      { x: 12, y: 8 }, { x: 50, y: 8 }, { x: 88, y: 8 },     // canopy
+      { x: 28, y: 50 }, { x: 50, y: 50 }, { x: 72, y: 50 },  // trunk
+      { x: 12, y: 92 }, { x: 50, y: 92 }, { x: 88, y: 92 },  // roots
+    ],
+  },
+};
+
 interface RunesProps { onNavigate: (page: string) => void; }
 
 interface DrawnRune {
@@ -41,8 +68,9 @@ interface Stave {
   id: string; name: string; symbols: string; runes_used: string[]; purpose: string; description: string; how_to_use: string;
 }
 
+interface RunePreview { id: string; symbol: string; name: string; }
 interface HistoryEntry {
-  id: string; spread_type: string; spread_name: string; question: string | null; rune_preview: string[]; created_at: string;
+  id: string; spread_type: string; spread_name: string; question: string | null; rune_preview: RunePreview[]; created_at: string;
 }
 
 type Screen = "spreads" | "question" | "drawing" | "result" | "personal" | "staves" | "history";
@@ -250,44 +278,68 @@ export function Runes({ onNavigate }: RunesProps) {
             <Button variant="primary" className="w-full" onClick={() => doDrawRunes(selectedSpread.id, question)}>
               {t("runes.draw")}
             </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setScreen("spreads")}>
+              {t("common.back")}
+            </Button>
           </div>
         )}
 
         {/* DRAWING ANIMATION */}
-        {screen === "drawing" && drawResult && (
-          <div className="flex justify-center items-center pt-8">
-            <div className="flex gap-3 flex-wrap justify-center">
-              {drawResult.drawn_runes.map((r, i) => (
-                <div key={i} className="w-20 h-28 flex flex-col items-center justify-center gap-1 transition-all duration-500"
-                  style={{
-                    borderRadius: 14,
-                    background: i < revealedCount ? "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))" : "rgba(255,255,255,.03)",
-                    border: `1px solid ${i < revealedCount ? "rgba(138,127,192,.24)" : "rgba(138,127,192,.1)"}`,
-                    opacity: i < revealedCount ? 1 : 0.3,
-                    transform: i < revealedCount ? "scale(1)" : "scale(0.9)",
-                  }}>
-                  {i < revealedCount ? (
-                    <>
-                      <span style={{ fontSize: 48, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
-                        {r.symbol}
-                      </span>
-                      <span className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C" }}>{r.name}</span>
-                    </>
-                  ) : <span className="text-2xl animate-pulse" style={{ color: "#A99BE0" }}>&#5765;</span>}
-                </div>
-              ))}
+        {screen === "drawing" && drawResult && (() => {
+          const layout = NAMED_RUNE_LAYOUTS[drawResult.spread_type];
+          const useLayout = layout && layout.positions.length === drawResult.drawn_runes.length;
+          const runeBox = (r: DrawnRune, i: number) => (
+            <div key={i} className="w-20 h-28 flex flex-col items-center justify-center gap-1 transition-all duration-500"
+              style={{
+                borderRadius: 14,
+                background: i < revealedCount ? "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))" : "rgba(255,255,255,.03)",
+                border: `1px solid ${i < revealedCount ? "rgba(138,127,192,.24)" : "rgba(138,127,192,.1)"}`,
+                opacity: i < revealedCount ? 1 : 0.3,
+                transform: `scale(${i < revealedCount ? 1 : 0.9})`,
+              }}>
+              {i < revealedCount ? (
+                <>
+                  <span style={{ fontSize: 48, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
+                    {r.symbol}
+                  </span>
+                  <span className="font-cinzel uppercase" style={{ fontSize: 9, letterSpacing: ".2em", color: "#C9A84C" }}>{r.name}</span>
+                </>
+              ) : <span className="text-2xl animate-pulse" style={{ color: "#A99BE0" }}>&#5765;</span>}
             </div>
-          </div>
-        )}
+          );
+          if (useLayout) {
+            return (
+              <div style={{ position: "relative", height: layout.height }}>
+                {drawResult.drawn_runes.map((r, i) => {
+                  const p = layout.positions[i];
+                  return (
+                    <div key={i} style={{ position: "absolute", left: `${p.x}%`, top: `${p.y}%`, transform: `translate(-50%, -50%) scale(${layout.scale})` }}>
+                      {runeBox(r, i)}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+          return (
+            <div className="flex justify-center items-center pt-8">
+              <div className="flex gap-3 flex-wrap justify-center">
+                {drawResult.drawn_runes.map((r, i) => runeBox(r, i))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* RESULT SCREEN */}
         {screen === "result" && drawResult && (
           <>
             <p className="font-cinzel uppercase text-center" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{drawResult.spread_name}</p>
 
-            <div className="flex gap-3 flex-wrap justify-center mb-2">
-              {drawResult.drawn_runes.map((r, i) => (
-                <div key={i} className="w-20 flex flex-col items-center py-3 gap-1"
+            {(() => {
+              const layout = NAMED_RUNE_LAYOUTS[drawResult.spread_type];
+              const useLayout = layout && layout.positions.length === drawResult.drawn_runes.length;
+              const runeCard = (r: DrawnRune) => (
+                <div className="w-20 flex flex-col items-center py-3 gap-1"
                   style={{ borderRadius: 14, background: "linear-gradient(160deg,rgba(75,60,134,.22),rgba(255,255,255,.012))", border: "1px solid rgba(138,127,192,.24)", boxShadow: "0 0 20px rgba(75,60,134,0.15)" }}>
                   <span className="text-[8px] text-text-faint">{r.position_name}</span>
                   <span style={{ fontSize: 48, color: r.reversed ? "#D98A8A" : "#A99BE0", transform: r.reversed ? "rotate(180deg)" : "none", display: "inline-block" }}>
@@ -299,8 +351,27 @@ export function Runes({ onNavigate }: RunesProps) {
                     {r.reversed ? t("runes.reversed") : t("runes.upright")}
                   </span>
                 </div>
-              ))}
-            </div>
+              );
+              if (useLayout) {
+                return (
+                  <div className="mb-2" style={{ position: "relative", height: layout.height }}>
+                    {drawResult.drawn_runes.map((r, i) => {
+                      const p = layout.positions[i];
+                      return (
+                        <div key={i} style={{ position: "absolute", left: `${p.x}%`, top: `${p.y}%`, transform: `translate(-50%, -50%) scale(${layout.scale})` }}>
+                          {runeCard(r)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              return (
+                <div className="flex gap-3 flex-wrap justify-center mb-2">
+                  {drawResult.drawn_runes.map((r, i) => <div key={i}>{runeCard(r)}</div>)}
+                </div>
+              );
+            })()}
 
             {drawResult.drawn_runes.map((r, i) => (
               <div key={i} style={{ borderRadius: 18, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)", padding: "16px 18px" }}>
@@ -408,6 +479,9 @@ export function Runes({ onNavigate }: RunesProps) {
             ) : (
               <p className="text-text-muted text-xs text-center animate-pulse">{ru ? "Загрузка..." : "Loading..."}</p>
             )}
+            <Button variant="ghost" className="w-full" onClick={() => setScreen("spreads")}>
+              {t("common.back")}
+            </Button>
           </>
         )}
 
@@ -445,6 +519,9 @@ export function Runes({ onNavigate }: RunesProps) {
                   : "A bindrune is a combination of two or more runes overlaid on each other. Creates a unique symbol with combined energy of all component runes. Each stave above is essentially a bindrune."}
               </p>
             </div>
+            <Button variant="ghost" className="w-full" onClick={() => setScreen("spreads")}>
+              {t("common.back")}
+            </Button>
           </>
         )}
 
@@ -463,14 +540,19 @@ export function Runes({ onNavigate }: RunesProps) {
                   <span className="text-text-faint text-[9px]">{h.created_at ? new Date(h.created_at).toLocaleDateString() : ""}</span>
                 </div>
                 {h.question && <p className="text-text-faint text-[10px] mb-1">{h.question}</p>}
-                <div className="flex gap-1">
-                  {h.rune_preview.map((id, i) => {
-                    const sym = id;
-                    return <span key={i} style={{ fontSize: 28, color: "#A99BE0" }}>{sym}</span>;
-                  })}
+                <div className="flex gap-3">
+                  {h.rune_preview.map((r, i) => (
+                    <div key={i} className="flex flex-col items-center gap-0.5">
+                      <span style={{ fontSize: 28, color: "#A99BE0" }}>{r.symbol}</span>
+                      <span className="text-text-faint text-[8px]">{r.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
+            <Button variant="ghost" className="w-full" onClick={() => setScreen("spreads")}>
+              {t("common.back")}
+            </Button>
           </>
         )}
       </main>

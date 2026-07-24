@@ -40,10 +40,10 @@ export function AppLayout({ page, onNavigate, children }: AppLayoutProps) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-dark)" }}>
       {children}
-      <div style={{ textAlign: "center", fontSize: 11, color: "#6E6757", padding: "12px 0 80px" }}>
-        <a href="/privacy" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.privacy")}</a>
+      <div style={{ textAlign: "center", fontSize: 11, color: "#827A69", padding: "12px 0 80px" }}>
+        <a href="/privacy" style={{ color: "#827A69", textDecoration: "none" }}>{t("legal.privacy")}</a>
         {" · "}
-        <a href="/terms" style={{ color: "#6E6757", textDecoration: "none" }}>{t("legal.terms")}</a>
+        <a href="/terms" style={{ color: "#827A69", textDecoration: "none" }}>{t("legal.terms")}</a>
       </div>
       <BottomNav active={page === "lunar" ? "moon" : page} onNavigate={onNavigate} />
     </div>

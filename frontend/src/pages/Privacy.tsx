@@ -22,7 +22,7 @@ export function Privacy() {
         <h1 className="font-cormorant" style={{ fontSize: 38, color: "#F0E9DA", marginBottom: 8 }}>
           {ru ? "Политика конфиденциальности" : "Privacy Policy"}
         </h1>
-        <p style={{ fontSize: 13, color: "#6E6757", marginBottom: 40 }}>
+        <p style={{ fontSize: 13, color: "#827A69", marginBottom: 40 }}>
           {ru ? "Последнее обновление: 27 июня 2026" : "Last updated: June 27, 2026"}
         </p>
 
@@ -210,7 +210,7 @@ export function Privacy() {
           </>)}
         </Section>
 
-        <footer style={{ marginTop: 60, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,.08)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontSize: 13, color: "#6E6757" }}>
+        <footer style={{ marginTop: 60, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,.08)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontSize: 13, color: "#827A69" }}>
           <span>&copy; 2026 Mystral</span>
           <div style={{ display: "flex", gap: 16 }}>
             <span style={{ color: "#8A8170" }}>{t("legal.privacy")}</span>

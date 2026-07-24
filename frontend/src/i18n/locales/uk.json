@@ -437,7 +437,9 @@
     "day_stones": "Камені дня",
     "ai_recommendation": "AI рекомендація",
     "ask_placeholder": "Запитай місячний календар...",
-    "get_recommendation": "Отримати рекомендацію"
+    "get_recommendation": "Отримати рекомендацію",
+    "generating": "Генерую...",
+    "get_recommendation_again": "Оновити рекомендацію"
   },
   "compat": {
     "title": "Сумісність",
@@ -579,6 +581,7 @@
   "common": {
     "error": "Помилка",
     "loading": "Завантаження...",
+    "back": "Назад",
     "open_profile": "Відкрити профіль",
     "pro_activated_banner": "Вітаємо — у вас Mystral Pro!",
     "pro_deactivated_banner": "Ваша підписка Mystral Pro більше не активна"

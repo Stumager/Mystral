@@ -169,7 +169,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {DAYS.map(d => <option key={d} value={String(d)}>{d}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.day_label")}</div>
+                  <div style={{ fontSize: 10, color: "#827A69", letterSpacing: ".1em" }}>{t("onboarding.day_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{day || "—"}</div>
                 </div>
 
@@ -180,7 +180,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {(ru ? MONTHS_RU : MONTHS_EN).slice(1).map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.month_label")}</div>
+                  <div style={{ fontSize: 10, color: "#827A69", letterSpacing: ".1em" }}>{t("onboarding.month_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>
                     {month ? (ru ? MONTHS_RU[Number(month)] : MONTHS_EN[Number(month)]) : "—"}
                   </div>
@@ -193,7 +193,7 @@ export function OnboardingModal({ onClose }: Props) {
                     <option value="">—</option>
                     {YEARS.map(y => <option key={y} value={String(y)}>{y}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#6E6757", letterSpacing: ".1em" }}>{t("onboarding.year_label")}</div>
+                  <div style={{ fontSize: 10, color: "#827A69", letterSpacing: ".1em" }}>{t("onboarding.year_label")}</div>
                   <div className="font-cormorant" style={{ fontSize: 26, color: "#F0E9DA", marginTop: 2 }}>{year || "—"}</div>
                 </div>
               </div>
@@ -242,8 +242,8 @@ export function OnboardingModal({ onClose }: Props) {
               ) : (
                 <button onClick={() => setCityInput(true)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderRadius: 14, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.22)", cursor: "pointer", textAlign: "left" }}>
                   <div>
-                    <div style={{ fontSize: 11, color: "#6E6757", letterSpacing: ".06em", textTransform: "uppercase" }}>{t("onboarding.city")}</div>
-                    <div style={{ fontSize: 16, color: city ? "#F0E9DA" : "#6E6757", marginTop: 1 }}>{city || t("onboarding.select_city")}</div>
+                    <div style={{ fontSize: 11, color: "#827A69", letterSpacing: ".06em", textTransform: "uppercase" }}>{t("onboarding.city")}</div>
+                    <div style={{ fontSize: 16, color: city ? "#F0E9DA" : "#827A69", marginTop: 1 }}>{city || t("onboarding.select_city")}</div>
                   </div>
                   <span style={{ color: "#C9A84C", fontSize: 18 }}>›</span>
                 </button>
@@ -289,7 +289,7 @@ export function OnboardingModal({ onClose }: Props) {
           </button>
         )}
         <button onClick={handleNext} disabled={loading || !canNext}
-          style={{ height: 52, flex: step > 0 ? 2 : 1, borderRadius: 16, background: canNext ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: canNext ? "#1A1206" : "#6E6757", fontWeight: 600, fontSize: 15.5, cursor: canNext ? "pointer" : "default", boxShadow: canNext ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none", border: "none", transition: ".2s" }}>
+          style={{ height: 52, flex: step > 0 ? 2 : 1, borderRadius: 16, background: canNext ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: canNext ? "#1A1206" : "#827A69", fontWeight: 600, fontSize: 15.5, cursor: canNext ? "pointer" : "default", boxShadow: canNext ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none", border: "none", transition: ".2s" }}>
           {loading ? "..." : btnTexts[step]}
         </button>
       </div>

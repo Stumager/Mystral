@@ -243,7 +243,7 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
                 onMouseLeave={() => setHovered(null)}>
                 <line x1={pos.x} y1={pos.y} x2={houseEdge.x} y2={houseEdge.y} stroke="rgba(255,255,255,.1)" />
                 {p.collided && (
-                  <line x1={pos.x} y1={pos.y} x2={outerEdge.x} y2={outerEdge.y} stroke="#6E6757" strokeWidth={0.5} />
+                  <line x1={pos.x} y1={pos.y} x2={outerEdge.x} y2={outerEdge.y} stroke="#827A69" strokeWidth={0.5} />
                 )}
                 <circle cx={pos.x} cy={pos.y} r={size * 0.022} fill="rgba(7,6,15,.9)" stroke={color} />
                 <text x={pos.x} y={pos.y} fontSize={size * 0.028} fill={color}

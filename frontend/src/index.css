@@ -23,7 +23,7 @@
   --text-primary: #F0E9DA;
   --text-secondary: #B6AC98;
   --text-muted: #A89E8B;
-  --text-dim: #6E6757;
+  --text-dim: #827A69;
   --text-dimmer: #8A8170;
 
   /* Золото */
@@ -115,3 +115,10 @@ html, body {
 }
 @keyframes mystral-spin { to { transform: rotate(360deg) } }
 @keyframes mystral-spin-rev { to { transform: rotate(-360deg) } }
+/* QA-023: tarot spread deal-in. Applied to a wrapper around each card so it
+   composes with (rather than overwrites) that card's own positioning
+   transform — see Tarot.tsx's per-card layout wrapper. */
+@keyframes mystral-deal {
+  from { opacity: 0; transform: translateY(50px) scale(.7); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

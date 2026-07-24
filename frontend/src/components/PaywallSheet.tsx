@@ -120,7 +120,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
             : <span style={{ fontSize: 18, color: "#C9A84C" }}>⭐</span>}
           <span className="font-cormorant" style={{ fontSize: 34, color: "#F0E9DA" }}>{priceVal}</span>
         </div>
-        <div style={{ fontSize: 11, color: "#6E6757", marginTop: 3 }}>{sub}</div>
+        <div style={{ fontSize: 11, color: "#827A69", marginTop: 3 }}>{sub}</div>
       </button>
     );
   }
@@ -143,22 +143,22 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
     return (
       <>
         {isInTelegram ? (
-          <p style={{ textAlign: "center", fontSize: 12, color: "#6E6757", marginTop: 14 }}>
+          <p style={{ textAlign: "center", fontSize: 12, color: "#827A69", marginTop: 14 }}>
             {t("paywall.payment_info", { period })}
           </p>
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14 }}>
-              <span style={{ fontSize: 14, color: "#6E6757" }}>🛡</span>
-              <span style={{ fontSize: 12, color: "#6E6757" }}>{ru ? "Защищено ЮKassa" : "Secured by YuKassa"}</span>
+              <span style={{ fontSize: 14, color: "#827A69" }}>🛡</span>
+              <span style={{ fontSize: 12, color: "#827A69" }}>{ru ? "Защищено ЮKassa" : "Secured by YuKassa"}</span>
             </div>
-            <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 6 }}>
+            <p style={{ textAlign: "center", fontSize: 11, color: "#827A69", marginTop: 6 }}>
               Visa · Mastercard · Мир
             </p>
           </>
         )}
         {toast && <p style={{ textAlign: "center", fontSize: 13, color: "#C9A84C", marginTop: 10 }}>{toast}</p>}
-        <p style={{ textAlign: "center", fontSize: 11, color: "#6E6757", marginTop: 12 }}>
+        <p style={{ textAlign: "center", fontSize: 11, color: "#827A69", marginTop: 12 }}>
           {t("paywall.legal_prefix")}{" "}
           <a href="/terms" style={{ color: "#C9A84C", textDecoration: "none" }}>{t("legal.terms_gen")}</a>
           {" "}{t("paywall.legal_and")}{" "}
@@ -233,7 +233,7 @@ export function PaywallSheet({ open, onClose, onSuccess }: PaywallSheetProps) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px" }}>
         <button onClick={onClose} style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", color: "#B6AC98", cursor: "pointer", fontSize: 18 }}>✕</button>
-        <span style={{ fontSize: 18, color: "#6E6757", cursor: "pointer" }}>↗</span>
+        <span style={{ fontSize: 18, color: "#827A69", cursor: "pointer" }}>↗</span>
       </div>
 
       <div style={{ padding: "6px 24px 40px", maxWidth: 560, margin: "0 auto" }}>

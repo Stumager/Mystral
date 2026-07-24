@@ -114,7 +114,7 @@ export function LoginScreen() {
   const errCls = "text-red-400 text-xs mt-1";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--gradient-page)" }}>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--gradient-page)" }}>
       <h1
         className="font-display text-5xl font-light tracking-widest mb-2"
         style={{ color: "#F0EAFF" }}
@@ -161,7 +161,7 @@ export function LoginScreen() {
                 { ok: name.trim().length >= 2, text: t("login.name_min_2") },
                 { ok: /\p{L}/u.test(name), text: t("login.name_has_letter") },
               ].map(c => (
-                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#6E6757" }}>
+                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#827A69" }}>
                   {c.ok ? "✓" : "✗"} {c.text}
                 </span>
               ))}
@@ -189,7 +189,7 @@ export function LoginScreen() {
             className="w-full px-4 py-3 rounded-xl text-sm bg-bg-surface text-text-primary placeholder-text-muted outline-none"
             style={inputStyle}
           />
-          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#6E6757", cursor: "pointer", fontSize: 14 }}>
+          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#827A69", cursor: "pointer", fontSize: 14 }}>
             {showPw ? "◠" : "◡"}
           </button>
           {errors.password && <p className={errCls}>{errors.password}</p>}
@@ -213,7 +213,7 @@ export function LoginScreen() {
                 { ok: /[0-9]/.test(password), text: t("login.pw_digit") },
                 { ok: confirmPw.length > 0 && confirmPw === password, text: t("login.pw_match") },
               ].map(c => (
-                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#6E6757" }}>
+                <span key={c.text} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, color: c.ok ? "#6E9A8A" : "#827A69" }}>
                   {c.ok ? "✓" : "✗"} {c.text}
                 </span>
               ))}
@@ -242,7 +242,7 @@ export function LoginScreen() {
         )}
 
         {mode === "register" && (
-          <p style={{ fontSize: 12, color: "#6E6757", textAlign: "center", marginTop: 4 }}>
+          <p style={{ fontSize: 12, color: "#827A69", textAlign: "center", marginTop: 4 }}>
             {t("login.agree_prefix")}{" "}
             <a href="/terms" style={{ color: "#C9A84C", textDecoration: "none" }}>{t("legal.terms_acc")}</a>
           </p>
@@ -262,6 +262,6 @@ export function LoginScreen() {
       <p className="text-text-faint text-[10px] mt-8 text-center">
         {t("login.tma_hint")}
       </p>
-    </div>
+    </main>
   );
 }

@@ -135,16 +135,24 @@ export function Numerology({ onNavigate }: NumerologyProps) {
     karmic: t("numerology.karma"),
   };
 
+  // QA-026a/027: the "no data yet" and "locked" variants only render 3 lines
+  // (label, "--", hint) against the full variant's 4 (label, number, title,
+  // 2-line description) — 41px shorter, so a grid row made up entirely of
+  // placeholder cards (e.g. destiny+soul when full_name is missing) visibly
+  // shrinks relative to rows with real data. A shared minHeight keeps every
+  // card in the 2-col grid the same size regardless of which sit together.
+  const NUMBER_CARD_MIN_HEIGHT = 187;
+
   function NumberCard({ entry, label, locked }: { entry: NumEntry | null; label: string; locked?: boolean }) {
     if (!entry) return (
-      <div className="relative overflow-hidden" style={{ padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+      <div className="relative overflow-hidden" style={{ minHeight: NUMBER_CARD_MIN_HEIGHT, padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
         <p className="font-cinzel uppercase mb-1" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{label}</p>
         <p className="font-cormorant text-center text-text-faint my-1" style={{ fontSize: 42 }}>--</p>
         <p className="text-text-faint text-[10px] text-center">{t("numerology.enter_name_title")}</p>
       </div>
     );
     if (locked) return (
-      <div className="relative overflow-hidden" style={{ padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
+      <div className="relative overflow-hidden" style={{ minHeight: NUMBER_CARD_MIN_HEIGHT, padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: "1px solid rgba(201,168,76,.13)" }}>
         <p className="font-cinzel uppercase mb-1" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{label}</p>
         <p className="font-cormorant text-center blur-sm my-1" style={{ fontSize: 42 }}>{entry.number}</p>
         <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(6,4,20,0.5)" }}>
@@ -153,7 +161,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
       </div>
     );
     return (
-      <div style={{ padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: `1px solid ${entry.is_master ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,.13)"}` }}>
+      <div style={{ minHeight: NUMBER_CARD_MIN_HEIGHT, padding: "16px 18px", borderRadius: 16, background: "linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,.01))", border: `1px solid ${entry.is_master ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,.13)"}` }}>
         <p className="font-cinzel uppercase mb-1" style={{ fontSize: 9, letterSpacing: ".22em", color: "#C9A84C" }}>{label}</p>
         <p className="font-cormorant text-center my-1" style={{ fontSize: 42, color: entry.is_master ? "#C9A84C" : "#9B8AFF" }}>
           {entry.number}
@@ -250,7 +258,7 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                       <span className="text-[10px] shrink-0" style={{ color: "#C9A84C" }}>*</span>
                       <div>
                         <p className="text-text-primary text-[10px] font-display">{l.title}</p>
-                        <p className="text-text-faint text-[9px]">{l.description}</p>
+                        <p className="text-text-muted text-[10px]">{l.description}</p>
                       </div>
                     </div>
                   ))}
@@ -369,6 +377,9 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                   </button>
                 ))}
               </div>
+              {aiLoading && !aiText && (
+                <p className="text-text-muted text-xs text-center animate-pulse">{t("numerology.reading")}</p>
+              )}
               {aiText && (
                 <p className="text-text-muted text-xs leading-relaxed">
                   {stripMarkdown(aiText)}{aiLoading && <span className="animate-pulse">|</span>}

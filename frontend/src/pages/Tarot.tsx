@@ -23,6 +23,38 @@ interface DrawnCard {
 
 type Step = "select" | "question" | "spread" | "reading";
 
+// QA-022: celtic_cross and horseshoe used the same flex-wrap grid as every
+// other spread, so nothing on screen hinted at the shape the name promises.
+// Percent-based slots (relative to a fixed-height canvas) lay the cards out
+// in their traditional geometry; cards are scaled down so a 10-card cross
+// still fits mobile width. Every other spread id is untouched — it falls
+// through to the existing flex-wrap layout below.
+interface SpreadLayout { height: number; scale: number; positions: { x: number; y: number; rotate?: number }[]; }
+const NAMED_SPREAD_LAYOUTS: Record<string, SpreadLayout> = {
+  celtic_cross: {
+    height: 460, scale: 0.5,
+    positions: [
+      { x: 38, y: 50 },              // 1: situation (center)
+      { x: 38, y: 50, rotate: 90 },  // 2: obstacle (crossing)
+      { x: 38, y: 14 },              // 3: above / goal
+      { x: 38, y: 86 },              // 4: below / foundation
+      { x: 14, y: 50 },              // 5: past
+      { x: 62, y: 50 },              // 6: future
+      { x: 86, y: 86 },              // 7: staff — self
+      { x: 86, y: 62 },              // 8: staff — environment
+      { x: 86, y: 38 },              // 9: staff — hopes/fears
+      { x: 86, y: 14 },              // 10: staff — outcome
+    ],
+  },
+  horseshoe: {
+    height: 300, scale: 0.5,
+    positions: [
+      { x: 6, y: 12 }, { x: 20, y: 42 }, { x: 35, y: 66 }, { x: 50, y: 78 },
+      { x: 65, y: 66 }, { x: 80, y: 42 }, { x: 94, y: 12 },
+    ],
+  },
+};
+
 export function Tarot({ onNavigate }: TarotProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
@@ -273,28 +305,78 @@ export function Tarot({ onNavigate }: TarotProps) {
               </p>
             )}
 
-            <div className="flex flex-wrap justify-center gap-3" style={{ perspective: "800px" }}>
-              {cards.map((card, i) => (
-                <div key={i} onClick={() => revealCard(i)} className="flex flex-col items-center">
-                  <TarotCard
-                    cardId={card.id}
-                    name={card.name_display || card.name}
-                    revealed={revealed[i]}
-                    reversed={card.reversed}
-                    delay={i * 100}
-                  />
-                  {revealed[i] && (
-                    <div className="mt-1.5 text-center max-w-[88px]">
-                      <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{card.name_display || card.name}</p>
-                      <p className="text-text-faint text-[8px]">{positions[i]}</p>
-                      {card.reversed && (
-                        <p className="text-[8px]" style={{ color: "#f87171" }}>{t("tarot.reversed")}</p>
+            {(() => {
+              const layout = spread ? NAMED_SPREAD_LAYOUTS[spread.id] : undefined;
+              if (layout && layout.positions.length === cards.length) {
+                return (
+                  <>
+                    <div style={{ position: "relative", height: layout.height, perspective: 800 }}>
+                      {cards.map((card, i) => {
+                        const p = layout.positions[i];
+                        return (
+                          <div key={i} onClick={() => revealCard(i)}
+                            style={{
+                              position: "absolute", left: `${p.x}%`, top: `${p.y}%`,
+                              transform: `translate(-50%, -50%) rotate(${p.rotate ?? 0}deg) scale(${layout.scale})`,
+                              zIndex: p.rotate ? 2 : 1,
+                            }}>
+                            {/* QA-023: deal-in wrapper is separate from the
+                                positioning div above so the animation's own
+                                transform doesn't clobber the card's slot. */}
+                            <div style={{ animation: "mystral-deal .5s cubic-bezier(.2,.8,.3,1) both", animationDelay: `${i * 70}ms` }}>
+                              <TarotCard
+                                cardId={card.id}
+                                name={card.name_display || card.name}
+                                revealed={revealed[i]}
+                                reversed={card.reversed}
+                                delay={i * 100}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {revealed.some(Boolean) && (
+                      <div className="flex flex-col gap-1">
+                        {cards.map((card, i) => revealed[i] && (
+                          <div key={i} className="flex items-center justify-between text-[10px] gap-2">
+                            <span className="text-text-faint shrink-0">{positions[i]}</span>
+                            <span style={{ color: "rgba(200,180,255,0.8)", textAlign: "right" }}>
+                              {card.name_display || card.name}{card.reversed ? ` (${t("tarot.reversed")})` : ""}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              }
+              return (
+                <div className="flex flex-wrap justify-center gap-3" style={{ perspective: "800px" }}>
+                  {cards.map((card, i) => (
+                    <div key={i} onClick={() => revealCard(i)} className="flex flex-col items-center"
+                      style={{ animation: "mystral-deal .5s cubic-bezier(.2,.8,.3,1) both", animationDelay: `${i * 70}ms` }}>
+                      <TarotCard
+                        cardId={card.id}
+                        name={card.name_display || card.name}
+                        revealed={revealed[i]}
+                        reversed={card.reversed}
+                        delay={i * 100}
+                      />
+                      {revealed[i] && (
+                        <div className="mt-1.5 text-center max-w-[88px]">
+                          <p style={{ fontSize: 8, color: "rgba(200,180,255,0.6)", fontFamily: "serif" }}>{card.name_display || card.name}</p>
+                          <p className="text-text-faint text-[8px]">{positions[i]}</p>
+                          {card.reversed && (
+                            <p className="text-[8px]" style={{ color: "#f87171" }}>{t("tarot.reversed")}</p>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
 
             {!allRevealed && (
               <p className="text-text-faint text-xs text-center">{t("tarot.tap_hint")}</p>

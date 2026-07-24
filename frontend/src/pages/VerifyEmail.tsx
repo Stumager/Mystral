@@ -84,7 +84,7 @@ export function VerifyEmail({ email }: Props) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center", background: "var(--gradient-page)" }}>
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center", background: "var(--gradient-page)" }}>
       <div style={{ animation: "mystral-float 7s ease-in-out infinite", filter: "drop-shadow(0 0 30px rgba(201,168,76,.5))" }}>
         <Logo size={72} />
       </div>
@@ -115,20 +115,20 @@ export function VerifyEmail({ email }: Props) {
       {error && <p style={{ fontSize: 13, color: "#D98A8A", marginTop: 12 }}>{error}</p>}
 
       <button onClick={handleVerify} disabled={!canSubmit || loading}
-        style={{ marginTop: 24, width: "100%", maxWidth: 360, height: 52, borderRadius: 16, border: "none", cursor: canSubmit ? "pointer" : "default", fontWeight: 600, fontSize: 15.5, background: canSubmit ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: canSubmit ? "#1A1206" : "#6E6757", boxShadow: canSubmit ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none" }}>
+        style={{ marginTop: 24, width: "100%", maxWidth: 360, height: 52, borderRadius: 16, border: "none", cursor: canSubmit ? "pointer" : "default", fontWeight: 600, fontSize: 15.5, background: canSubmit ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: canSubmit ? "#1A1206" : "#827A69", boxShadow: canSubmit ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none" }}>
         {loading ? "..." : "Подтвердить"}
       </button>
 
       <div style={{ marginTop: 20 }}>
-        <span style={{ fontSize: 13, color: "#6E6757" }}>Не получили письмо? </span>
+        <span style={{ fontSize: 13, color: "#827A69" }}>Не получили письмо? </span>
         {cooldown > 0 ? (
-          <span style={{ fontSize: 13, color: "#6E6757" }}>Повторно через {cooldown} сек</span>
+          <span style={{ fontSize: 13, color: "#827A69" }}>Повторно через {cooldown} сек</span>
         ) : (
           <button onClick={handleResend} style={{ fontSize: 13, color: "#C9A84C", cursor: "pointer", background: "none", border: "none" }}>
             Отправить повторно
           </button>
         )}
       </div>
-    </div>
+    </main>
   );
 }

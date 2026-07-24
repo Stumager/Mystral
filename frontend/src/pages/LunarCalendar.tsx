@@ -377,7 +377,7 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
                 </p>
               ) : null}
               <Button variant="primary" size="sm" className="w-full" style={{ borderRadius: 14 }} onClick={handleAI} disabled={aiLoading}>
-                {aiLoading ? "..." : t("lunar.get_recommendation")}
+                {aiLoading ? t("lunar.generating") : aiText ? t("lunar.get_recommendation_again") : t("lunar.get_recommendation")}
               </Button>
             </div>
           </>

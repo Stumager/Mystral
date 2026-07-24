@@ -41,7 +41,7 @@ export function ResetPassword() {
   function goForgot() { window.location.href = "/#forgot-password"; }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", background: "var(--gradient-page)" }}>
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", background: "var(--gradient-page)" }}>
       <div style={{ animation: "mystral-float 7s ease-in-out infinite", filter: "drop-shadow(0 0 30px rgba(201,168,76,.5))" }}>
         <Logo size={64} />
       </div>
@@ -73,12 +73,12 @@ export function ResetPassword() {
               onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />
             {error && <p style={{ color: "#D98A8A", fontSize: 13, textAlign: "center" }}>{error}</p>}
             <button onClick={handleSubmit} disabled={loading || !password || !confirm}
-              style={{ width: "100%", height: 52, borderRadius: 16, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 15.5, background: password && confirm ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: password && confirm ? "#1A1206" : "#6E6757", boxShadow: password && confirm ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none" }}>
+              style={{ width: "100%", height: 52, borderRadius: 16, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 15.5, background: password && confirm ? "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)" : "rgba(255,255,255,.06)", color: password && confirm ? "#1A1206" : "#827A69", boxShadow: password && confirm ? "0 10px 28px -8px rgba(201,168,76,.5)" : "none" }}>
               {loading ? "..." : "Сохранить"}
             </button>
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 }

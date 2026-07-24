@@ -115,7 +115,7 @@ export function Home({ onNavigate }: HomeProps) {
       <div>
         <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
           <span style={{ color: "#B6AC98" }}>{label}</span>
-          <span style={{ color: loading ? "#6E6757" : color }}>{loading ? "—" : `${value}%`}</span>
+          <span style={{ color: loading ? "#827A69" : color }}>{loading ? "—" : `${value}%`}</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,.07)", overflow: "hidden" }}>
           {loading
@@ -136,8 +136,8 @@ export function Home({ onNavigate }: HomeProps) {
           <span className="font-cinzel" style={{ fontSize: 14, letterSpacing: ".3em", color: "#E8CD7E" }}>MYSTRAL</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <button onClick={() => onNavigate("profile")} style={{ height: 34, padding: "0 14px", borderRadius: 99, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "#C9A84C", fontSize: 14 }}>
-            🔔 <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C9A84C", boxShadow: "0 0 6px rgba(201,168,76,.8)" }} />
+          <button onClick={() => onNavigate("profile")} aria-label={t("nav.profile")} style={{ height: 34, width: 34, padding: 0, borderRadius: 99, background: "rgba(255,255,255,.04)", border: "1px solid rgba(201,168,76,.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#C9A84C", fontSize: 16 }}>
+            ○
           </button>
           {!isPro && (
             <button onClick={() => setShowPaywall(true)} className="font-sans" style={{ height: 38, padding: "0 14px", borderRadius: 11, background: "linear-gradient(100deg,#A9882F,#E8CD7E)", color: "#1A1206", fontSize: 12, fontWeight: 600, letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 4, border: "none" }}>PRO</button>
@@ -145,6 +145,7 @@ export function Home({ onNavigate }: HomeProps) {
         </div>
       </header>
 
+      <main>
       <div style={{ padding: "6px 22px 0" }}>
         <p className="font-cinzel italic" style={{ fontSize: 14, color: "#A89E8B" }}>{dayName} · {t(getTimeOfDayKey())}</p>
         <p className="font-cormorant" style={{ fontSize: 31, color: "#F0E9DA", lineHeight: 1.08, marginTop: 2 }}>
@@ -170,7 +171,7 @@ export function Home({ onNavigate }: HomeProps) {
         <div style={{ padding: 22, borderRadius: 22, background: "linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015))", border: "1px solid rgba(201,168,76,.16)", backdropFilter: "blur(12px)" }}>
         <div className="flex items-center justify-between">
           <span className="font-cinzel uppercase" style={{ fontSize: 10.5, letterSpacing: ".28em", color: "#C9A84C" }}>{t("home.daily_horoscope")}</span>
-          <span style={{ fontSize: 11, color: "#6E6757" }}>{now.toLocaleDateString(locale, { day: "numeric", month: "short" })}</span>
+          <span style={{ fontSize: 11, color: "#827A69" }}>{now.toLocaleDateString(locale, { day: "numeric", month: "short" })}</span>
         </div>
         <div style={{ marginTop: 13, fontSize: 14.5, lineHeight: 1.72, color: "#D7CFBE", overflow: "hidden", maxHeight: expanded ? "none" : 105 }}>
           {horoscopeLoading && !horoscope
@@ -195,7 +196,7 @@ export function Home({ onNavigate }: HomeProps) {
           <p className="font-cormorant" style={{ fontSize: 18, color: "#F0E9DA" }}>{t("home.daily_spread")}</p>
           <p style={{ fontSize: 12, color: "#8A8170" }}>{t("home.daily_spread_hint")}</p>
         </div>
-        <span style={{ color: "#6E6757", marginLeft: "auto" }}>›</span>
+        <span style={{ color: "#827A69", marginLeft: "auto" }}>›</span>
       </button>
 
       {/* Lunar — mobile only */}
@@ -210,7 +211,7 @@ export function Home({ onNavigate }: HomeProps) {
           </p>
           {lunar && <p style={{ fontSize: 12, color: "#9890B8", marginTop: 4 }}>{lunar.phase_name} · {t("lunar.moon_in")} {lunar.moon_sign}</p>}
         </div>
-        <span style={{ marginLeft: "auto", color: "#6E6757", fontSize: 18 }}>›</span>
+        <span style={{ marginLeft: "auto", color: "#827A69", fontSize: 18 }}>›</span>
       </button>
 
       {/* Sections */}
@@ -238,6 +239,7 @@ export function Home({ onNavigate }: HomeProps) {
       </button>
 
       <div className="pb-20 lg:pb-8" />
+      </main>
 
       <PaywallSheet open={showPaywall} onClose={() => setShowPaywall(false)} />
     </div>
