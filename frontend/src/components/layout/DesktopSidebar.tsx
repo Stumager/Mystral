@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import { getZodiacSign, signLabel } from "../../utils/zodiac";
+import { getZodiacSign, signLabel, ZodiacInfo } from "../../utils/zodiac";
 import { Logo } from "../Logo";
 
 interface Props {
@@ -26,7 +26,7 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
   const isPro = user?.tier === "pro";
   const firstLetter = (user?.name ?? "?")[0]?.toUpperCase() ?? "?";
 
-  const [zodiacLabel, setZodiacLabel] = useState<string | null>(null);
+  const [zodiac, setZodiac] = useState<ZodiacInfo | null>(null);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -34,13 +34,14 @@ export function DesktopSidebar({ activePage, onNavigate }: Props) {
     loaded.current = true;
     fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(d => {
-        if (d.birth_date) {
-          const z = getZodiacSign(d.birth_date);
-          setZodiacLabel(signLabel(z, user?.lang ?? "ru"));
-        }
-      }).catch(() => {});
+      .then(d => { if (d.birth_date) setZodiac(getZodiacSign(d.birth_date)); })
+      .catch(() => {});
   }, [token]);
+
+  // Derived live from user.lang on every render (not baked into fetched
+  // state) — this widget never remounts on lang switch, so a pre-computed
+  // string would stay stale until a full page reload (QA-009 class).
+  const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
 
   const active = activePage === "lunar" ? "moon" : activePage === "numero" ? "numerology" : activePage;
 

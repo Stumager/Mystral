@@ -15,19 +15,24 @@ export function DesktopRightPanel() {
 
   const [lunar, setLunar] = useState<LunarData | null>(null);
   const [zodiac, setZodiac] = useState<ZodiacInfo | null>(null);
-  const loaded = useRef(false);
+  const profileLoaded = useRef(false);
+
+  // Re-fetches whenever user.lang changes (not just on mount) — this panel
+  // lives in the persistent app shell and never remounts on navigation, so
+  // without lang in the deps, moon_sign stays in whatever language was
+  // active when the app first loaded until a full page reload (QA-009).
+  useEffect(() => {
+    fetch(`/api/v1/lunar/today?lang=${user?.lang ?? "ru"}`).then(r => r.json()).then(setLunar).catch(() => {});
+  }, [user?.lang]);
 
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    fetch(`/api/v1/lunar/today?lang=${user?.lang ?? "ru"}`).then(r => r.json()).then(setLunar).catch(() => {});
-    if (token) {
-      fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(d => { if (d.birth_date) setZodiac(getZodiacSign(d.birth_date)); })
-        .catch(() => {});
-    }
-  }, []);
+    if (profileLoaded.current || !token) return;
+    profileLoaded.current = true;
+    fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.birth_date) setZodiac(getZodiacSign(d.birth_date)); })
+      .catch(() => {});
+  }, [token]);
 
   const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
   const userSign = zodiac?.en ?? "Leo";

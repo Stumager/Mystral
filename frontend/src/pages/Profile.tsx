@@ -8,7 +8,7 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 import { StarRating } from "../components/StarRating";
 import { isTMA } from "../utils/telegram";
 import { validateDay, validateMonth, validateYear, validateDateExists } from "../utils/validate";
-import { getZodiacSign } from "../utils/zodiac";
+import { getZodiacSign, signLabel } from "../utils/zodiac";
 
 interface ProfilePageProps {
   onNavigate: (page: string) => void;
@@ -372,9 +372,7 @@ export function Profile({ onNavigate }: ProfilePageProps) {
   const zodiac = form.year && form.month && form.day
     ? getZodiacSign(`${form.year}-${form.month.padStart(2, "0")}-${form.day.padStart(2, "0")}`)
     : null;
-  const zodiacLabel = zodiac
-    ? (user?.lang === "en" ? zodiac.en : zodiac.sign)
-    : null;
+  const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
 
   const hintIndex = Math.floor(completion / 25);
   const hint = completion < 100 ? progressHints[hintIndex] ?? progressHints[3] : t("profile.hint_done");

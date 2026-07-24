@@ -16,22 +16,25 @@ export function RightPanel() {
   const { user, token } = useAuth();
   const [lunar, setLunar] = useState<LunarInfo | null>(null);
   const [birthDate, setBirthDate] = useState<string | null>(null);
-  const loaded = useRef(false);
+  const profileLoaded = useRef(false);
+
+  // Re-fetches whenever user.lang changes (not just on mount) — this panel
+  // lives in the persistent app shell and never remounts on navigation, so
+  // without lang in the deps, moon_sign stays in whatever language was
+  // active when the app first loaded until a full page reload (QA-009).
+  useEffect(() => {
+    const lang = user?.lang ?? "ru";
+    fetch(`/api/v1/lunar/today?lang=${lang}`).then(r => r.json()).then(setLunar).catch(() => {});
+  }, [user?.lang]);
 
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    const lang = user?.lang ?? "ru";
-
-    fetch(`/api/v1/lunar/today?lang=${lang}`).then(r => r.json()).then(setLunar).catch(() => {});
-
-    if (token) {
-      fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(d => { if (d.birth_date) setBirthDate(d.birth_date); })
-        .catch(() => {});
-    }
-  }, []);
+    if (profileLoaded.current || !token) return;
+    profileLoaded.current = true;
+    fetch("/api/v1/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.birth_date) setBirthDate(d.birth_date); })
+      .catch(() => {});
+  }, [token]);
 
   const zodiac = birthDate ? getZodiacSign(birthDate) : null;
   const zodiacLabel = zodiac ? signLabel(zodiac, user?.lang ?? "ru") : null;
@@ -75,7 +78,7 @@ export function RightPanel() {
           <div>
             <p className="text-text-primary text-sm font-display">{zodiacLabel}</p>
             <p className="text-text-faint text-[10px]">
-              {user?.lang === "en" ? "Your sign" : "Твой знак"}
+              {t("sidebar.your_sign")}
             </p>
           </div>
         </div>
