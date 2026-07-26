@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./i18n";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -29,6 +29,51 @@ const Tarot = lazy(() => import("./pages/Tarot").then(m => ({ default: m.Tarot }
 
 type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "admin";
 
+// TZ-096: real /app/<section> routes for top-level sections only — state
+// *inside* a section (which spread is open, a typed question, etc.) stays
+// in-memory as before, it's just this one top-level switch that's now
+// addressable/refreshable. Slugs are deliberately NOT the bare section names
+// (/tarot, /natal-chart, /compatibility, ...) — nginx.prod.conf already
+// routes those bare paths to the server-rendered SEO pages, so app routes
+// must live under the /app/ prefix to avoid colliding with them.
+const PAGE_TO_SLUG: Partial<Record<Page, string>> = {
+  home: "",
+  tarot: "tarot",
+  moon: "lunar",
+  lunar: "lunar",
+  natal: "natal",
+  profile: "profile",
+  compat: "compatibility",
+  numerology: "numerology",
+  numero: "numerology",
+  runes: "runes",
+  // "admin" intentionally omitted — it stays on its existing #admin hash
+  // mechanism, not a real path, so it's never exposed as a shareable URL.
+};
+
+const SLUG_TO_PAGE: Record<string, Page> = {
+  "": "home",
+  tarot: "tarot",
+  lunar: "lunar",
+  natal: "natal",
+  profile: "profile",
+  compatibility: "compat",
+  numerology: "numerology",
+  runes: "runes",
+};
+
+function pageFromPath(pathname: string): Page {
+  const m = pathname.match(/^\/app\/?([\w-]*)\/?$/);
+  if (!m) return "home";
+  return SLUG_TO_PAGE[m[1]] ?? "home";
+}
+
+function pathForPage(p: Page): string | null {
+  const slug = PAGE_TO_SLUG[p];
+  if (slug === undefined) return null; // unmapped (admin) — leave the URL alone
+  return slug ? `/app/${slug}` : "/";
+}
+
 function PageFallback() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07060F" }}>
@@ -39,11 +84,44 @@ function PageFallback() {
 
 function AppInner() {
   const { t } = useTranslation();
-  const [page, setPage] = useState<Page>("home");
+  const [page, setPage] = useState<Page>(() => pageFromPath(window.location.pathname));
   const { user, isLoading, pendingMerge, dismissMerge, updateUser, statusMessage, clearStatusMessage } = useAuth();
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  const navigate = (p: string) => setPage(p as Page);
+  const navigate = (p: string) => {
+    setPage(p as Page);
+    const path = pathForPage(p as Page);
+    if (path !== null && path !== window.location.pathname) {
+      window.history.pushState({ mystralPage: p }, "", path);
+    }
+  };
+
+  // Browser/TWA back-forward: reconcile page state to whatever the URL now is.
+  useEffect(() => {
+    function onPopState() { setPage(pageFromPath(window.location.pathname)); }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // Telegram Mini App native back chevron (there's no browser chrome to
+  // provide one in-app) — mirrors the same "top level only" contract as the
+  // URL routing: it steps out of a section back to the main menu, while the
+  // section's own local back buttons (TZ-093/QA-018) keep handling
+  // navigation within a section.
+  useEffect(() => {
+    const backButton = (window as any).Telegram?.WebApp?.BackButton;
+    if (!backButton) return;
+    function handleBack() { navigate("home"); }
+    backButton.onClick(handleBack);
+    return () => backButton.offClick(handleBack);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const backButton = (window as any).Telegram?.WebApp?.BackButton;
+    if (!backButton) return;
+    if (page === "home") backButton.hide(); else backButton.show();
+  }, [page]);
 
   if (isLoading) {
     return (

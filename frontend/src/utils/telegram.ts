@@ -5,6 +5,13 @@ declare global {
         initData: string;
         initDataUnsafe?: { start_param?: string };
         platform: string;
+        BackButton?: {
+          isVisible: boolean;
+          show(): void;
+          hide(): void;
+          onClick(cb: () => void): void;
+          offClick(cb: () => void): void;
+        };
       };
     };
   }
