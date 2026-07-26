@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Share2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { streamRequest } from "../utils/api";
 import { stripMarkdown } from "../utils/markdown";
@@ -279,12 +278,6 @@ export function CompositeChart({ partnerId, partnerName, onClose }: Props) {
             </div>
           )}
 
-          {/* Share */}
-          <button onClick={() => setShowShare(true)}
-            style={{ width: "100%", height: 44, marginTop: 8, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Share2 size={16} />
-            {ru ? "Поделиться картой" : "Share chart"}
-          </button>
         </>
       )}
 

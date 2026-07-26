@@ -15,7 +15,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.user import ReadingInterpretation
+from app.models.user import ReadingInterpretation, TarotClarification
 
 logger = logging.getLogger(__name__)
 
@@ -53,3 +53,18 @@ async def store_interpretation(reading_id: UUID, reading_type: str, lang: str, t
             await session.commit()
     except Exception as e:
         logger.warning("Failed to store interpretation for %s/%s/%s: %s", reading_type, reading_id, lang, e)
+
+
+async def store_clarification(reading_id: UUID, question: str, answer: str, lang: str) -> None:
+    """TZ-097: same rationale as store_interpretation — the request's own
+    session was released before the SSE stream started, so this runs on its
+    own short-lived session once the stream (and thus the full answer) is
+    ready. Part of the same reading's history, not a new reading/entity."""
+    try:
+        async with AsyncSessionLocal() as session:
+            session.add(TarotClarification(
+                reading_id=reading_id, question=question, answer=answer, lang=lang,
+            ))
+            await session.commit()
+    except Exception as e:
+        logger.warning("Failed to store clarification for %s: %s", reading_id, e)

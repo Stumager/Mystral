@@ -498,10 +498,6 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               ) : interpretations[activeSection] !== undefined ? (
                 <>
                   <p className="text-text-muted text-xs leading-relaxed">{stripMarkdown(interpretations[activeSection]!)}</p>
-                  <button onClick={() => setShowShareCard(true)}
-                    style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                    {t("share.share_btn")}
-                  </button>
                 </>
               ) : (
                 <button onClick={() => fetchInterpretation(activeSection)}

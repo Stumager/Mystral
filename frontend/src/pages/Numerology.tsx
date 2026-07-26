@@ -385,12 +385,6 @@ export function Numerology({ onNavigate }: NumerologyProps) {
                   {stripMarkdown(aiText)}{aiLoading && <span className="animate-pulse">|</span>}
                 </p>
               )}
-              {aiText && !aiLoading && (
-                <button onClick={() => setShowShareCard(true)}
-                  style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                  {t("share.share_btn")}
-                </button>
-              )}
             </div>
           </>
         ) : null}

@@ -399,13 +399,6 @@ export function Runes({ onNavigate }: RunesProps) {
               </Button>
             )}
 
-            {interpretation && !interpretLoading && (
-              <button onClick={() => setShowShareCard(true)}
-                style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                {t("share.share_btn")}
-              </button>
-            )}
-
             <Button
               variant="ghost"
               className="w-full"

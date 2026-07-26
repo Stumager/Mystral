@@ -8,7 +8,8 @@ from uuid import UUID
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -18,10 +19,10 @@ from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.periods import period_start
 from app.core.prompts import lang_enforce as get_lang_enforce, system_prompt
-from app.core.reading_cache import get_cached_interpretation, store_interpretation
+from app.core.reading_cache import get_cached_interpretation, store_clarification, store_interpretation
 from app.core.structural_i18n import localized_field
 from app.data.tarot_i18n import CARD_NAMES_I18N
-from app.models.user import TarotReading, User
+from app.models.user import TarotClarification, TarotReading, User
 
 router = APIRouter()
 redis_client = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
@@ -86,6 +87,20 @@ PERIOD_SPREADS = {
     "card_of_day": "day",
 }
 
+# TZ-097: a follow-up question is still a billed AI call, just cheaper than
+# the full interpretation — capped per reading (not per hour) so a single
+# reading can't become an unbounded AI chat.
+MAX_CLARIFICATIONS_PER_READING = 2
+
+_CLARIFY_LIMIT_MSG = {
+    "ru": "Лимит уточняющих вопросов для этого расклада исчерпан",
+    "en": "You've reached the clarifying-question limit for this reading",
+    "es": "Has alcanzado el límite de preguntas de aclaración para esta tirada",
+    "pt": "Você atingiu o limite de perguntas de esclarecimento para esta tiragem",
+    "tr": "Bu açılım için netleştirme sorusu limitine ulaştın",
+    "uk": "Ліміт уточнювальних питань для цього розкладу вичерпано",
+}
+
 
 class SpreadRequest(BaseModel):
     spread_id: str
@@ -143,6 +158,12 @@ class InterpretRequest(BaseModel):
     # the same reading. Optional: callers with no reading (e.g. none today)
     # simply get the old always-generate behavior.
     reading_id: Optional[UUID] = None
+
+
+class ClarifyRequest(BaseModel):
+    reading_id: UUID
+    question: str = Field(min_length=1, max_length=500)
+    lang: str = "ru"
 
 
 @router.post("/tarot/spread")
@@ -307,6 +328,95 @@ async def tarot_interpret(
                     pass
         if full_text and req.reading_id:
             await store_interpretation(req.reading_id, "tarot", req.lang, full_text)
+
+    return StreamingResponse(generate(),
+                             media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/tarot/clarify")
+async def tarot_clarify(
+    req: ClarifyRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        await session.close()
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    reading = await session.get(TarotReading, req.reading_id)
+    if not reading or reading.user_id != current_user.id:
+        await session.close()
+        raise HTTPException(404, "Reading not found")
+
+    base_interpretation = await get_cached_interpretation(session, req.reading_id, "tarot", req.lang)
+    if not base_interpretation:
+        await session.close()
+        raise HTTPException(400, "NO_INTERPRETATION_YET")
+
+    clarify_count = (await session.exec(
+        select(func.count()).select_from(TarotClarification)
+        .where(TarotClarification.reading_id == req.reading_id)
+    )).one()
+    if clarify_count >= MAX_CLARIFICATIONS_PER_READING:
+        await session.close()
+        raise HTTPException(429, detail={
+            "error": "clarify_limit",
+            "message": _CLARIFY_LIMIT_MSG.get(req.lang, _CLARIFY_LIMIT_MSG["en"]),
+        })
+
+    cards = _reconstruct_cards(reading, req.lang)
+    cards_desc = []
+    for c in cards:
+        rev = (" (перевёрнутая)" if req.lang == "ru" else " (reversed)") if c["reversed"] \
+            else (" (прямая)" if req.lang == "ru" else " (upright)")
+        cards_desc.append(f"{c['name_display']}{rev}")
+    cards_text = "\n".join(cards_desc)
+    spread_id = reading.spread_id
+
+    # get_current_user pulls a pooled connection via its own Depends(get_session);
+    # release it now instead of holding it for the whole SSE stream below.
+    await session.close()
+
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "tarot_clarify", 0, 20)
+
+    sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
+    if req.lang == "ru":
+        prompt = (
+            f"Клиент уже получил толкование расклада Таро ({spread_id}).\n"
+            f"Карты: {cards_text}\n"
+            f"Толкование, которое он уже видел:\n{base_interpretation}\n\n"
+            f'Уточняющий вопрос клиента: "{req.question}"\n'
+            f"Ответь конкретно на этот вопрос, опираясь на карты и уже данное толкование. "
+            f"Не пересказывай расклад заново — сразу по существу. 80-150 слов, без воды."
+        )
+    else:
+        prompt = (
+            f"The client already received an interpretation of this tarot spread ({spread_id}).\n"
+            f"Cards: {cards_text}\n"
+            f"Interpretation they already saw:\n{base_interpretation}\n\n"
+            f'Client\'s follow-up question: "{req.question}"\n'
+            f"Answer this follow-up question specifically, building on the cards and the "
+            f"interpretation already given. Don't retell the whole reading — get straight to "
+            f"the point. 80-150 words, no filler."
+        )
+    prompt += get_lang_enforce(req.lang)
+
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
+
+    async def generate():
+        full_text = ""
+        async for chunk_data in safe_groq_stream(msgs, max_tokens=700, lang=req.lang):
+            yield chunk_data
+            if chunk_data.startswith("data: {"):
+                try:
+                    parsed = json.loads(chunk_data[6:].strip())
+                    if "text" in parsed:
+                        full_text += parsed["text"]
+                except Exception:
+                    pass
+        if full_text:
+            await store_clarification(req.reading_id, req.question, full_text, req.lang)
 
     return StreamingResponse(generate(),
                              media_type="text/event-stream",

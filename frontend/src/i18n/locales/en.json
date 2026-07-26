@@ -85,6 +85,11 @@
     "interpretation_label": "Interpretation · AI",
     "new_spread": "New spread",
     "error": "Connection error. Try again.",
+    "clarify_btn": "Clarify question",
+    "clarify_placeholder": "Ask a follow-up question about this reading...",
+    "clarify_submit": "Ask",
+    "clarify_loading": "Clarifying...",
+    "clarify_limit_reached": "You've reached the clarification limit for this reading",
     "spreads": {
       "card_of_day": {
         "name": "Card of the Day",

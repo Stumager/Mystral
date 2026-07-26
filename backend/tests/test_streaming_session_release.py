@@ -95,6 +95,33 @@ class TestTarotInterpretClosesSessionBeforeStreaming:
         assert close_tracker["closed_when_stream_started"] is True
 
 
+class TestTarotClarifyClosesSessionBeforeStreaming:
+    async def test_clarify(self, client, pro_headers, close_tracker):
+        draw = await client.post("/v1/tarot/spread", headers=pro_headers,
+                                  json={"spread_id": "three_cards", "lang": "ru"})
+        reading_id = draw.json()["reading_id"]
+
+        async def _fake_interpret_stream(*a, **k):
+            yield 'data: {"text": "Base interpretation"}\n\n'
+            yield "data: [DONE]\n\n"
+
+        with patch("app.api.v1.tarot.safe_groq_stream", _fake_interpret_stream):
+            await client.post("/v1/tarot/interpret", headers=pro_headers, json={
+                "spread_id": "three_cards", "cards": draw.json()["cards"], "positions": [],
+                "lang": "ru", "reading_id": reading_id,
+            })
+
+        fake_stream = _fake_stream_factory(close_tracker)
+        with patch("app.api.v1.tarot.safe_groq_stream", fake_stream):
+            res = await client.post(
+                "/v1/tarot/clarify",
+                headers=pro_headers,
+                json={"reading_id": reading_id, "question": "What about my career?", "lang": "ru"},
+            )
+        assert res.status_code == 200
+        assert close_tracker["closed_when_stream_started"] is True
+
+
 class TestRunesInterpretClosesSessionBeforeStreaming:
     async def test_interpret(self, client, auth_headers, close_tracker):
         fake_stream = _fake_stream_factory(close_tracker)

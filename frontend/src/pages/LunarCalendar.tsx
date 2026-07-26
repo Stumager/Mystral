@@ -198,12 +198,6 @@ export function LunarCalendar({ onNavigate }: LunarCalendarProps) {
               </div>
             </div>
 
-            {/* Share */}
-            <button onClick={() => setShowShareCard(true)}
-              style={{ width: "100%", height: 42, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-              {t("share.share_btn")}
-            </button>
-
             {/* Block 4: Category tabs */}
             <div
               className="p-4"

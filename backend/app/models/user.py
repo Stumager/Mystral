@@ -102,6 +102,21 @@ class ReadingInterpretation(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class TarotClarification(SQLModel, table=True):
+    """TZ-097: a free-text follow-up question + AI answer attached to an
+    existing TarotReading — part of that reading's history (TZ-095), not a
+    reading of its own, hence its own table keyed by reading_id rather than
+    a new TarotReading row."""
+    __tablename__ = "tarot_clarifications"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    reading_id: UUID = Field(foreign_key="tarot_readings.id", index=True)
+    question: str
+    answer: str = ""
+    lang: str = Field(default="ru")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class ReferralLog(SQLModel, table=True):
     __tablename__ = "referral_log"
 

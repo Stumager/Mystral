@@ -55,6 +55,11 @@ const NAMED_SPREAD_LAYOUTS: Record<string, SpreadLayout> = {
   },
 };
 
+// TZ-097: mirrors the backend's MAX_CLARIFICATIONS_PER_READING (tarot.py) —
+// duplicated here only to disable the button early client-side; the backend
+// stays the actual source of truth.
+const MAX_CLARIFICATIONS = 2;
+
 export function Tarot({ onNavigate }: TarotProps) {
   const { t } = useTranslation();
   const { user, token } = useAuth();
@@ -74,6 +79,16 @@ export function Tarot({ onNavigate }: TarotProps) {
   const [error, setError] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [clarifications, setClarifications] = useState<{ question: string; answer: string }[]>([]);
+  const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [clarifyDraft, setClarifyDraft] = useState("");
+  const [clarifyLoading, setClarifyLoading] = useState(false);
+  const [clarifyError, setClarifyError] = useState("");
+  // Distinguishes a real interpretation from streamRequest's error-message
+  // fallback, which also lands in `interpretation` (existing pattern) — the
+  // clarify feature needs to know the difference, or it'd offer to clarify
+  // a reading that was never actually generated.
+  const [interpretFailed, setInterpretFailed] = useState(false);
 
   // Display strings for a spread (name/desc/positions/schemes) live in the
   // locale files under tarot.spreads.<id>, in all 6 languages — i18next
@@ -112,6 +127,11 @@ export function Tarot({ onNavigate }: TarotProps) {
       setPositions(pos);
       setRevealed(new Array(data.cards.length).fill(false));
       setInterpretation("");
+      setInterpretFailed(false);
+      setClarifications([]);
+      setClarifyOpen(false);
+      setClarifyDraft("");
+      setClarifyError("");
       setStep("spread");
     } catch (e: unknown) {
       const err = e as { code?: string };
@@ -136,6 +156,7 @@ export function Tarot({ onNavigate }: TarotProps) {
     if (!spread) return;
     setIsReading(true);
     setInterpretation("");
+    setInterpretFailed(false);
     try {
       await streamRequest(
         "/tarot/interpret",
@@ -143,12 +164,13 @@ export function Tarot({ onNavigate }: TarotProps) {
         (chunk) => setInterpretation(prev => prev + chunk),
         () => setIsReading(false),
         token ?? undefined,
-        (msg) => { setInterpretation(msg); setIsReading(false); },
+        (msg) => { setInterpretation(msg); setInterpretFailed(true); setIsReading(false); },
       );
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string };
       if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
       else setInterpretation(err.message || t("tarot.error"));
+      setInterpretFailed(true);
       setIsReading(false);
     }
   }
@@ -159,7 +181,56 @@ export function Tarot({ onNavigate }: TarotProps) {
     setCards([]);
     setReadingId(null);
     setInterpretation("");
+    setInterpretFailed(false);
+    setClarifications([]);
+    setClarifyOpen(false);
+    setClarifyDraft("");
+    setClarifyError("");
     setError("");
+  }
+
+  function handleClarifyToggle() {
+    if (user?.tier !== "pro") { setShowPaywall(true); return; }
+    if (clarifications.length >= MAX_CLARIFICATIONS) return;
+    setClarifyOpen(o => !o);
+  }
+
+  async function submitClarify() {
+    const q = clarifyDraft.trim();
+    if (!q || !readingId || clarifyLoading) return;
+    setClarifyLoading(true);
+    setClarifyError("");
+    setClarifyOpen(false);
+    setClarifyDraft("");
+    setClarifications(prev => [...prev, { question: q, answer: "" }]);
+    // A failed attempt (thrown HTTP error, or an in-stream error event) never
+    // gets persisted server-side (see store_clarification's full_text guard),
+    // so it must not occupy a slot in the client-side array either — keeping
+    // it would let a transient LLM hiccup silently eat into the per-reading
+    // clarify limit.
+    let failed = false;
+    try {
+      await streamRequest(
+        "/tarot/clarify",
+        { reading_id: readingId, question: q, lang },
+        (chunk) => setClarifications(prev => {
+          const next = [...prev];
+          next[next.length - 1] = { ...next[next.length - 1], answer: next[next.length - 1].answer + chunk };
+          return next;
+        }),
+        () => setClarifyLoading(false),
+        token ?? undefined,
+        (msg) => { failed = true; setClarifyError(msg); setClarifyLoading(false); },
+      );
+    } catch (e: unknown) {
+      failed = true;
+      const err = e as { code?: string; message?: string };
+      setClarifyLoading(false);
+      if (err.code === "FREE_LIMIT_REACHED") setShowPaywall(true);
+      else setClarifyError(err.message || t("tarot.error"));
+    } finally {
+      if (failed) setClarifications(prev => prev.slice(0, -1));
+    }
   }
 
   const allRevealed = revealed.length > 0 && revealed.every(Boolean);
@@ -410,11 +481,64 @@ export function Tarot({ onNavigate }: TarotProps) {
               </div>
             )}
 
-            {interpretation && !isReading && (
-              <button onClick={() => setShowShareCard(true)}
-                style={{ width: "100%", height: 44, marginTop: 12, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer" }}>
-                {t("share.share_btn")}
-              </button>
+            {interpretation && !isReading && !interpretFailed && (
+              <div className="flex flex-col gap-2">
+                {clarifications.map((c, i) => {
+                  const isLast = i === clarifications.length - 1;
+                  return (
+                    <div key={i} className="p-3" style={{ borderRadius: 14, background: "rgba(255,255,255,.02)", border: "1px solid rgba(201,168,76,.1)" }}>
+                      <p className="text-text-faint text-[10px] italic mb-1.5">"{c.question}"</p>
+                      {!c.answer && clarifyLoading && isLast ? (
+                        <p className="animate-pulse text-text-faint text-xs">{t("tarot.clarify_loading")}</p>
+                      ) : (
+                        <p className="text-text-muted text-xs leading-relaxed">
+                          {stripMarkdown(c.answer)}
+                          {clarifyLoading && isLast && <span className="animate-pulse">{"▍"}</span>}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {clarifyError && <p className="text-red-400 text-xs text-center">{clarifyError}</p>}
+
+                {clarifyOpen && (
+                  <div className="flex flex-col gap-1.5">
+                    <textarea
+                      className={inputCls + " min-h-[50px] resize-none"}
+                      placeholder={t("tarot.clarify_placeholder")}
+                      value={clarifyDraft}
+                      maxLength={500}
+                      onChange={e => setClarifyDraft(e.target.value)}
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-faint text-[9px]">{clarifyDraft.length}/500</span>
+                      <Button
+                        variant="primary"
+                        style={{ height: 38, borderRadius: 12, padding: "0 18px" }}
+                        onClick={submitClarify}
+                        disabled={!clarifyDraft.trim() || clarifyLoading}
+                      >
+                        {t("tarot.clarify_submit")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!clarifyOpen && !clarifyLoading && clarifications.length < MAX_CLARIFICATIONS && (
+                  <button onClick={handleClarifyToggle}
+                    style={{ width: "100%", height: 44, borderRadius: 14, border: "1px solid rgba(201,168,76,.25)", background: "transparent", color: "#C9A84C", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    {t("tarot.clarify_btn")}
+                    {user?.tier !== "pro" && (
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "#C9A84C", color: "#0D0B1F" }}>Pro</span>
+                    )}
+                  </button>
+                )}
+
+                {!clarifyOpen && clarifications.length >= MAX_CLARIFICATIONS && (
+                  <p className="text-text-faint text-[10px] text-center">{t("tarot.clarify_limit_reached")}</p>
+                )}
+              </div>
             )}
 
             {allRevealed && !isReading && (

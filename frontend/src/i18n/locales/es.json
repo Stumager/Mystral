@@ -85,6 +85,11 @@
     "interpretation_label": "Interpretación · AI",
     "new_spread": "Nueva tirada",
     "error": "Error de conexión. Inténtalo de nuevo.",
+    "clarify_btn": "Aclarar pregunta",
+    "clarify_placeholder": "Haz una pregunta de seguimiento sobre esta tirada...",
+    "clarify_submit": "Preguntar",
+    "clarify_loading": "Aclarando...",
+    "clarify_limit_reached": "Has alcanzado el límite de aclaraciones para esta tirada",
     "spreads": {
       "card_of_day": {
         "name": "Carta del Día",

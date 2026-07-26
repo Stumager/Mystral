@@ -85,6 +85,11 @@
     "interpretation_label": "Yorum · AI",
     "new_spread": "Yeni açılım",
     "error": "Bağlantı hatası. Tekrar dene.",
+    "clarify_btn": "Soruyu netleştir",
+    "clarify_placeholder": "Bu açılımla ilgili ek bir soru sor...",
+    "clarify_submit": "Sor",
+    "clarify_loading": "Netleştiriliyor...",
+    "clarify_limit_reached": "Bu açılım için netleştirme limitine ulaştın",
     "spreads": {
       "card_of_day": {
         "name": "Günün Kartı",

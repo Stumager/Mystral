@@ -85,6 +85,11 @@
     "interpretation_label": "Толкование · AI",
     "new_spread": "Новый расклад",
     "error": "Ошибка соединения. Попробуй ещё раз.",
+    "clarify_btn": "Уточнить вопрос",
+    "clarify_placeholder": "Задай уточняющий вопрос по раскладу...",
+    "clarify_submit": "Спросить",
+    "clarify_loading": "Уточняю...",
+    "clarify_limit_reached": "Лимит уточнений для этого расклада исчерпан",
     "spreads": {
       "card_of_day": {
         "name": "Карта дня",
