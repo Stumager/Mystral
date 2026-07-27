@@ -9,6 +9,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
+    FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     LabeledPrice,
@@ -29,6 +30,13 @@ ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+# TZ-098: BotFather's Description/Description Picture render as two separate
+# bubbles (a Telegram client limitation) — /start now sends its own
+# photo+caption as one message instead of relying on those BotFather fields.
+WELCOME_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "static", "welcome.jpg")
+WELCOME_TEXT = "Добро пожаловать в Mystral!\n\nЭзотерическая платформа для вашего пути."
+TELEGRAM_PHOTO_CAPTION_LIMIT = 1024
 
 
 class SupportStates(StatesGroup):
@@ -55,6 +63,30 @@ async def send_stars_invoice(message: Message, plan_key: str) -> None:
     )
 
 
+def _welcome_caption() -> str:
+    if len(WELCOME_TEXT) > TELEGRAM_PHOTO_CAPTION_LIMIT:
+        logger.error(
+            "Welcome caption is %d chars, over Telegram's %d-char photo caption "
+            "limit — truncating so /start still sends instead of failing outright",
+            len(WELCOME_TEXT), TELEGRAM_PHOTO_CAPTION_LIMIT,
+        )
+        return WELCOME_TEXT[:TELEGRAM_PHOTO_CAPTION_LIMIT - 1] + "…"
+    return WELCOME_TEXT
+
+
+async def send_welcome(message: Message) -> None:
+    button = InlineKeyboardButton(
+        text="Открыть Mystral",
+        web_app=WebAppInfo(url=WEBAPP_URL) if WEBAPP_URL else None,
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
+    await message.answer_photo(
+        FSInputFile(WELCOME_IMAGE_PATH),
+        caption=_welcome_caption(),
+        reply_markup=keyboard if WEBAPP_URL else None,
+    )
+
+
 @dp.message(CommandStart(deep_link=True))
 async def cmd_start_deep(message: Message, state: FSMContext) -> None:
     if not message.from_user:
@@ -74,28 +106,12 @@ async def cmd_start_deep(message: Message, state: FSMContext) -> None:
         )
         return
 
-    button = InlineKeyboardButton(
-        text="Открыть Mystral",
-        web_app=WebAppInfo(url=WEBAPP_URL) if WEBAPP_URL else None,
-    )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
-    await message.answer(
-        "Добро пожаловать в Mystral!\n\nЭзотерическая платформа для вашего пути.",
-        reply_markup=keyboard if WEBAPP_URL else None,
-    )
+    await send_welcome(message)
 
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message) -> None:
-    button = InlineKeyboardButton(
-        text="Открыть Mystral",
-        web_app=WebAppInfo(url=WEBAPP_URL) if WEBAPP_URL else None,
-    )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button]])
-    await message.answer(
-        "Добро пожаловать в Mystral!\n\nЭзотерическая платформа для вашего пути.",
-        reply_markup=keyboard if WEBAPP_URL else None,
-    )
+    await send_welcome(message)
 
 
 @dp.message(Command("support"))
