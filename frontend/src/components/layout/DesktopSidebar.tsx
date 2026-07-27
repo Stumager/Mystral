@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { id: "natal",      icon: "◎",  key: "nav.natal" },
   { id: "numerology", icon: "#",  key: "nav.numerology" },
   { id: "runes",      icon: "ᚱ",  key: "nav.runes" },
+  { id: "matrix",     icon: "✧",  key: "nav.matrix" },
   { id: "profile",    icon: "○",  key: "nav.profile" },
 ];
 

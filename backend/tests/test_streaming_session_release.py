@@ -202,3 +202,19 @@ class TestNatalInterpretClosesSessionBeforeStreaming:
             )
         assert res.status_code == 200
         assert close_tracker["closed_when_stream_started"] is True
+
+
+class TestMatrixInterpretClosesSessionBeforeStreaming:
+    """TZ-101 — the 10th streaming endpoint. Pro-only, so this runs on
+    pro_headers; the profile read it needs happens before the close."""
+
+    async def test_interpret(self, client, pro_headers, close_tracker):
+        fake_stream = _fake_stream_factory(close_tracker)
+        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+            res = await client.post(
+                "/v1/matrix/interpret",
+                headers=pro_headers,
+                json={"point": "core", "lang": "ru"},
+            )
+        assert res.status_code == 200
+        assert close_tracker["closed_when_stream_started"] is True

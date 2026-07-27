@@ -5,6 +5,7 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.compatibility import router as compatibility_router
 from app.api.v1.horoscope import router as horoscope_router
 from app.api.v1.lunar import router as lunar_router
+from app.api.v1.matrix import router as matrix_router
 from app.api.v1.natal import router as natal_router
 from app.api.v1.numerology import router as numerology_router
 from app.api.v1.push import router as push_router
@@ -28,6 +29,7 @@ api_router.include_router(lunar_router, prefix="/v1", tags=["lunar"])
 api_router.include_router(compatibility_router, prefix="/v1", tags=["compatibility"])
 api_router.include_router(numerology_router, prefix="/v1", tags=["numerology"])
 api_router.include_router(runes_router, prefix="/v1", tags=["runes"])
+api_router.include_router(matrix_router, prefix="/v1", tags=["matrix"])
 api_router.include_router(admin_router, prefix="/v1", tags=["admin"])
 api_router.include_router(push_router, prefix="/v1", tags=["push"])
 api_router.include_router(reviews_router, prefix="/v1", tags=["reviews"])

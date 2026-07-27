@@ -35,6 +35,7 @@ const SECTIONS = [
   { id: "natal",  icon: "◎",  labelKey: "home.section_natal",  descKey: "home.section_desc_natal" },
   { id: "numero", icon: "#",  labelKey: "home.section_numero", descKey: "home.section_desc_numero" },
   { id: "runes",  icon: "ᚱ",  labelKey: "home.section_runes",  descKey: "home.section_desc_runes" },
+  { id: "matrix", icon: "✧",  labelKey: "home.section_matrix", descKey: "home.section_desc_matrix" },
 ];
 
 function getTimeOfDayKey(): string {

@@ -256,6 +256,20 @@ def _lunar_registry() -> dict[str, list[TranslationItem]]:
     }
 
 
+def _destiny_matrix_registry() -> dict[str, list[TranslationItem]]:
+    """TZ-101: 22 arcana x light/shadow keyword lines. The arcana *names*
+    aren't here — TAROT_MAJOR_I18N already carries all 22 in every language
+    and destiny_matrix.arcana_name() reads them from there."""
+    from app.data.destiny_matrix import ARCANA_ENERGY
+
+    return {
+        "ARCANA_MATRIX_I18N": [
+            (str(n), field, ad[f"{field}_ru"], ad[f"{field}_en"])
+            for n, ad in ARCANA_ENERGY.items() for field in ("light", "shadow")
+        ],
+    }
+
+
 SECTION_REGISTRY = {
     "compatibility": _compatibility_registry,
     "tarot": _tarot_registry,
@@ -263,6 +277,7 @@ SECTION_REGISTRY = {
     "numerology": _numerology_registry,
     "runes": _runes_registry,
     "lunar": _lunar_registry,
+    "destiny_matrix": _destiny_matrix_registry,
 }
 
 _LANG_NAME = {"es": "Spanish", "pt": "Brazilian Portuguese", "tr": "Turkish", "uk": "Ukrainian"}

@@ -15,6 +15,7 @@ import { LoginScreen } from "./pages/LoginScreen";
 // LoginScreen stay eager — one of the two is always the first paint.
 const Admin = lazy(() => import("./pages/Admin").then(m => ({ default: m.Admin })));
 const Compatibility = lazy(() => import("./pages/Compatibility").then(m => ({ default: m.Compatibility })));
+const DestinyMatrix = lazy(() => import("./pages/DestinyMatrix").then(m => ({ default: m.DestinyMatrix })));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
 const LunarCalendar = lazy(() => import("./pages/LunarCalendar").then(m => ({ default: m.LunarCalendar })));
@@ -27,7 +28,7 @@ const Profile = lazy(() => import("./pages/Profile").then(m => ({ default: m.Pro
 const Runes = lazy(() => import("./pages/Runes").then(m => ({ default: m.Runes })));
 const Tarot = lazy(() => import("./pages/Tarot").then(m => ({ default: m.Tarot })));
 
-type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "admin";
+type Page = "home" | "tarot" | "moon" | "natal" | "profile" | "lunar" | "compat" | "numerology" | "numero" | "runes" | "matrix" | "admin";
 
 // TZ-096: real /app/<section> routes for top-level sections only — state
 // *inside* a section (which spread is open, a typed question, etc.) stays
@@ -47,6 +48,7 @@ const PAGE_TO_SLUG: Partial<Record<Page, string>> = {
   numerology: "numerology",
   numero: "numerology",
   runes: "runes",
+  matrix: "matrix",
   // "admin" intentionally omitted — it stays on its existing #admin hash
   // mechanism, not a real path, so it's never exposed as a shareable URL.
 };
@@ -60,6 +62,7 @@ const SLUG_TO_PAGE: Record<string, Page> = {
   compatibility: "compat",
   numerology: "numerology",
   runes: "runes",
+  matrix: "matrix",
 };
 
 function pageFromPath(pathname: string): Page {
@@ -216,6 +219,7 @@ function AppInner() {
   else if (page === "numerology" || page === "numero")
                                   content = <Numerology    onNavigate={navigate} />;
   else if (page === "runes")      content = <Runes         onNavigate={navigate} />;
+  else if (page === "matrix")     content = <DestinyMatrix onNavigate={navigate} />;
   else                            content = null;
 
   return (
