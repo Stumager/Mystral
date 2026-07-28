@@ -260,7 +260,35 @@
     "reading": "Читаю карту...",
     "get_interpretation": "Получить интерпретацию",
     "connection_error": "Ошибка соединения. Попробуй ещё раз.",
-    "aspects_label": "Аспекты"
+    "aspects_label": "Аспекты",
+    "chart_options": "Настройки карты",
+    "house_system": "Система домов",
+    "extra_points": "Дополнительные точки",
+    "default_label": "по умолчанию",
+    "show_all_aspects": "Показать все аспекты ({{count}})",
+    "show_less": "Свернуть",
+    "house_systems": {
+      "P": "Плацидус",
+      "K": "Кох",
+      "A": "Равнодомная",
+      "C": "Кампанус",
+      "R": "Региомонтан"
+    },
+    "points": {
+      "nodes": "Лунные узлы",
+      "lilith": "Лилит",
+      "chiron": "Хирон",
+      "part_of_fortune": "Часть Фортуны",
+      "ceres": "Церера",
+      "pallas": "Паллада",
+      "juno": "Юнона",
+      "vesta": "Веста"
+    },
+    "aspect_category": {
+      "tense": "Напряжённые",
+      "harmonious": "Гармоничные",
+      "minor": "Минорные"
+    }
   },
   "profile": {
     "title": "Профиль",

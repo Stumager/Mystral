@@ -21,6 +21,14 @@ interface AspectData {
   planet1: string; planet2: string; planet1_ru: string; planet2_ru: string;
   planet1_en: string; planet2_en: string; planet1_local: string; planet2_local: string;
   type: string; name_ru: string; name_en: string; name_local: string; symbol: string; orb: number; harmony: boolean;
+  category: "tense" | "harmonious" | "minor" | "neutral"; is_major: boolean;
+}
+interface HouseSystem { code: string; name: string; }
+interface ChartOptions {
+  house_systems: HouseSystem[];
+  default_house_system: string;
+  points: string[];
+  default_points: string[];
 }
 interface Stellium {
   type: string; name_ru: string; name_en: string; name_local: string;
@@ -29,9 +37,11 @@ interface Stellium {
 interface ChartResult {
   planets: PlanetData[]; extra_points: PlanetData[]; houses: HouseData[];
   aspects: AspectData[];
-  ascendant: { sign: string; sign_ru: string; sign_local: string; degree: number };
-  midheaven: { sign: string; sign_ru: string; sign_local: string; degree: number };
-  part_of_fortune: { sign: string; sign_ru: string; sign_local: string; degree: number; house: number | null };
+  ascendant: { sign: string; sign_ru: string; sign_local: string; degree: number; abs_pos: number };
+  midheaven: { sign: string; sign_ru: string; sign_local: string; degree: number; abs_pos: number };
+  part_of_fortune: PlanetData | null;
+  house_system: HouseSystem;
+  points_included: string[];
   stelliums: Stellium[];
   element_balance: { fire: number; earth: number; air: number; water: number };
   modality_balance: { cardinal: number; fixed: number; mutable: number };
@@ -41,6 +51,16 @@ interface ChartResult {
 
 const SECTIONS = ["personality", "planets", "houses", "aspects", "transits"] as const;
 type Section = typeof SECTIONS[number];
+
+// Mirrors the wheel's line colours so the table and the drawing read as one
+// thing — the reference convention verified in TZ-103 step 0: red tense,
+// blue harmonious, green minor, gold neutral (conjunction).
+const ASPECT_CATEGORY_COLOR: Record<string, string> = {
+  tense: "#CE4A4A",
+  harmonious: "#5A8CD2",
+  minor: "#609E74",
+  neutral: "#C9A84C",
+};
 
 function computeWheelSize() {
   if (typeof window === "undefined") return 480;
@@ -57,6 +77,13 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [form, setForm] = useState({ name: "", day: "", month: "", year: "", hour: "", minute: "", city: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  // TZ-103. The backend owns both lists (GET /natal/options) so the form can't
+  // offer a house system kerykeion would reject; these are only the fallback
+  // for the moment before that request lands.
+  const [options, setOptions] = useState<ChartOptions | null>(null);
+  const [houseSystem, setHouseSystem] = useState("P");
+  const [points, setPoints] = useState<string[]>(["nodes", "lilith", "chiron", "part_of_fortune"]);
+  const [showOptions, setShowOptions] = useState(false);
   const [chart, setChart] = useState<ChartResult | null>(null);
   const [activeSection, setActiveSection] = useState<Section>("personality");
   const [interpretations, setInterpretations] = useState<Partial<Record<Section, string>>>({});
@@ -65,6 +92,7 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   const interpretRequestId = useRef(0);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [showAllAspects, setShowAllAspects] = useState(false);
   const [wheelSize, setWheelSize] = useState(() => computeWheelSize());
   const nameRef = useRef<HTMLInputElement>(null);
   const dayRef = useRef<HTMLInputElement>(null);
@@ -77,6 +105,22 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  const optionsLoaded = useRef(false);
+  useEffect(() => {
+    if (optionsLoaded.current || !token) return;
+    optionsLoaded.current = true;
+    fetch("/api/v1/natal/options", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then((o: ChartOptions) => {
+        setOptions(o);
+        setHouseSystem(o.default_house_system);
+        setPoints(o.default_points);
+      })
+      // The defaults above already match the server's, so a failed options
+      // fetch costs the user the extra asteroids, not the chart itself.
+      .catch(() => {});
+  }, [token]);
 
   const profileLoaded = useRef(false);
   useEffect(() => {
@@ -111,7 +155,12 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
     hour: form.hour !== "" ? parseInt(form.hour) : null,
     minute: form.minute !== "" ? parseInt(form.minute) : null,
     city: form.city, lang,
+    house_system: houseSystem, points,
   });
+
+  function togglePoint(id: string) {
+    setPoints(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  }
 
   async function handleCalculate() {
     const errs: Record<string, string> = {};
@@ -223,12 +272,21 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
   // NatalWheel matches aspects.planet1/planet2 (raw keys like "sun") against
   // planets[].name internally, so this must stay in the English key-space
   // rather than the localized display name.
-  const wheelPlanets = useMemo(() => (chart?.planets ?? []).map(p => ({
-    name: p.name_en,
-    sign: p.sign,
-    degree: p.abs_pos,
-    retrograde: p.retrograde,
-  })), [chart]);
+  // TZ-103: the extra points now go on the wheel too — enabling Lilith and
+  // then not seeing her anywhere on the drawing was the obvious gap. Aspect
+  // matching is by the raw key, so `name` stays the key here and the wheel's
+  // own glyph/colour tables key off the same string.
+  const wheelPlanets = useMemo(() => {
+    const bodies = [...(chart?.planets ?? []), ...(chart?.extra_points ?? [])];
+    if (chart?.part_of_fortune) bodies.push(chart.part_of_fortune);
+    return bodies.map(p => ({
+      name: p.name,
+      label: p.name_local,
+      sign: p.sign_local,
+      degree: p.abs_pos,
+      retrograde: p.retrograde,
+    }));
+  }, [chart]);
   const wheelHouses = useMemo(() => (chart?.houses ?? []).map(h => ({
     number: h.number, degree: h.abs_pos,
   })), [chart]);
@@ -271,6 +329,65 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               {formErrors.city && <p className="text-red-400 text-xs mt-1">{formErrors.city}</p>}
             </div>
             <p className="text-text-faint text-[10px] text-center">{t("natal.time_hint")}</p>
+
+            {/* Chart options — collapsed by default so the everyday path stays
+                five fields and a button, and only someone who cares about
+                Koch vs Placidus has to look at it. */}
+            <button
+              type="button"
+              onClick={() => setShowOptions(v => !v)}
+              className="flex items-center justify-between text-xs self-stretch"
+              style={{ padding: "9px 12px", borderRadius: 12, cursor: "pointer",
+                       background: "rgba(255,255,255,.03)", border: "1px solid rgba(201,168,76,.14)", color: "#A89E8B" }}
+            >
+              <span>{t("natal.chart_options")}</span>
+              <span style={{ color: "#C9A84C" }}>{showOptions ? "−" : "+"}</span>
+            </button>
+            {showOptions && (
+              <div className="flex flex-col gap-3" style={{ padding: "12px 14px", borderRadius: 14, background: "rgba(255,255,255,.02)", border: "1px solid rgba(201,168,76,.1)" }}>
+                <div>
+                  <p className="text-text-faint text-[10px] mb-1.5">{t("natal.house_system")}</p>
+                  <select
+                    value={houseSystem}
+                    onChange={e => setHouseSystem(e.target.value)}
+                    className={inputCls}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {(options?.house_systems ?? [{ code: "P", name: "Placidus" }]).map(hs => (
+                      <option key={hs.code} value={hs.code} style={{ background: "#141024" }}>
+                        {t(`natal.house_systems.${hs.code}`, hs.name)}
+                        {hs.code === (options?.default_house_system ?? "P") ? ` — ${t("natal.default_label")}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-text-faint text-[10px] mb-1.5">{t("natal.extra_points")}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(options?.points ?? points).map(id => {
+                      const on = points.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => togglePoint(id)}
+                          className="text-[11px]"
+                          style={{
+                            padding: "6px 11px", borderRadius: 99, cursor: "pointer",
+                            background: on ? "rgba(201,168,76,.14)" : "rgba(255,255,255,.03)",
+                            border: `1px solid ${on ? "rgba(201,168,76,.36)" : "rgba(255,255,255,.08)"}`,
+                            color: on ? "#E8CD7E" : "#8A8170",
+                          }}
+                        >
+                          {t(`natal.points.${id}`, id)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <label className="flex items-center gap-2 cursor-pointer self-start">
               <input type="checkbox" checked={saveToProfile} onChange={e => setSaveToProfile(e.target.checked)} className="w-3.5 h-3.5 accent-violet-600" />
               <span className="text-text-muted text-xs">{t("natal.save_to_profile")}</span>
@@ -306,7 +423,8 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               padding: "20px 0", background: "radial-gradient(circle at 50% 50%, rgba(75,60,134,.15), transparent 70%)",
               borderRadius: 24,
             }}>
-              <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects} size={wheelSize} />
+              <NatalWheel planets={wheelPlanets} houses={wheelHouses} aspects={wheelAspects}
+                ascendant={chart.ascendant.abs_pos} midheaven={chart.midheaven.abs_pos} size={wheelSize} />
             </div>
 
             {/* Stelliums */}
@@ -371,27 +489,23 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             {(chart.extra_points.length > 0 || chart.part_of_fortune) && (
               <Card>
                 <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                  {lang === "ru" ? "Дополнительные точки" : "Additional Points"}
+                  {t("natal.extra_points")}
                 </p>
                 <div className="flex flex-col gap-1.5">
-                  {chart.extra_points.map(p => (
+                  {/* Part of Fortune now comes back in the same shape as every
+                      other point, so it no longer needs its own hand-built row. */}
+                  {[...chart.extra_points, ...(chart.part_of_fortune ? [chart.part_of_fortune] : [])].map(p => (
                     <div key={p.name} className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">{p.symbol} {p.name_local}</span>
+                      <span className="text-text-muted">
+                        {p.symbol} {p.name_local}
+                        {p.retrograde && <span className="text-red-400 ml-1">R</span>}
+                      </span>
                       <span className="text-text-primary">
                         {p.sign_local} {p.degree}°
-                        {p.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {p.house})</span>}
+                        {p.house && <span className="text-text-faint ml-1">(H{p.house})</span>}
                       </span>
                     </div>
                   ))}
-                  {chart.part_of_fortune && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-muted">⊕ {lang === "ru" ? "Часть Фортуны" : "Part of Fortune"}</span>
-                      <span className="text-text-primary">
-                        {chart.part_of_fortune.sign_local} {chart.part_of_fortune.degree}°
-                        {chart.part_of_fortune.house && <span className="text-text-faint ml-1">({lang === "ru" ? "дом" : "H"} {chart.part_of_fortune.house})</span>}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </Card>
             )}
@@ -400,6 +514,9 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
             <Card>
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
                 {lang === "ru" ? "Куспиды домов" : "House Cusps"}
+                <span className="ml-2 normal-case tracking-normal" style={{ color: "#8A8170" }}>
+                  {t(`natal.house_systems.${chart.house_system.code}`, chart.house_system.name)}
+                </span>
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {chart.houses.map(h => (
@@ -437,28 +554,38 @@ export function NatalChart({ onNavigate }: NatalChartProps) {
               <Card>
                 <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>{t("natal.aspects_label")}</p>
                 <div className="flex flex-col">
-                  {chart.aspects.slice(0, 7).map((a, i) => {
-                    const aspectColor = (a.type === "Sextile" || a.type === "Trine") ? "#6E9A8A"
-                      : (a.type === "Square" || a.type === "Opposition") ? "#D98A8A"
-                      : a.type === "Conjunction" ? "#C9A84C"
-                      : a.harmony ? "#6E9A8A" : "#D98A8A";
-                    return (
-                      <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
-                        <span className="text-text-muted">{a.planet1_local} {a.symbol} {a.planet2_local}</span>
-                        <span style={{ color: aspectColor }}>
-                          {a.name_local} <span className="text-text-faint">{a.orb}°</span>
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {chart.aspects.slice(0, showAllAspects ? chart.aspects.length : 8).map((a, i) => (
+                    <div key={i} className="text-xs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+                      <span className="text-text-muted">{a.planet1_local} {a.symbol} {a.planet2_local}</span>
+                      <span style={{ color: ASPECT_CATEGORY_COLOR[a.category] ?? "#C9A84C" }}>
+                        {a.name_local} <span className="text-text-faint">{a.orb}°</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {chart.aspects.length > 8 && (
+                  <button onClick={() => setShowAllAspects(v => !v)} className="text-[11px] mt-2 w-full text-center"
+                    style={{ color: "#C9A84C", background: "none", border: "none", cursor: "pointer" }}>
+                    {showAllAspects ? t("natal.show_less") : t("natal.show_all_aspects", { count: chart.aspects.length })}
+                  </button>
+                )}
+                <div className="flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}>
+                  {(["tense", "harmonious", "minor"] as const).map(cat => (
+                    <span key={cat} className="flex items-center gap-1.5 text-[10px]" style={{ color: "#8A8170" }}>
+                      <span style={{ width: 14, height: 2, borderRadius: 2, background: ASPECT_CATEGORY_COLOR[cat] }} />
+                      {t(`natal.aspect_category.${cat}`)}
+                    </span>
+                  ))}
                 </div>
               </Card>
             )}
 
-            {/* AI Interpretation */}
+            {/* Chart interpretation. The heading was hardcoded "AI
+                Интерпретация"/"AI Interpretation" in two languages; natal.interpretation
+                already exists, is AI-free per the TZ-095 glossary, and covers all six. */}
             <Card>
               <p className="font-cinzel uppercase mb-3" style={{ fontSize: 10, letterSpacing: ".22em", color: "#C9A84C" }}>
-                {lang === "ru" ? "AI Интерпретация" : "AI Interpretation"}
+                {t("natal.interpretation")}
               </p>
               <div className="flex gap-1 overflow-x-auto pb-2 mb-3">
                 {SECTIONS.map(s => (

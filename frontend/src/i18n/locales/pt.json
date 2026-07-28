@@ -260,7 +260,35 @@
     "reading": "Lendo o mapa...",
     "get_interpretation": "Obter interpretação",
     "connection_error": "Erro de conexão. Tente novamente.",
-    "aspects_label": "Aspectos"
+    "aspects_label": "Aspectos",
+    "chart_options": "Opções do mapa",
+    "house_system": "Sistema de casas",
+    "extra_points": "Pontos adicionais",
+    "default_label": "padrão",
+    "show_all_aspects": "Ver todos os aspectos ({{count}})",
+    "show_less": "Ver menos",
+    "house_systems": {
+      "P": "Plácidus",
+      "K": "Koch",
+      "A": "Casas iguais",
+      "C": "Campanus",
+      "R": "Regiomontano"
+    },
+    "points": {
+      "nodes": "Nodos lunares",
+      "lilith": "Lilith",
+      "chiron": "Quíron",
+      "part_of_fortune": "Parte da Fortuna",
+      "ceres": "Ceres",
+      "pallas": "Palas",
+      "juno": "Juno",
+      "vesta": "Vesta"
+    },
+    "aspect_category": {
+      "tense": "Tensos",
+      "harmonious": "Harmônicos",
+      "minor": "Menores"
+    }
   },
   "profile": {
     "title": "Perfil",

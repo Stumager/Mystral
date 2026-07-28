@@ -260,7 +260,35 @@
     "reading": "Reading chart...",
     "get_interpretation": "Get interpretation",
     "connection_error": "Connection error. Try again.",
-    "aspects_label": "Aspects"
+    "aspects_label": "Aspects",
+    "chart_options": "Chart options",
+    "house_system": "House system",
+    "extra_points": "Additional points",
+    "default_label": "default",
+    "show_all_aspects": "Show all aspects ({{count}})",
+    "show_less": "Show less",
+    "house_systems": {
+      "P": "Placidus",
+      "K": "Koch",
+      "A": "Equal",
+      "C": "Campanus",
+      "R": "Regiomontanus"
+    },
+    "points": {
+      "nodes": "Lunar nodes",
+      "lilith": "Lilith",
+      "chiron": "Chiron",
+      "part_of_fortune": "Part of Fortune",
+      "ceres": "Ceres",
+      "pallas": "Pallas",
+      "juno": "Juno",
+      "vesta": "Vesta"
+    },
+    "aspect_category": {
+      "tense": "Tense",
+      "harmonious": "Harmonious",
+      "minor": "Minor"
+    }
   },
   "profile": {
     "title": "Profile",

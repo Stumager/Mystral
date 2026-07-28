@@ -107,9 +107,13 @@ def _tarot_registry() -> dict[str, list[TranslationItem]]:
 
 def _natal_registry() -> dict[str, list[TranslationItem]]:
     """Planet names and zodiac sign names in natal.py. Aspect names
-    (ASPECT_TYPES) already have ru/en from TZ-076/079 and aren't part of
-    this section; the 5 long interpretation prompt templates are handled
-    separately (TZ-080 Module 5)."""
+    (ASPECT_TYPES/MINOR_ASPECT_TYPES) carry their own ES/PT/TR/UK values
+    inline in ASPECT_NAMES_I18N and aren't part of this section; the 5 long
+    interpretation prompt templates are handled separately (TZ-080 Module 5).
+
+    TZ-103 added lilith/ceres/pallas/juno/vesta/part_of_fortune to
+    PLANET_NAMES_*, so re-running this section picks them up automatically —
+    until then _planet_name() falls back to English for those six."""
     from app.api.v1.natal import PLANET_NAMES_EN, PLANET_NAMES_RU, SIGN_ORDER, SIGNS_RU
     return {
         "PLANET_NAMES_I18N": [

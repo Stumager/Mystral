@@ -166,7 +166,8 @@ class TestNatalRegistry:
     def test_registry_has_planets_and_signs(self):
         items_by_dict = SECTION_REGISTRY["natal"]()
         assert set(items_by_dict) == {"PLANET_NAMES_I18N", "SIGNS_I18N"}
-        assert len(items_by_dict["PLANET_NAMES_I18N"]) == 13
+        # 13 before TZ-103; +6 for lilith/ceres/pallas/juno/vesta/part_of_fortune.
+        assert len(items_by_dict["PLANET_NAMES_I18N"]) == 19
         assert len(items_by_dict["SIGNS_I18N"]) == 12
 
     def test_every_item_has_nonempty_ru_and_en_values(self):

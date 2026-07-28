@@ -260,7 +260,35 @@
     "reading": "Leyendo la carta...",
     "get_interpretation": "Obtener interpretación",
     "connection_error": "Error de conexión. Inténtalo de nuevo.",
-    "aspects_label": "Aspectos"
+    "aspects_label": "Aspectos",
+    "chart_options": "Ajustes de la carta",
+    "house_system": "Sistema de casas",
+    "extra_points": "Puntos adicionales",
+    "default_label": "por defecto",
+    "show_all_aspects": "Ver todos los aspectos ({{count}})",
+    "show_less": "Ver menos",
+    "house_systems": {
+      "P": "Plácidus",
+      "K": "Koch",
+      "A": "Casas iguales",
+      "C": "Campanus",
+      "R": "Regiomontano"
+    },
+    "points": {
+      "nodes": "Nodos lunares",
+      "lilith": "Lilith",
+      "chiron": "Quirón",
+      "part_of_fortune": "Parte de la Fortuna",
+      "ceres": "Ceres",
+      "pallas": "Palas",
+      "juno": "Juno",
+      "vesta": "Vesta"
+    },
+    "aspect_category": {
+      "tense": "Tensos",
+      "harmonious": "Armónicos",
+      "minor": "Menores"
+    }
   },
   "profile": {
     "title": "Perfil",

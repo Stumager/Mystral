@@ -260,7 +260,35 @@
     "reading": "Читаю карту...",
     "get_interpretation": "Отримати інтерпретацію",
     "connection_error": "Помилка з'єднання. Спробуйте ще раз.",
-    "aspects_label": "Аспекти"
+    "aspects_label": "Аспекти",
+    "chart_options": "Налаштування карти",
+    "house_system": "Система домів",
+    "extra_points": "Додаткові точки",
+    "default_label": "за замовчуванням",
+    "show_all_aspects": "Показати всі аспекти ({{count}})",
+    "show_less": "Згорнути",
+    "house_systems": {
+      "P": "Плацидус",
+      "K": "Кох",
+      "A": "Рівнодомна",
+      "C": "Кампанус",
+      "R": "Регіомонтан"
+    },
+    "points": {
+      "nodes": "Місячні вузли",
+      "lilith": "Ліліт",
+      "chiron": "Хірон",
+      "part_of_fortune": "Частина Фортуни",
+      "ceres": "Церера",
+      "pallas": "Паллада",
+      "juno": "Юнона",
+      "vesta": "Веста"
+    },
+    "aspect_category": {
+      "tense": "Напружені",
+      "harmonious": "Гармонійні",
+      "minor": "Мінорні"
+    }
   },
   "profile": {
     "title": "Профіль",

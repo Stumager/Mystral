@@ -23,8 +23,10 @@ class TestAspectNameResolver:
         assert _aspect_name("sextile", "Секстиль", "Sextile", "de") == "Sextile"
 
     def test_every_aspect_has_all_languages(self):
-        from app.api.v1.natal import ASPECT_TYPES, ASPECT_NAMES_I18N
-        atypes = {a[2] for a in ASPECT_TYPES}
+        # TZ-103 widened this from the 5 majors to the full 11-aspect grid;
+        # the invariant is the same, the table it's checked against is bigger.
+        from app.api.v1.natal import ALL_ASPECT_TYPES, ASPECT_NAMES_I18N
+        atypes = {a[2] for a in ALL_ASPECT_TYPES}
         for lang, table in ASPECT_NAMES_I18N.items():
             assert set(table) == atypes, f"{lang} missing/extra aspect keys"
 

@@ -260,7 +260,35 @@
     "reading": "Harita okunuyor...",
     "get_interpretation": "Yorum al",
     "connection_error": "Bağlantı hatası. Tekrar dene.",
-    "aspects_label": "Açılar"
+    "aspects_label": "Açılar",
+    "chart_options": "Harita ayarları",
+    "house_system": "Ev sistemi",
+    "extra_points": "Ek noktalar",
+    "default_label": "varsayılan",
+    "show_all_aspects": "Tüm açıları göster ({{count}})",
+    "show_less": "Daha az göster",
+    "house_systems": {
+      "P": "Placidus",
+      "K": "Koch",
+      "A": "Eşit evler",
+      "C": "Campanus",
+      "R": "Regiomontanus"
+    },
+    "points": {
+      "nodes": "Ay düğümleri",
+      "lilith": "Lilith",
+      "chiron": "Chiron",
+      "part_of_fortune": "Şans Noktası",
+      "ceres": "Ceres",
+      "pallas": "Pallas",
+      "juno": "Juno",
+      "vesta": "Vesta"
+    },
+    "aspect_category": {
+      "tense": "Gergin",
+      "harmonious": "Uyumlu",
+      "minor": "Minör"
+    }
   },
   "profile": {
     "title": "Profil",

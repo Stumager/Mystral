@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 
 export type WheelPlanet = {
+  /** Raw backend key ("sun", "true_node"). Doubles as the join key against
+   *  aspects[].planet1/planet2 and as the lookup for the glyph and colour
+   *  tables below, so it must not be a display name. */
   name: string;
+  /** What the tooltip shows — already localized by the caller. */
+  label?: string;
   sign: string;
   degree: number; // absolute degree 0-360
   retrograde: boolean;
@@ -23,6 +28,11 @@ export type NatalWheelProps = {
   planets: WheelPlanet[];
   houses: WheelHouse[];
   aspects: WheelAspect[];
+  /** Absolute degree of the Ascendant. The whole wheel is rotated so this
+   *  lands on the left horizon — see the rotation note below. */
+  ascendant?: number;
+  /** Absolute degree of the Midheaven, for the MC/IC axis labels. */
+  midheaven?: number;
   size?: number;
 };
 
@@ -35,32 +45,64 @@ const SIGN_ELEMENT_COLOR = [
   "rgba(196,84,84,.15)", "rgba(110,154,138,.15)", "rgba(138,127,192,.15)", "rgba(75,120,192,.15)",
 ];
 
+// Chiron was the only body drawn as letters ("Ch") instead of its glyph.
+// These are the standard astronomical/astrological code points, matching what
+// the reference charts use (TZ-103 step 0).
 const PLANET_SYMBOLS: Record<string, string> = {
   sun: "☉", moon: "☽", mercury: "☿", venus: "♀", mars: "♂",
   jupiter: "♃", saturn: "♄", uranus: "♅", neptune: "♆", pluto: "♇",
-  chiron: "Ch", true_node: "☊", north_node: "☊", south_node: "☋",
+  chiron: "⚷", lilith: "⚸", true_node: "☊", north_node: "☊", south_node: "☋",
+  ceres: "⚳", pallas: "⚴", juno: "⚵", vesta: "⚶", part_of_fortune: "⊗",
 };
 
 const PLANET_COLORS: Record<string, string> = {
   sun: "#E8CD7E", moon: "#C0C8D0", mercury: "#A99BE0", venus: "#D98A8A",
   mars: "#C95050", jupiter: "#C9A84C", saturn: "#8A8170", uranus: "#6E9A8A",
   neptune: "#4B7CB5", pluto: "#8A6E2E",
+  // Points and asteroids read as a quieter second tier so they don't compete
+  // with the ten planets.
+  true_node: "#9C93C4", north_node: "#9C93C4", south_node: "#9C93C4",
+  chiron: "#8FA8A0", lilith: "#7E6FA8",
+  ceres: "#8A9A78", pallas: "#8A9A78", juno: "#8A9A78", vesta: "#8A9A78",
+  part_of_fortune: "#B39A5C",
 };
 
-const ASPECT_STYLE: Record<string, { color: string; width: number }> = {
+// TZ-103 step 0 — the reference software's convention, not ours: red for the
+// tense group, blue for the harmonious one, green for the minors. Conjunction
+// stays neutral gold; it takes the character of whatever it joins.
+const ASPECT_STYLE: Record<string, { color: string; width: number; dash?: string }> = {
   conjunction: { color: "rgba(201,168,76,.5)", width: 1.2 },
-  trine: { color: "rgba(110,154,138,.5)", width: 1 },
-  sextile: { color: "rgba(138,127,192,.4)", width: 0.8 },
-  square: { color: "rgba(196,84,84,.45)", width: 1 },
-  opposition: { color: "rgba(196,84,84,.35)", width: 0.8 },
+  trine: { color: "rgba(90,140,210,.55)", width: 1 },
+  sextile: { color: "rgba(90,140,210,.4)", width: 0.8 },
+  square: { color: "rgba(206,74,74,.5)", width: 1 },
+  opposition: { color: "rgba(206,74,74,.4)", width: 0.9 },
+  semisextile: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
+  semisquare: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
+  quintile: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
+  sesquiquadrate: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
+  biquintile: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
+  quincunx: { color: "rgba(96,158,116,.45)", width: 0.6, dash: "3 3" },
 };
+
+const MINOR_ASPECT_TYPES = new Set([
+  "semisextile", "semisquare", "quintile", "sesquiquadrate", "biquintile", "quincunx",
+]);
 
 // Planets closer than this (ecliptic degrees) get radially separated so their
 // glyphs don't merge into an unreadable blob.
 const COLLISION_THRESHOLD_DEG = 4;
 const RADIAL_STEP_PX = 15;
 
-// Astrological 0° (Aries) sits at 9 o'clock, increasing counterclockwise.
+// Screen placement for an already-rotated degree: 0 sits at 9 o'clock and the
+// value increases counterclockwise, which is the western tropical direction.
+//
+// TZ-103 step 0: the direction was right but the *anchor* was wrong. This used
+// to be fed raw ecliptic degrees, which pinned 0° Aries to the left horizon —
+// so the chart came out rotated by an arbitrary amount versus every reference
+// drawing, where the left horizon is the Ascendant. Callers now pass
+// `degree - ascendant`, which is exactly the offset the reference
+// implementation applies (it rotates by the Descendant, putting the AC 180°
+// away, i.e. on the left).
 function degToXY(degree: number, radius: number, cx: number, cy: number) {
   const rad = ((180 - degree) * Math.PI) / 180;
   return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
@@ -132,7 +174,7 @@ function resolveCollisions(planets: WheelPlanet[], baseRadius: number) {
   });
 }
 
-export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelProps) {
+export function NatalWheel({ planets, houses, aspects, ascendant = 0, midheaven, size = 520 }: NatalWheelProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   const cx = size / 2;
@@ -144,6 +186,9 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
   const R_inner = R * 0.38;
   const R_planet = R * 0.6;
   const R_center = R_inner * 0.15;
+
+  // Every ecliptic degree goes through here before it becomes a coordinate.
+  const rot = (degree: number) => degree - ascendant;
 
   const sortedHouses = useMemo(() => [...houses].sort((a, b) => a.number - b.number), [houses]);
 
@@ -158,16 +203,33 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
     return map;
   }, [planets]);
 
+  // The drawn web is deliberately tighter than the aspect table. With the
+  // optional points switched on there are 19 bodies, and at the table's 8°
+  // major orb that's ~47 lines inside a circle ~190px across — a grey blob.
+  // 3° keeps the aspects that actually carry weight; the rest stay listed
+  // below the wheel. Minors are exempt: their orb is 1° at most already.
   const visibleAspects = useMemo(
     () => aspects.filter(a =>
-      a.orb < 5 && planetByName.has(a.planet1.toLowerCase()) && planetByName.has(a.planet2.toLowerCase())),
+      (MINOR_ASPECT_TYPES.has(a.type) || a.orb < 3)
+      && planetByName.has(a.planet1.toLowerCase()) && planetByName.has(a.planet2.toLowerCase())),
     [aspects, planetByName],
   );
 
   const degreeTicks = useMemo(() => Array.from({ length: 36 }, (_, i) => i * 10), []);
 
+  // AC/DC come straight from the rotation, MC/IC from the actual Midheaven —
+  // not from house cusps 10/4, which only coincide with it in the quadrant
+  // systems. In Equal houses cusp 10 is just the Ascendant + 270°.
+  const axes = useMemo(() => {
+    const list = [{ label: "AC", deg: 0 }, { label: "DC", deg: 180 }];
+    if (midheaven !== undefined) {
+      list.push({ label: "MC", deg: rot(midheaven) }, { label: "IC", deg: rot(midheaven) + 180 });
+    }
+    return list;
+  }, [midheaven, ascendant]);
+
   const hoveredPlanet = hovered !== null ? positionedPlanets[hovered] : null;
-  const hoveredPos = hoveredPlanet ? degToXY(hoveredPlanet.degree, hoveredPlanet.radius, cx, cy) : null;
+  const hoveredPos = hoveredPlanet ? degToXY(rot(hoveredPlanet.degree), hoveredPlanet.radius, cx, cy) : null;
   const hoveredHouse = hoveredPlanet ? findHouseForDegree(hoveredPlanet.degree, houses) : null;
 
   return (
@@ -176,7 +238,7 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
         {/* Layer 1 — zodiac belt */}
         <g>
           {ZODIAC_SYMBOLS.map((symbol, i) => {
-            const start = i * 30;
+            const start = rot(i * 30);
             const end = start + 30;
             const labelPos = degToXY(start + 15, (R_outer + R_sign) / 2, cx, cy);
             return (
@@ -195,11 +257,11 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
         <g>
           {sortedHouses.map((h, i) => {
             const isAngle = h.number === 1 || h.number === 4 || h.number === 7 || h.number === 10;
-            const outer = degToXY(h.degree, R_house, cx, cy);
-            const inner = degToXY(h.degree, R_inner, cx, cy);
+            const outer = degToXY(rot(h.degree), R_house, cx, cy);
+            const inner = degToXY(rot(h.degree), R_inner, cx, cy);
             const next = sortedHouses[(i + 1) % sortedHouses.length];
             const mid = houseMidAngle(h.degree, next.degree);
-            const labelPos = degToXY(mid, (R_house + R_inner) / 2, cx, cy);
+            const labelPos = degToXY(rot(mid), (R_house + R_inner) / 2, cx, cy);
             return (
               <g key={`house-${h.number}`}>
                 <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
@@ -217,12 +279,12 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
           {visibleAspects.map((a, i) => {
             const p1 = planetByName.get(a.planet1.toLowerCase())!;
             const p2 = planetByName.get(a.planet2.toLowerCase())!;
-            const pos1 = degToXY(p1.degree, R_inner * 0.95, cx, cy);
-            const pos2 = degToXY(p2.degree, R_inner * 0.95, cx, cy);
+            const pos1 = degToXY(rot(p1.degree), R_inner * 0.95, cx, cy);
+            const pos2 = degToXY(rot(p2.degree), R_inner * 0.95, cx, cy);
             const style = ASPECT_STYLE[a.type] ?? ASPECT_STYLE.conjunction;
             return (
               <line key={`aspect-${i}`} x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
-                stroke={style.color} strokeWidth={style.width} />
+                stroke={style.color} strokeWidth={style.width} strokeDasharray={style.dash} />
             );
           })}
         </g>
@@ -230,9 +292,9 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
         {/* Layer 4 — planets */}
         <g>
           {positionedPlanets.map((p, i) => {
-            const pos = degToXY(p.degree, p.radius, cx, cy);
-            const houseEdge = degToXY(p.degree, R_house, cx, cy);
-            const outerEdge = degToXY(p.degree, R_outer, cx, cy);
+            const pos = degToXY(rot(p.degree), p.radius, cx, cy);
+            const houseEdge = degToXY(rot(p.degree), R_house, cx, cy);
+            const outerEdge = degToXY(rot(p.degree), R_outer, cx, cy);
             const key = p.name.toLowerCase();
             const color = PLANET_COLORS[key] ?? "#C9A84C";
             const symbol = PLANET_SYMBOLS[key] ?? p.name.slice(0, 2);
@@ -260,9 +322,9 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
         {/* Layer 5 — degree ticks */}
         <g>
           {degreeTicks.map(deg => {
-            const outer = degToXY(deg, R_outer, cx, cy);
-            const tickInner = degToXY(deg, R_outer - size * 0.015, cx, cy);
-            const labelPos = degToXY(deg, R_outer - size * 0.045, cx, cy);
+            const outer = degToXY(rot(deg), R_outer, cx, cy);
+            const tickInner = degToXY(rot(deg), R_outer - size * 0.015, cx, cy);
+            const labelPos = degToXY(rot(deg), R_outer - size * 0.045, cx, cy);
             return (
               <g key={`tick-${deg}`}>
                 <line x1={tickInner.x} y1={tickInner.y} x2={outer.x} y2={outer.y}
@@ -274,7 +336,31 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
           })}
         </g>
 
-        {/* Layer 6 — center circle */}
+        {/* Layer 6 — AC / DC / MC / IC axis labels */}
+        <g>
+          {/* Labelled inside the empty ring between the house ring and the
+              zodiac belt. Outside the rim would match the reference drawings
+              more closely, but the wheel is sized to the viewport width on
+              mobile, so anything past R_outer gets clipped at the screen edge. */}
+          {axes.map(({ label, deg }) => {
+            const inner = degToXY(deg, R_house, cx, cy);
+            const outer = degToXY(deg, R_sign, cx, cy);
+            const labelPos = degToXY(deg, (R_house + R_sign) / 2, cx, cy);
+            const primary = label === "AC" || label === "MC";
+            return (
+              <g key={`axis-${label}`}>
+                <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y}
+                  stroke="rgba(201,168,76,.55)" strokeWidth={primary ? 1.4 : 0.8} />
+                <circle cx={labelPos.x} cy={labelPos.y} r={size * 0.026} fill="rgba(7,6,15,.92)" />
+                <text x={labelPos.x} y={labelPos.y} fontSize={size * 0.024}
+                  fill={primary ? "#E8CD7E" : "rgba(201,168,76,.65)"}
+                  fontFamily="Inter" textAnchor="middle" dominantBaseline="central">{label}</text>
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Layer 7 — center circle */}
         <circle cx={cx} cy={cy} r={R_center} fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.2)" />
       </svg>
 
@@ -285,8 +371,10 @@ export function NatalWheel({ planets, houses, aspects, size = 520 }: NatalWheelP
           borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#F0E9DA",
           whiteSpace: "nowrap", pointerEvents: "none", zIndex: 10,
         }}>
-          {hoveredPlanet.name} в {hoveredPlanet.sign} {Math.round((hoveredPlanet.degree % 30) * 10) / 10}°
-          {" · "}{hoveredHouse ?? "?"} дом{hoveredPlanet.retrograde ? " (℞)" : ""}
+          {/* Symbolic rather than worded: this component is shared by all six
+              languages and used to hardcode Russian "в"/"дом" in every one. */}
+          {hoveredPlanet.label ?? hoveredPlanet.name} · {hoveredPlanet.sign} {Math.round((hoveredPlanet.degree % 30) * 10) / 10}°
+          {" · H"}{hoveredHouse ?? "?"}{hoveredPlanet.retrograde ? " ℞" : ""}
         </div>
       )}
     </div>
