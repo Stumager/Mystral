@@ -69,6 +69,87 @@ class HoroscopeRequest(BaseModel):
     date: str = ""
 
 
+# TZ-104: the ONE prompt for "today's horoscope for this sign+lang" — used by
+# the interactive endpoint below AND by the scheduler's daily Telegram digest
+# (get_cached_or_generate_horoscope). Before this ticket, the scheduler had
+# its own separate generation (app/services/horoscope.py's generate_horoscope,
+# now removed) with its own prompt that enumerated life areas in a fixed,
+# never-randomized order ("работа/отношения/финансы/здоровье" — "work" always
+# listed first) — which is why the daily push converged on "work" as the
+# featured life area on almost every date for almost every sign, and diverged
+# from what the app itself showed for the same sign+lang+day. This prompt has
+# no such enumeration (it asks for "energy of the day" broadly, not a pick
+# from a fixed menu), so unifying the two call sites onto it removes the
+# anchoring mechanism rather than trying to re-balance the old one.
+def build_daily_prompt(sign: str, lang: str, target_date: str) -> tuple[str, str]:
+    sname = _sign_name(sign, lang)
+    sys = system_prompt(lang) + lang_enforce(lang)
+
+    if lang == "ru":
+        prompt = (
+            f"Составь персональный гороскоп для знака {sname} на {target_date}.\n"
+            f"Структура ответа — три чётких абзаца:\n"
+            f"1. Энергетика дня — планетарные влияния, конкретные аспекты\n"
+            f"2. Практика — что делать и чего избегать, с конкретным временем если уместно\n"
+            f"3. Итог — одна ёмкая практическая рекомендация\n"
+            f"Без философии и лирики. Называй конкретные ситуации и время. "
+            f"150-250 слов, без воды. Без вступлений типа 'Дорогой {sname}'."
+        )
+    else:
+        prompt = (
+            f"Write a personal horoscope for {sname} on {target_date}.\n"
+            f"Response structure — three clear paragraphs:\n"
+            f"1. Energy of the day — planetary influences, specific aspects\n"
+            f"2. Practice — what to do and avoid, with specific timing if relevant\n"
+            f"3. Takeaway — one concise practical recommendation\n"
+            f"No philosophy, no lyricism. Name concrete situations and times. "
+            f"150-250 words, no filler. No greetings like 'Dear {sname}'."
+        )
+    prompt += lang_enforce(lang)
+    return sys, prompt
+
+
+async def get_cached_or_generate_horoscope(sign: str, lang: str) -> str:
+    """Plain (non-streaming) cache-or-generate, for the scheduler's daily
+    digest push (TZ-104) — the interactive endpoint below has its own SSE
+    variant of this same cache-then-generate logic, for progressive rendering.
+
+    Guarantees the push can never go out before today's horoscope for this
+    sign+lang exists in the cache: on a miss, this call generates and caches
+    it right here before returning, rather than assuming some app user's own
+    request will have populated it first.
+    """
+    today = date.today().isoformat()
+    cache_key = f"horoscope:{sign}:{lang}:{today}"
+    cached = await redis_client.get(cache_key)
+    if cached:
+        return cached.decode()
+
+    sys, prompt = build_daily_prompt(sign, lang, today)
+    full_text = ""
+    truncated = False
+
+    def _on_finish(reason):
+        nonlocal truncated
+        truncated = reason == "length"
+
+    msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
+    async for chunk_data in safe_groq_stream(msgs, max_tokens=GENERATION_MAX_TOKENS, lang=lang, on_finish=_on_finish):
+        if chunk_data.startswith("data: {"):
+            try:
+                parsed = json.loads(chunk_data[6:].strip())
+                if "text" in parsed:
+                    full_text += parsed["text"]
+            except Exception:
+                pass
+
+    if full_text and not truncated:
+        await redis_client.set(cache_key, full_text, ex=86400)
+    elif full_text:
+        logger.warning("Horoscope %s/%s truncated mid-generation (digest path), not caching", sign, lang)
+    return full_text
+
+
 @router.post("/horoscope/stream")
 async def horoscope_stream(
     req: HoroscopeRequest,
@@ -85,32 +166,9 @@ async def horoscope_stream(
     if req.lang not in VALID_LANGS:
         req.lang = "en"
 
-    sname = _sign_name(req.sign, req.lang)
     today = date.today().isoformat()
     cache_key = f"horoscope:{req.sign}:{req.lang}:{today}"
-    sys = system_prompt(req.lang) + lang_enforce(req.lang)
-
-    if req.lang == "ru":
-        prompt = (
-            f"Составь персональный гороскоп для знака {sname} на {req.date or today}.\n"
-            f"Структура ответа — три чётких абзаца:\n"
-            f"1. Энергетика дня — планетарные влияния, конкретные аспекты\n"
-            f"2. Практика — что делать и чего избегать, с конкретным временем если уместно\n"
-            f"3. Итог — одна ёмкая практическая рекомендация\n"
-            f"Без философии и лирики. Называй конкретные ситуации и время. "
-            f"150-250 слов, без воды. Без вступлений типа 'Дорогой {sname}'."
-        )
-    else:
-        prompt = (
-            f"Write a personal horoscope for {sname} on {req.date or today}.\n"
-            f"Response structure — three clear paragraphs:\n"
-            f"1. Energy of the day — planetary influences, specific aspects\n"
-            f"2. Practice — what to do and avoid, with specific timing if relevant\n"
-            f"3. Takeaway — one concise practical recommendation\n"
-            f"No philosophy, no lyricism. Name concrete situations and times. "
-            f"150-250 words, no filler. No greetings like 'Dear {sname}'."
-        )
-    prompt += lang_enforce(req.lang)
+    sys, prompt = build_daily_prompt(req.sign, req.lang, req.date or today)
 
     async def generate():
         cached = await redis_client.get(cache_key)

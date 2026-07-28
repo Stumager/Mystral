@@ -22,18 +22,51 @@ from app.models.user import (
     UserPartner,
     UserProfile,
 )
+from app.api.v1.horoscope import get_cached_or_generate_horoscope
 from app.api.v1.lunar import get_lunar_today_data, get_upcoming_events
-from app.services.horoscope import (
-    SIGNS_EMOJI,
-    SIGNS_RU,
-    generate_horoscope,
-    zodiac_from_date,
-)
+from app.services.horoscope import SIGNS_EMOJI, SIGNS_RU, zodiac_from_date
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 TG_API = "https://api.telegram.org/bot{token}/sendMessage"
+
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+# ~2-3 short sentences in this app's house style ("короткие абзацы по 2-4
+# предложения" per the system prompt) — enough to feel like a real teaser,
+# short enough that the CTA button ("Открыть Mystral") still has a reason to
+# exist rather than the push already containing the whole thing.
+DIGEST_MAX_CHARS = 240
+
+
+def _build_digest(full_text: str, max_chars: int = DIGEST_MAX_CHARS) -> str:
+    """TZ-104: the push used to run its own independent generation, with a
+    prompt that always enumerated life areas in the same fixed order
+    ("работа/отношения/финансы/здоровье" — work listed first, every day,
+    every sign, both languages) and no randomization at all — which is why it
+    converged on "work" as the featured area on almost every date. Rather
+    than trying to re-balance that enumeration, the push no longer generates
+    its own text: this excerpts the first few sentences of the SAME cached
+    horoscope the app already shows for that sign+lang+day (see
+    get_cached_or_generate_horoscope in app/api/v1/horoscope.py), so the two
+    surfaces can't diverge and there's no second prompt left to be biased.
+
+    Pure string trimming — not a second AI call. Always returns at least one
+    complete sentence (never cuts one mid-word) and only appends the
+    ellipsis when something was actually left out.
+    """
+    text = re.sub(r"\s+", " ", full_text).strip()
+    if not text:
+        return text
+
+    sentences = [s for s in _SENTENCE_SPLIT_RE.split(text) if s]
+    out = sentences[0]
+    for sentence in sentences[1:]:
+        if len(out) + 1 + len(sentence) > max_chars:
+            break
+        out = f"{out} {sentence}"
+    return out if out == text else out + "…"
 
 
 def _sanitize_llm_text(text: str) -> str:
@@ -129,8 +162,19 @@ async def send_daily_horoscopes():
 
                     sign = zodiac_from_date(profile.birth_date)
                     lang = user.lang or "ru"
-                    text = await generate_horoscope(sign, lang)
-                    msg = _format_message(text, sign, lang)
+                    # TZ-104: reads (and, on a cache miss, populates) the
+                    # exact same Redis entry /horoscope/stream uses — the
+                    # push can therefore never go out before today's
+                    # horoscope for this sign+lang has actually been
+                    # generated and cached, and it can never show different
+                    # content than what the app itself displays.
+                    full_text = await get_cached_or_generate_horoscope(sign, lang)
+                    if not full_text:
+                        logger.warning("No horoscope text available for %s/%s, skipping user %s this tick",
+                                       sign, lang, provider.user_id)
+                        continue
+                    digest = _build_digest(full_text)
+                    msg = _format_message(digest, sign, lang)
 
                     ok = await _send_tg_message(http, int(provider.provider_id), msg)
                     if ok:

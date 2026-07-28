@@ -7,15 +7,24 @@ prompt's no-Markdown instruction and emits **bold** anyway, which then shows
 as literal asterisks. _sanitize_llm_text is the safety net on top of the
 prompt-level fix (see app/services/horoscope.py).
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import Mock
 
 import httpx
+import pytest
 
+import app.api.v1.horoscope as horoscope_module
+import app.scheduler as scheduler_module
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
-from app.models.user import AuthProvider, User
-from app.scheduler import _sanitize_llm_text, demote_expired_subscriptions, send_subscription_reminders
+from app.models.user import AuthProvider, User, UserProfile
+from app.scheduler import (
+    _build_digest,
+    _sanitize_llm_text,
+    demote_expired_subscriptions,
+    send_daily_horoscopes,
+    send_subscription_reminders,
+)
 from tests.conftest import make_user
 
 _REAL_POST = httpx.AsyncClient.post
@@ -31,6 +40,41 @@ def _tg_mock(calls: list):
             return resp
         return await _REAL_POST(self, url, *args, **kwargs)
     return _fake
+
+
+class _FixedDatetime(datetime):
+    """Freezes send_daily_horoscopes' now_utc at 09:02 on the REAL current
+    date (not a hardcoded one) — so eligibility (local hour==9, minute<5)
+    doesn't depend on when the suite happens to run, while still landing on
+    whatever calendar day date.today() resolves to inside
+    get_cached_or_generate_horoscope. Hardcoding an unrelated fixed date here
+    would risk exactly the kind of date-basis mismatch TZ-104 is about."""
+
+    @classmethod
+    def now(cls, tz=None):
+        today = date.today()
+        return datetime(today.year, today.month, today.day, 9, 2, tzinfo=tz)
+
+
+@pytest.fixture
+def frozen_9am(monkeypatch):
+    monkeypatch.setattr(scheduler_module, "datetime", _FixedDatetime)
+
+
+async def _make_notif_user(tg_id: str = "999000", birth_date=date(1990, 8, 1),
+                           lang: str = "ru", tz: str = "UTC") -> User:
+    """A user eligible for send_daily_horoscopes: notifications on, timezone
+    and birth_date set, Telegram auth provider. birth_date=Aug 1 -> Leo."""
+    user, _ = await make_user(email=f"{tg_id}@test.com", with_profile=False)
+    async with AsyncSessionLocal() as s:
+        u = await s.get(User, user.id)
+        u.lang = lang
+        s.add(u)
+        s.add(UserProfile(user_id=user.id, birth_date=birth_date,
+                          timezone=tz, notifications_enabled=True))
+        s.add(AuthProvider(user_id=user.id, provider="telegram", provider_id=tg_id))
+        await s.commit()
+    return user
 
 
 async def _make_pro_user_with_telegram(expires_at, tg_id: str = "123456") -> User:
@@ -140,3 +184,201 @@ class TestSendSubscriptionReminders:
         await send_subscription_reminders()
 
         assert calls == []
+
+
+async def _fake_complete_stream(messages, max_tokens=1400, lang="ru", on_finish=None):
+    yield 'data: {"text": "Первое предложение дня. "}\n\n'
+    yield 'data: {"text": "Второе предложение с советом. "}\n\n'
+    yield 'data: {"text": "Третье предложение — итог."}\n\n'
+    if on_finish:
+        on_finish("stop")
+    yield "data: [DONE]\n\n"
+
+
+async def _fake_empty_stream(messages, max_tokens=1400, lang="ru", on_finish=None):
+    # Simulates a total generation failure (e.g. a network/API error inside
+    # safe_groq_stream) — only the error/DONE frames, no "text" chunks at all.
+    if on_finish:
+        on_finish("stop")
+    yield "data: [DONE]\n\n"
+
+
+class TestBuildDigest:
+    """Pure string trimming (app/scheduler.py), not a second AI call. TZ-104:
+    replaces the push's own independent generation, whose prompt always
+    enumerated life areas in the same fixed, never-randomized order
+    ("работа" listed first every time) — see PROGRESS.md for the Step 0
+    writeup of why that produced the "always работа" pattern."""
+
+    def test_short_text_returned_unchanged(self):
+        text = "Один день — одна возможность. Действуй уверенно."
+        assert _build_digest(text) == text
+
+    def test_empty_text_returns_empty(self):
+        assert _build_digest("") == ""
+        assert _build_digest("   ") == ""
+
+    def test_long_text_is_trimmed_with_ellipsis(self):
+        text = ("Предложение номер один. Предложение номер два. "
+                "Предложение номер три. Предложение номер четыре. "
+                "Предложение номер пять.")
+        digest = _build_digest(text, max_chars=50)
+        assert digest.endswith("…")
+        assert digest != text
+        assert len(digest) < len(text)
+
+    def test_never_cuts_a_sentence_mid_word(self):
+        text = "Раз. Два. Три четыре пять шесть семь восемь девять десять одиннадцать двенадцать."
+        digest = _build_digest(text, max_chars=10)
+        body = digest.rstrip("…")
+        assert body.endswith(".")
+
+    def test_first_sentence_alone_exceeding_budget_is_still_returned_whole(self):
+        long_first = "X" * 60 + "."
+        text = f"{long_first} Короткое второе предложение."
+        digest = _build_digest(text, max_chars=20)
+        assert digest.startswith(long_first)
+        assert digest.endswith("…")
+
+    def test_single_long_sentence_with_no_punctuation_is_returned_whole(self):
+        # No sentence-ending punctuation anywhere -> nothing to safely trim
+        # at, so the whole thing comes back rather than an empty/cut result.
+        text = ("слово " * 40).strip()
+        digest = _build_digest(text, max_chars=20)
+        assert digest == text
+        assert "…" not in digest
+
+    def test_collapses_whitespace_and_newlines(self):
+        text = "Первое.\n\n\nВторое.   Третье."
+        assert _build_digest(text) == "Первое. Второе. Третье."
+
+    def test_stops_at_the_configured_budget(self):
+        text = "A" * 30 + ". " + "B" * 30 + ". " + "C" * 30 + "."
+        digest = _build_digest(text, max_chars=40)
+        assert len(digest) <= 41  # +1 for the appended ellipsis character
+
+
+class TestSendDailyHoroscopesDigest:
+    """TZ-104: the push must be a digest of the SAME cached horoscope the app
+    shows for that sign+lang+day (not an independently generated text with
+    its own, differently-biased prompt), and must never go out before that
+    cache entry exists for the day."""
+
+    async def test_cache_hit_is_used_verbatim_no_generation(self, monkeypatch, frozen_9am):
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+
+        def _explode(*a, **k):
+            raise AssertionError("safe_groq_stream must not run on a cache hit")
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _explode)
+
+        await _make_notif_user()
+        today = date.today().isoformat()
+        cache_key = f"horoscope:leo:ru:{today}"
+        cached_text = ("Сегодня Солнце подчёркивает вашу решительность. "
+                       "Используйте утро для важных разговоров. Вечером — отдых.")
+        await horoscope_module.redis_client.set(cache_key, cached_text, ex=86400)
+
+        await send_daily_horoscopes()
+
+        assert len(calls) == 1
+        assert "Сегодня Солнце подчёркивает вашу решительность." in calls[0]["text"]
+
+    async def test_cache_miss_generates_and_caches_before_sending(self, monkeypatch, frozen_9am):
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _fake_complete_stream)
+
+        await _make_notif_user()
+        today = date.today().isoformat()
+        cache_key = f"horoscope:leo:ru:{today}"
+        assert not await horoscope_module.redis_client.get(cache_key)
+
+        await send_daily_horoscopes()
+
+        assert len(calls) == 1
+        # The push went out — but by the time it did, the SAME cache entry
+        # the app's /horoscope/stream reads must already be populated. This
+        # is the "can't go out before generated+cached" guarantee, checked
+        # mechanically (the cache actually holds the full text) rather than
+        # just trusting call order.
+        cached_after = await horoscope_module.redis_client.get(cache_key)
+        assert cached_after is not None
+        assert "Первое предложение дня." in cached_after.decode()
+        assert "Первое предложение дня." in calls[0]["text"]
+
+    async def test_generation_failure_skips_user_without_marking_sent(self, monkeypatch, frozen_9am):
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _fake_empty_stream)
+
+        user = await _make_notif_user()
+        await send_daily_horoscopes()
+
+        assert calls == []
+        today_local = date.today().strftime("%Y-%m-%d")
+        dedup_key = f"daily_notif:{user.id}:{today_local}"
+        assert not await horoscope_module.redis_client.get(dedup_key), \
+            "must not mark as sent when nothing was actually sent — a later tick should retry"
+
+    async def test_digest_is_shorter_than_the_full_cached_text(self, monkeypatch, frozen_9am):
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+
+        def _explode(*a, **k):
+            raise AssertionError("should be served from cache, not generated")
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _explode)
+
+        await _make_notif_user()
+        today = date.today().isoformat()
+        cache_key = f"horoscope:leo:ru:{today}"
+        long_text = (
+            "Энергетика дня благоволит новым начинаниям и смелым решениям. "
+            "Марс в тригоне к Солнцу даёт дополнительную уверенность в делах. "
+            "Практика — используйте первую половину дня для переговоров, вечером избегайте конфликтов. "
+            "Итог — доверяйте собственной интуиции сегодня, она не подведёт."
+        )
+        await horoscope_module.redis_client.set(cache_key, long_text, ex=86400)
+
+        await send_daily_horoscopes()
+
+        assert len(calls) == 1
+        sent_text = calls[0]["text"]
+        expected_digest = _build_digest(long_text)
+        # The push wraps the digest in a header/lunar-footer/signature, so
+        # it's compared against the digest _build_digest would itself
+        # produce (which IS shorter than the full cached text) rather than
+        # against the raw cached text, which the wrapping alone could exceed.
+        assert len(expected_digest) < len(long_text)
+        assert expected_digest in sent_text
+        assert long_text not in sent_text
+
+    async def test_two_signs_same_day_get_independent_cache_entries(self, monkeypatch, frozen_9am):
+        """Guards the cache-key format itself: TZ-104 must key on sign+lang,
+        the exact same dimensions /horoscope/stream keys on, or two users
+        with different signs would wrongly share (or clobber) one entry."""
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _fake_complete_stream)
+
+        await _make_notif_user(tg_id="111222", birth_date=date(1990, 8, 1))  # Leo
+        await _make_notif_user(tg_id="333444", birth_date=date(1990, 4, 1))  # Aries
+
+        await send_daily_horoscopes()
+
+        assert len(calls) == 2
+        today = date.today().isoformat()
+        assert await horoscope_module.redis_client.get(f"horoscope:leo:ru:{today}")
+        assert await horoscope_module.redis_client.get(f"horoscope:aries:ru:{today}")
+
+    async def test_generate_horoscope_no_longer_exists(self):
+        """Regression guard: the biased independent-generation function this
+        ticket retires must not quietly come back."""
+        import app.services.horoscope as services_horoscope
+        assert not hasattr(services_horoscope, "generate_horoscope")
+        assert not hasattr(services_horoscope, "GENERATION_MAX_TOKENS")
