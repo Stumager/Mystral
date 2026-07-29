@@ -1,0 +1,22 @@
+# TZ-108: backend/Dockerfile's final stage does `COPY . .` — anything not
+# excluded here ships inside the production image. scripts/ is intentionally
+# NOT excluded: generate_seo_translations.py and friends are run via
+# `docker compose exec backend python scripts/...` (see PROGRESS.md), so they
+# have to be present in the built image.
+
+.git
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+
+.env
+.env.*
+
+*.md
+
+.venv/
+venv/
+.vscode/
+.idea/

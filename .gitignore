@@ -29,9 +29,6 @@ mystral_test.db
 .env.prod
 *.local
 
-# Docker
-.dockerignore
-
 # IDE
 .idea/
 .vscode/
