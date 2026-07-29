@@ -322,6 +322,24 @@ GENERATION_MAX_TOKENS = 12000
 _REQUIRED_KEYS = ("intro", "sections", "faq", "cta_text")
 
 
+def _has_empty_faq_answer(parsed: dict) -> bool:
+    """TZ-106: _REQUIRED_KEYS above only checks that the top-level "faq" key
+    exists — it says nothing about what's inside it. On ~7-8% of generations
+    the model returned syntactically complete, valid JSON with all 5 faq
+    items present (question text included) but every single "a" an empty
+    string. That's why the failure looks like "all 5 or nothing" rather than
+    a partial miss: it's not a batch/parsing artifact, it's the model itself
+    choosing not to fill in any answer for that generation, and nothing
+    downstream ever checked for it — a plain json.loads() on such a response
+    succeeds on the first try, so json_repair (TZ-060's fallback for
+    malformed JSON) never even runs; this is a distinct failure class from
+    the truncated/missing-keys one that fix addressed."""
+    faq = parsed.get("faq")
+    if not isinstance(faq, list) or not faq:
+        return True
+    return any(not isinstance(item, dict) or not str(item.get("a", "")).strip() for item in faq)
+
+
 def _parse_content_json(raw: str, page_type: str, slug: str, lang: str) -> dict | None:
     """Extracts and parses the JSON object from a model response. Tries
     strict json.loads first, then json_repair as a fallback for the class of
@@ -357,6 +375,17 @@ def _parse_content_json(raw: str, page_type: str, slug: str, lang: str) -> dict 
         logger.error("SEO gen for %s/%s/%s: parsed JSON missing required keys: %r",
                      page_type, slug, lang, parsed if isinstance(parsed, dict) else type(parsed))
         return None
+
+    # TZ-106: skip-cache-on-truncation's analogue for this failure class —
+    # content with an empty faq answer must never be persisted (it would
+    # otherwise serve the same broken FAQPage JSON-LD to every viewer of
+    # this page for as long as the cache row stands), same principle as
+    # horoscope.py's truncated-response guard.
+    if _has_empty_faq_answer(parsed):
+        logger.error("SEO gen for %s/%s/%s: faq has an empty answer, rejecting: %r",
+                     page_type, slug, lang, parsed.get("faq"))
+        return None
+
     return parsed
 
 

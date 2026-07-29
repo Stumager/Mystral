@@ -65,6 +65,84 @@ class TestParseContentJson:
         assert result is None
 
 
+class TestEmptyFaqAnswer:
+    """TZ-106: ~7-8% of generated tarot/rune pages (later confirmed not
+    limited to those types) had syntactically valid JSON — faq present with
+    all 5 questions filled in — but every single "a" an empty string. This
+    passes json.loads on the first try (json_repair, TZ-060's fallback for
+    malformed JSON, never runs) and passed the old _REQUIRED_KEYS check
+    (which only asks whether "faq" exists as a key, not what's in it), so it
+    got cached as if it were real content — breaking both the visible FAQ
+    block and the page's FAQPage JSON-LD acceptedAnswer.text at once."""
+
+    def test_all_empty_answers_rejected(self):
+        # The exact shape found in production: 5 questions, 5 empty answers.
+        raw = (
+            '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], '
+            '"faq": [{"q": "Q1", "a": ""}, {"q": "Q2", "a": ""}, {"q": "Q3", "a": ""}, '
+            '{"q": "Q4", "a": ""}, {"q": "Q5", "a": ""}], "cta_text": "C"}'
+        )
+        result = _parse_content_json(raw, "tarot", "the-fool", "tr")
+        assert result is None
+
+    def test_single_empty_answer_among_five_is_also_rejected(self):
+        # Not observed in prod as a partial failure, but nothing in the fix
+        # should assume "empty" only ever means "all of them" — a single
+        # blank answer still breaks that one FAQ entry and its JSON-LD.
+        raw = (
+            '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], '
+            '"faq": [{"q": "Q1", "a": "A1"}, {"q": "Q2", "a": ""}, {"q": "Q3", "a": "A3"}, '
+            '{"q": "Q4", "a": "A4"}, {"q": "Q5", "a": "A5"}], "cta_text": "C"}'
+        )
+        result = _parse_content_json(raw, "rune", "raido", "pt")
+        assert result is None
+
+    def test_whitespace_only_answer_counts_as_empty(self):
+        raw = (
+            '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], '
+            '"faq": [{"q": "Q1", "a": "   "}], "cta_text": "C"}'
+        )
+        result = _parse_content_json(raw, "rune", "ehwaz", "tr")
+        assert result is None
+
+    def test_missing_faq_array_entirely_is_rejected(self):
+        raw = '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], "faq": [], "cta_text": "C"}'
+        result = _parse_content_json(raw, "zodiac", "leo", "en")
+        assert result is None
+
+    def test_real_answers_still_pass(self):
+        raw = (
+            '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], '
+            '"faq": [{"q": "Q1", "a": "Real answer one."}, {"q": "Q2", "a": "Real answer two."}], '
+            '"cta_text": "C"}'
+        )
+        result = _parse_content_json(raw, "tarot", "the-fool", "tr")
+        assert result is not None
+        assert result["faq"][0]["a"] == "Real answer one."
+
+    async def test_generate_and_store_falls_back_without_persisting(self, caplog):
+        # Same shape/assertion style as TestTruncationFollowUp's equivalent
+        # test — session=None is safe because a rejected parse returns the
+        # in-memory fallback before ever reaching the persistence step.
+        fake_message = type("M", (), {"content": (
+            '{"intro": "I.", "sections": [{"title": "T", "text": "X"}], '
+            '"faq": [{"q": "Q1", "a": ""}, {"q": "Q2", "a": ""}], "cta_text": "C"}'
+        )})()
+        fake_choice = type("C", (), {"message": fake_message, "finish_reason": "stop"})()
+        fake_resp = type("R", (), {"choices": [fake_choice]})()
+
+        fake_client = AsyncMock()
+        fake_client.chat.completions.create = AsyncMock(return_value=fake_resp)
+
+        with patch("app.core.groq_client._get_async_client", return_value=fake_client):
+            import logging
+            with caplog.at_level(logging.ERROR, logger="app.core.seo_generator"):
+                result = await _generate_and_store("zodiac", "leo", ZODIAC_BY_SLUG["leo"], session=None, lang="en")
+
+        assert result.get("_fallback") is True
+        assert any("empty answer" in r.message for r in caplog.records)
+
+
 class TestPromptBuilding:
     """The escaping-guidance additions to _QUALITY/_QUALITY_I18N must not
     break .format() with stray/unbalanced braces, for every language and
