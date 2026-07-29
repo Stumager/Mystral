@@ -22,7 +22,7 @@ from app.models.user import (
     UserPartner,
     UserProfile,
 )
-from app.api.v1.horoscope import get_cached_or_generate_horoscope
+from app.api.v1.horoscope import DIGEST_MAX_CHARS, get_cached_or_generate_digest, get_cached_or_generate_horoscope
 from app.api.v1.lunar import get_lunar_today_data, get_upcoming_events
 from app.services.horoscope import SIGNS_EMOJI, SIGNS_RU, zodiac_from_date
 
@@ -33,28 +33,27 @@ TG_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-# ~2-3 short sentences in this app's house style ("короткие абзацы по 2-4
-# предложения" per the system prompt) — enough to feel like a real teaser,
-# short enough that the CTA button ("Открыть Mystral") still has a reason to
-# exist rather than the push already containing the whole thing.
-DIGEST_MAX_CHARS = 240
 
 
 def _build_digest(full_text: str, max_chars: int = DIGEST_MAX_CHARS) -> str:
-    """TZ-104: the push used to run its own independent generation, with a
-    prompt that always enumerated life areas in the same fixed order
-    ("работа/отношения/финансы/здоровье" — work listed first, every day,
-    every sign, both languages) and no randomization at all — which is why it
-    converged on "work" as the featured area on almost every date. Rather
-    than trying to re-balance that enumeration, the push no longer generates
-    its own text: this excerpts the first few sentences of the SAME cached
-    horoscope the app already shows for that sign+lang+day (see
-    get_cached_or_generate_horoscope in app/api/v1/horoscope.py), so the two
-    surfaces can't diverge and there's no second prompt left to be biased.
+    """TZ-107: fallback only. The primary path is
+    get_cached_or_generate_digest (app/api/v1/horoscope.py) — an actual AI
+    paraphrase of the same cached horoscope the app shows for that
+    sign+lang+day, generated once per sign+lang (not per user) and cached
+    the same way. This pure-string-trimming version is what send_daily_
+    horoscopes falls back to if that generation fails or is skip-cached for
+    truncation, so a transient LLM hiccup on the digest specifically doesn't
+    also block delivery of a horoscope that already generated successfully.
 
-    Pure string trimming — not a second AI call. Always returns at least one
-    complete sentence (never cuts one mid-word) and only appends the
-    ellipsis when something was actually left out.
+    TZ-104 background: the push used to run its own independent generation,
+    with a prompt that always enumerated life areas in the same fixed order
+    ("работа/отношения/финансы/здоровье" — work listed first, every day,
+    every sign, both languages) and no randomization at all — which is why
+    it converged on "work" as the featured area on almost every date. That
+    second prompt is gone; this function never calls the LLM — it only
+    trims text that already came from the shared horoscope prompt. Always
+    returns at least one complete sentence (never cuts one mid-word) and
+    only appends the ellipsis when something was actually left out.
     """
     text = re.sub(r"\s+", " ", full_text).strip()
     if not text:
@@ -144,13 +143,27 @@ async def send_daily_horoscopes():
 
         logger.info("Scheduler: found %d eligible users", len(results))
 
+        # TZ-107: sign+lang pairs whose delivery window opens on the NEXT
+        # tick, collected while we're already iterating every eligible user
+        # below. Warmed here (5 min ahead of need) so the tick that actually
+        # sends messages almost always hits a warm cache instead of paying
+        # for a synchronous LLM generation inline with delivery — the
+        # generate-then-send path further down remains the correctness
+        # fallback if a pair somehow wasn't warmed in time (new user added
+        # mid-window, a warm that failed, etc.), not the normal case.
+        warm_pairs: set[tuple[str, str]] = set()
+
         async with httpx.AsyncClient(timeout=15) as http:
             for profile, provider, user in results:
                 try:
                     tz = ZoneInfo(profile.timezone)
                     local_time = now_utc.astimezone(tz)
+                    next_tick_local = (now_utc + timedelta(minutes=5)).astimezone(tz)
                     logger.debug("User %s: tz=%s, local=%s:%s",
                                  provider.user_id, profile.timezone, local_time.hour, local_time.minute)
+
+                    if next_tick_local.hour == 9 and next_tick_local.minute < 5:
+                        warm_pairs.add((zodiac_from_date(profile.birth_date), user.lang or "ru"))
 
                     if local_time.hour != 9 or local_time.minute >= 5:
                         continue
@@ -173,7 +186,14 @@ async def send_daily_horoscopes():
                         logger.warning("No horoscope text available for %s/%s, skipping user %s this tick",
                                        sign, lang, provider.user_id)
                         continue
-                    digest = _build_digest(full_text)
+                    # TZ-107: real AI paraphrase (see get_cached_or_generate_digest's
+                    # docstring), falling back to string-trimming only if that
+                    # generation itself failed or got skip-cached for truncation —
+                    # a digest hiccup shouldn't block a horoscope that already
+                    # generated fine.
+                    digest = await get_cached_or_generate_digest(sign, lang)
+                    if not digest:
+                        digest = _build_digest(full_text)
                     msg = _format_message(digest, sign, lang)
 
                     ok = await _send_tg_message(http, int(provider.provider_id), msg)
@@ -186,6 +206,14 @@ async def send_daily_horoscopes():
 
                 except Exception as e:
                     logger.error("Failed notification for user %s: %s", provider.user_id, e)
+
+        for sign, lang in warm_pairs:
+            try:
+                full_text = await get_cached_or_generate_horoscope(sign, lang)
+                if full_text:
+                    await get_cached_or_generate_digest(sign, lang)
+            except Exception as e:
+                logger.error("Pre-warm failed for %s/%s: %s", sign, lang, e)
 
     finally:
         await redis.close()

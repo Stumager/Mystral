@@ -56,9 +56,25 @@ class _FixedDatetime(datetime):
         return datetime(today.year, today.month, today.day, 9, 2, tzinfo=tz)
 
 
+class _FixedDatetime857(datetime):
+    """TZ-107: freezes now_utc at 08:57 — one tick (5 min) before the 9:00
+    delivery window opens, the moment the pre-warm logic should fire for a
+    UTC-timezone user."""
+
+    @classmethod
+    def now(cls, tz=None):
+        today = date.today()
+        return datetime(today.year, today.month, today.day, 8, 57, tzinfo=tz)
+
+
 @pytest.fixture
 def frozen_9am(monkeypatch):
     monkeypatch.setattr(scheduler_module, "datetime", _FixedDatetime)
+
+
+@pytest.fixture
+def frozen_857am(monkeypatch):
+    monkeypatch.setattr(scheduler_module, "datetime", _FixedDatetime857)
 
 
 async def _make_notif_user(tg_id: str = "999000", birth_date=date(1990, 8, 1),
@@ -276,14 +292,20 @@ class TestSendDailyHoroscopesDigest:
         await _make_notif_user()
         today = date.today().isoformat()
         cache_key = f"horoscope:leo:ru:{today}"
+        digest_key = f"horoscope_digest:leo:ru:{today}"
         cached_text = ("Сегодня Солнце подчёркивает вашу решительность. "
                        "Используйте утро для важных разговоров. Вечером — отдых.")
         await horoscope_module.redis_client.set(cache_key, cached_text, ex=86400)
+        # TZ-107: the digest is now its own cached AI paraphrase (see
+        # get_cached_or_generate_digest) — it must also be a cache hit here,
+        # or the "no generation at all" guarantee this test checks wouldn't
+        # actually hold.
+        await horoscope_module.redis_client.set(digest_key, "Кэшированный пересказ дня.", ex=86400)
 
         await send_daily_horoscopes()
 
         assert len(calls) == 1
-        assert "Сегодня Солнце подчёркивает вашу решительность." in calls[0]["text"]
+        assert "Кэшированный пересказ дня." in calls[0]["text"]
 
     async def test_cache_miss_generates_and_caches_before_sending(self, monkeypatch, frozen_9am):
         monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
@@ -324,18 +346,26 @@ class TestSendDailyHoroscopesDigest:
         assert not await horoscope_module.redis_client.get(dedup_key), \
             "must not mark as sent when nothing was actually sent — a later tick should retry"
 
-    async def test_digest_is_shorter_than_the_full_cached_text(self, monkeypatch, frozen_9am):
+    async def test_digest_is_a_real_ai_paraphrase_not_the_full_text(self, monkeypatch, frozen_9am):
+        """TZ-107: the full horoscope is cached (so that generation is not
+        re-run), but the digest is NOT — so send_daily_horoscopes must call
+        get_cached_or_generate_digest, which runs its own short AI paraphrase
+        of the cached text rather than sending the raw long text verbatim."""
         monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
         calls: list = []
         monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
 
-        def _explode(*a, **k):
-            raise AssertionError("should be served from cache, not generated")
-        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _explode)
+        async def _digest_stream(messages, max_tokens=1400, lang="ru", on_finish=None):
+            yield 'data: {"text": "Сегодня благоприятный день для новых начинаний."}\n\n'
+            if on_finish:
+                on_finish("stop")
+            yield "data: [DONE]\n\n"
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _digest_stream)
 
         await _make_notif_user()
         today = date.today().isoformat()
         cache_key = f"horoscope:leo:ru:{today}"
+        digest_key = f"horoscope_digest:leo:ru:{today}"
         long_text = (
             "Энергетика дня благоволит новым начинаниям и смелым решениям. "
             "Марс в тригоне к Солнцу даёт дополнительную уверенность в делах. "
@@ -348,14 +378,41 @@ class TestSendDailyHoroscopesDigest:
 
         assert len(calls) == 1
         sent_text = calls[0]["text"]
-        expected_digest = _build_digest(long_text)
-        # The push wraps the digest in a header/lunar-footer/signature, so
-        # it's compared against the digest _build_digest would itself
-        # produce (which IS shorter than the full cached text) rather than
-        # against the raw cached text, which the wrapping alone could exceed.
-        assert len(expected_digest) < len(long_text)
-        assert expected_digest in sent_text
+        assert "Сегодня благоприятный день для новых начинаний." in sent_text
         assert long_text not in sent_text
+        cached_digest = await horoscope_module.redis_client.get(digest_key)
+        assert cached_digest.decode() == "Сегодня благоприятный день для новых начинаний."
+
+    async def test_digest_generation_failure_falls_back_to_truncation(self, monkeypatch, frozen_9am):
+        """If the digest-specific AI call fails or gets skip-cached for
+        truncation, delivery must not be blocked entirely — the horoscope
+        already generated fine, so it falls back to _build_digest's pure
+        string trimming rather than skipping the user."""
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+
+        async def _truncated_digest_stream(messages, max_tokens=1400, lang="ru", on_finish=None):
+            yield 'data: {"text": "Обрубленный пере"}\n\n'
+            if on_finish:
+                on_finish("length")
+            yield "data: [DONE]\n\n"
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _truncated_digest_stream)
+
+        await _make_notif_user()
+        today = date.today().isoformat()
+        cache_key = f"horoscope:leo:ru:{today}"
+        digest_key = f"horoscope_digest:leo:ru:{today}"
+        long_text = "Первое предложение. Второе предложение. Третье предложение."
+        await horoscope_module.redis_client.set(cache_key, long_text, ex=86400)
+
+        await send_daily_horoscopes()
+
+        assert len(calls) == 1, "a digest hiccup must not stop delivery of an already-generated horoscope"
+        expected_fallback = _build_digest(long_text)
+        assert expected_fallback in calls[0]["text"]
+        assert not await horoscope_module.redis_client.get(digest_key), \
+            "the truncated digest must not be cached — the next call should retry generation"
 
     async def test_two_signs_same_day_get_independent_cache_entries(self, monkeypatch, frozen_9am):
         """Guards the cache-key format itself: TZ-104 must key on sign+lang,
@@ -375,6 +432,40 @@ class TestSendDailyHoroscopesDigest:
         today = date.today().isoformat()
         assert await horoscope_module.redis_client.get(f"horoscope:leo:ru:{today}")
         assert await horoscope_module.redis_client.get(f"horoscope:aries:ru:{today}")
+
+    async def test_prewarm_generates_one_tick_before_delivery_without_sending(self, monkeypatch, frozen_857am):
+        """TZ-107: at 08:57 (one 5-min tick before this UTC user's 9:00
+        window), the horoscope+digest for their sign+lang should already be
+        generated and cached — but nothing should be sent yet, since their
+        actual delivery window hasn't opened."""
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        calls: list = []
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock(calls))
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _fake_complete_stream)
+
+        await _make_notif_user()
+        today = date.today().isoformat()
+
+        await send_daily_horoscopes()
+
+        assert calls == [], "pre-warm must not send a message — the user's local 9:00 hasn't arrived yet"
+        cached_horoscope = await horoscope_module.redis_client.get(f"horoscope:leo:ru:{today}")
+        assert cached_horoscope is not None, "the full horoscope should be pre-generated a tick ahead of need"
+        cached_digest = await horoscope_module.redis_client.get(f"horoscope_digest:leo:ru:{today}")
+        assert cached_digest is not None, "the digest should also be pre-generated a tick ahead of need"
+
+    async def test_prewarm_does_not_set_dedup_key(self, monkeypatch, frozen_857am):
+        monkeypatch.setattr(settings, "telegram_bot_token", "test-bot-token")
+        monkeypatch.setattr(httpx.AsyncClient, "post", _tg_mock([]))
+        monkeypatch.setattr(horoscope_module, "safe_groq_stream", _fake_complete_stream)
+
+        user = await _make_notif_user()
+        await send_daily_horoscopes()
+
+        today_local = date.today().strftime("%Y-%m-%d")
+        dedup_key = f"daily_notif:{user.id}:{today_local}"
+        assert not await horoscope_module.redis_client.get(dedup_key), \
+            "pre-warm must not mark the user as notified — the real delivery tick still needs to send"
 
     async def test_generate_horoscope_no_longer_exists(self):
         """Regression guard: the biased independent-generation function this
