@@ -1,0 +1,89 @@
+{# TZ-110: chrome shared by the three pillar landings (/natal-chart,
+   /lunar-calendar, /compatibility). Pulled in via base.html's head_extra
+   block rather than added to base's own <style>, so the other 14 SEO
+   templates ship exactly the same bytes they did before this ticket. #}
+<style>
+.hdr-home{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;border:1px solid rgba(201,168,76,.28);background:rgba(201,168,76,.07);color:#E8CD7E;flex:none}
+.hdr-home:hover{background:rgba(201,168,76,.16);text-decoration:none}
+.hdr-home svg{width:15px;height:15px;display:block}
+/* The seven nav links already wrapped mid-word on narrow desktop widths
+   before this ticket (reproduced on /tarot/the-fool at 800px, so not a
+   regression from the icon) — tidied here, on the three pages the ticket
+   owns, rather than in base.html where it would touch all 17 templates. */
+.hdr{flex-wrap:wrap;row-gap:8px}
+.hdr-nav{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px 18px}
+.hdr-nav a{margin-left:0}
+
+.pillar-hero{margin:4px 0 30px;text-align:center}
+.hero-art{width:min(320px,72vw);margin:0 auto 20px}
+.hero-art svg{width:100%;height:auto;display:block;border-radius:50%}
+.hero-eyebrow{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#C9A84C;margin:0 0 10px}
+.pillar-hero h1{margin-bottom:14px}
+.hero-lede{font-size:15.5px;color:#B6AC98;max-width:560px;margin:0 auto 24px}
+
+.app-cta{display:inline-flex;align-items:center;gap:10px;padding:15px 34px;border-radius:16px;background:linear-gradient(100deg,#A9882F,#C9A84C,#E8CD7E);color:#1A1206;font-weight:600;font-size:15.5px;text-decoration:none;box-shadow:0 10px 30px rgba(201,168,76,.18)}
+.app-cta:hover{text-decoration:none;filter:brightness(1.06)}
+.app-cta-hint{display:block;font-size:11.5px;color:#6E6757;margin-top:11px;letter-spacing:.04em}
+
+.preview{margin:38px 0}
+.preview-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.preview-hd h2{margin:0;font-size:22px}
+.badge{font-family:'Cinzel',serif;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:#C9A84C;border:1px solid rgba(201,168,76,.32);border-radius:99px;padding:4px 11px;white-space:nowrap}
+.pv{border-radius:18px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.012));border:1px solid rgba(201,168,76,.16);padding:22px}
+.pv-split{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.pv-mini{width:136px;flex:none;margin:0 auto}
+.pv-mini svg{width:100%;height:auto;display:block;border-radius:50%}
+.pv-side{flex:1 1 230px;min-width:200px}
+.pv-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13.5px}
+.pv-row:last-child{border-bottom:0}
+.pv-glyph{width:24px;text-align:center;font-size:15px;color:#E8CD7E;flex:none}
+.pv-name{color:#F0E9DA}
+.pv-val{margin-left:auto;font-size:12.5px;color:#8A8170;text-align:right}
+.pv-quote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:16px;color:#C6BCA6;margin:16px 0 0;line-height:1.55;border-top:1px solid rgba(255,255,255,.06);padding-top:15px}
+.pv-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+.pv-tag{font-size:11.5px;color:#A89E8B;border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:4px 10px;background:rgba(255,255,255,.02)}
+.pv-tag.no{color:#8A8170;border-color:rgba(255,255,255,.05);opacity:.72}
+.pv-score{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.pv-score-n{font-family:'Cormorant Garamond',serif;font-size:42px;color:#E8CD7E;line-height:1}
+.pv-score-l{font-size:12.5px;color:#8A8170}
+.bar{margin:0 0 13px}
+.bar:last-child{margin-bottom:0}
+.bar-t{display:flex;justify-content:space-between;font-size:12px;color:#A89E8B;margin-bottom:5px}
+.bar-track{height:5px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#A9882F,#E8CD7E)}
+.pv-day{text-align:center;padding:2px 0 6px}
+.pv-day-n{font-family:'Cormorant Garamond',serif;font-size:56px;color:#C9A84C;line-height:1}
+.pv-day-t{font-family:'Cinzel',serif;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:#E8CD7E;margin-top:6px}
+
+/* Hero art motion — all of it opt-out under prefers-reduced-motion below. */
+@keyframes mxspin{to{transform:rotate(360deg)}}
+.mx-spin-slow{transform-origin:150px 150px;animation:mxspin 90s linear infinite}
+@keyframes mxpulse{0%,100%{opacity:.16}50%{opacity:.5}}
+.mx-pulse{animation:mxpulse 6s ease-in-out infinite}
+@keyframes mxbreathe{0%,100%{opacity:.92}50%{opacity:1}}
+.mx-breathe{animation:mxbreathe 7s ease-in-out infinite}
+
+/* TZ-110 п.6: the departure veil — a branded dissolve on the way into the
+   app, NOT a progress indicator (generation itself streams inside the app).
+   It is purely decorative: with JS off or reduced motion on, the CTA is an
+   ordinary link and navigates immediately. */
+#mx-veil{position:fixed;inset:0;z-index:120;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 46%,rgba(232,205,126,.30),rgba(11,9,32,.90) 46%,#07060F 72%)}
+#mx-veil.on{pointer-events:auto;animation:mxveil 1.15s cubic-bezier(.3,0,.2,1) forwards}
+@keyframes mxveil{0%{opacity:0}30%{opacity:.72}100%{opacity:1}}
+.mx-veil-mark{position:absolute;left:50%;top:46%;width:132px;height:132px;margin:-66px 0 0 -66px;opacity:0}
+.mx-veil-mark svg{width:100%;height:100%;display:block}
+#mx-veil.on .mx-veil-mark{animation:mxmark 1.15s ease-out forwards}
+@keyframes mxmark{0%{opacity:0;transform:scale(.35) rotate(-40deg)}35%{opacity:1}100%{opacity:0;transform:scale(1.9) rotate(25deg)}}
+.mx-spark{position:absolute;left:50%;top:46%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;border-radius:50%;background:#F0D680;opacity:0}
+#mx-veil.on .mx-spark{animation:mxspark 1.15s ease-out forwards}
+@keyframes mxspark{0%{opacity:0;transform:rotate(var(--a)) translateY(0) scale(.5)}25%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(-52vmin) scale(.15)}}
+
+@media (max-width:520px){
+  .preview-hd{flex-direction:column;align-items:flex-start;gap:8px}
+  .pv-mini{width:118px}
+}
+@media (prefers-reduced-motion:reduce){
+  .mx-spin-slow,.mx-pulse,.mx-breathe{animation:none}
+  #mx-veil,#mx-veil.on,#mx-veil.on *{animation:none!important;opacity:0!important}
+}
+</style>

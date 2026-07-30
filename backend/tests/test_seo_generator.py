@@ -5,7 +5,10 @@ production failures were "Expecting ',' delimiter" JSON errors from the
 model, which response_format=json_object + a json_repair fallback are
 meant to eliminate or recover from without silently losing content.
 """
+import json
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from app.core import seo_generator
 from app.core.seo_generator import (
@@ -281,3 +284,97 @@ class TestWarmSeoCacheErrorIsolation:
         assert ("tarot", "the-fool") in calls, "tarot must still warm even though rune failed repeatedly"
         assert any("skipping its remaining slugs" in r.message for r in caplog.records)
         assert any("did not warm" in r.message for r in caplog.records)
+
+
+class TestPillarGlossaryEnforcement:
+    """TZ-110 п.4: the three pillar landings must never surface technical
+    vocabulary. _NO_TECH tells the model so, but a prompt instruction is a
+    request, not a guarantee — this is the enforcement, following TZ-106's
+    reject-before-cache pattern instead of trusting the generation."""
+
+    @staticmethod
+    def _payload(**over) -> dict:
+        base = {
+            "intro": "Натальная карта — карта неба в момент рождения.",
+            "sections": [{"title": "Что это", "text": "Подробный разбор карты рождения."}],
+            "faq": [{"q": "Вопрос?", "a": "Ответ."}],
+            "cta_text": "Откройте Mystral.",
+        }
+        base.update(over)
+        return base
+
+    def _parse(self, payload: dict, page_type: str = "natal_pillar"):
+        return _parse_content_json(
+            json.dumps(payload, ensure_ascii=False), page_type, "natal-chart", "ru")
+
+    def test_clean_pillar_copy_passes(self):
+        assert self._parse(self._payload()) is not None
+
+    @pytest.mark.parametrize("bad", [
+        "Наш AI разберёт вашу карту.",
+        "Разбор делает ИИ по вашим данным.",
+        "Используется искусственный интеллект.",
+        "Работает на нейросети последнего поколения.",
+        "Доступна интеграция с календарём.",
+    ])
+    def test_ru_technical_vocabulary_is_rejected(self, bad):
+        assert self._parse(self._payload(intro=bad)) is None
+
+    @pytest.mark.parametrize("bad", [
+        "Our AI reads the chart for you.",
+        "Powered by a neural network.",
+        "A calendar integration is available.",
+    ])
+    def test_en_technical_vocabulary_is_rejected(self, bad):
+        assert self._parse(self._payload(sections=[{"title": "About", "text": bad}])) is None
+
+    def test_banned_term_is_caught_anywhere_in_the_object_not_just_intro(self):
+        assert self._parse(self._payload(faq=[{"q": "Как?", "a": "Через AI."}])) is None
+        assert self._parse(self._payload(cta_text="Попробуйте наш AI.")) is None
+
+    def test_lowercase_ai_is_not_a_false_positive(self):
+        # "ai" is an ordinary Portuguese word and a common Spanish/Turkish
+        # syllable — an ignore-case match here would reject good copy.
+        payload = self._payload(intro="O mapa astral mostra o que ai se revela, mais claro que nunca.")
+        assert self._parse(payload) is not None
+
+    def test_check_is_scoped_to_pillar_pages_only(self):
+        # Applied to the other 188 pages it would silently start rejecting
+        # their content on the next 30-day SWR refresh — outside this ticket.
+        bad = self._payload(intro="Our AI reads the card for you.")
+        assert self._parse(bad, page_type="tarot") is not None
+        assert self._parse(bad, page_type="natal_pillar") is None
+
+    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
+    def test_all_three_pillar_types_are_covered(self, ptype):
+        assert self._parse(self._payload(intro="Powered by AI."), page_type=ptype) is None
+
+
+class TestPillarPromptsAndRegistry:
+    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
+    @pytest.mark.parametrize("lang", ["ru", "en", "es", "pt", "tr", "uk"])
+    def test_pillar_prompt_builds_for_every_language(self, ptype, lang):
+        from app.data.seo_data import COMPATIBILITY_PILLAR, LUNAR_PILLAR, NATAL_PILLAR
+        data = {"natal_pillar": NATAL_PILLAR, "lunar_pillar": LUNAR_PILLAR,
+                "compatibility_pillar": COMPATIBILITY_PILLAR}[ptype]
+        prompt = _build_prompt(ptype, data, lang)
+        assert prompt and len(prompt) > 500
+
+    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
+    def test_pillar_prompts_carry_the_no_tech_clause(self, ptype):
+        assert "«AI»" in PROMPTS[ptype]
+        assert "'AI'" in PROMPTS_I18N[ptype]
+
+    def test_non_pillar_prompts_are_left_alone(self):
+        # Their cached content must not diverge because of this ticket.
+        for ptype in ("zodiac", "tarot", "rune", "numerology", "natal_planet",
+                      "lunar_day", "natal_house", "ascendant", "compat_sign"):
+            assert "«AI»" not in PROMPTS[ptype], ptype
+            assert "'AI'" not in PROMPTS_I18N[ptype], ptype
+
+    def test_new_pillars_are_in_seo_page_items(self):
+        # Without this the batch generation script would never produce them.
+        items = {(p, s) for p, s, _ in seo_generator.seo_page_items()}
+        assert ("natal_pillar", "natal-chart") in items
+        assert ("lunar_pillar", "lunar-calendar") in items
+        assert ("compatibility_pillar", "compatibility") in items

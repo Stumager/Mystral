@@ -35,6 +35,10 @@ body{background:#07060F;color:#F0E9DA;font-family:'Inter',sans-serif;line-height
 a{color:#C9A84C;text-decoration:none}a:hover{text-decoration:underline}
 .wrap{max-width:800px;margin:0 auto;padding:0 24px}
 .hdr{padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,168,76,.14)}
+/* TZ-110: wrapper so a page can prepend a home-icon button next to the
+   wordmark without turning .hdr's two flex children into three (which would
+   pull the wordmark to the centre). Empty block -> renders exactly as before. */
+.hdr-brand{display:flex;align-items:center;gap:12px}
 .hdr-logo{font-family:'Cinzel',serif;font-size:16px;letter-spacing:.28em;color:#E8CD7E}
 .hdr-nav a{margin-left:20px;font-size:13px;color:#A89E8B}
 .bc{padding:16px 0;font-size:12px;color:#6E6757}.bc a{color:#8A8170}
@@ -57,10 +61,11 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
 .ft{padding:32px 24px;border-top:1px solid rgba(201,168,76,.1);text-align:center;font-size:12px;color:#6E6757;margin-top:40px}
 </style>
 {% block schema %}{% endblock %}
+{% block head_extra %}{% endblock %}
 </head>
 <body>
 <header class="hdr">
-  <a href="/" class="hdr-logo">MYSTRAL</a>
+  <div class="hdr-brand">{% block hdr_home %}{% endblock %}<a href="/" class="hdr-logo">MYSTRAL</a></div>
   <nav class="hdr-nav"><a href="/">{{ t.nav_home }}</a><a href="{{ prefix }}/zodiac">{{ t.nav_zodiac }}</a><a href="{{ prefix }}/tarot">{{ t.nav_tarot }}</a><a href="{{ prefix }}/runes">{{ t.nav_runes }}</a><a href="{{ prefix }}/natal-chart">{{ t.nav_natal }}</a><a href="{{ prefix }}/lunar-calendar">{{ t.nav_lunar }}</a><a href="{{ prefix }}/compatibility">{{ t.nav_compat }}</a></nav>
 </header>
 <main class="wrap">
@@ -79,10 +84,14 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
   <div class="cta">
     <h2>{{ t.cta_title }}</h2>
     <p>{{ cta_text|default(t.cta_default, true) }}</p>
-    <a href="{{ cta_href|default('/') }}" class="cta-btn">{{ t.cta_button }}</a>
+    {# TZ-110: on the pillar landings this closing CTA points at the same
+       /app/{section} deep link as the hero button, and joins the departure
+       veil. Pages that set no app_cta_href render byte-identically. #}
+    <a href="{{ cta_href|default('/') }}" class="cta-btn"{% if app_cta_href %} data-veil{% endif %}>{{ app_cta_label|default(t.cta_button, true) }}</a>
   </div>
   {% block links %}{% endblock %}
 </main>
 <footer class="ft">{{ t.footer }}</footer>
+{% block body_extra %}{% endblock %}
 </body>
 </html>

@@ -10,9 +10,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
+from app.data.seo_art import HERO_SVG
 from app.data.seo_data import (
-    ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO,
-    NATAL_HOUSES, NATAL_HOUSES_BY_SLUG, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
+    ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO, LUNAR_PILLAR,
+    NATAL_HOUSES, NATAL_HOUSES_BY_SLUG, NATAL_PILLAR, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
     NUMEROLOGY_BY_SLUG, NUMEROLOGY_SEO, RUNE_BY_SLUG, RUNE_SEO,
     SUITS, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
 )
@@ -27,6 +28,25 @@ from app.data.seo_i18n import (
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent.parent / "templates"))
 TODAY = lambda: date.today().isoformat()
+
+# TZ-110 п.5: the pillar CTA target. Deliberately un-prefixed even on the
+# language versions — nginx's SEO regex has no "app" alternative, so /app/*
+# always falls through to the SPA, while "/es/app/natal" would be served
+# index.html by the frontend and then land on "home" (pageFromPath only
+# matches ^/app/…). The SPA carries its own language state; the deep link
+# only has to name the section. TZ-096 handles the unauthenticated case.
+APP_DEEP_LINK = {"natal": "/app/natal", "lunar": "/app/lunar", "compat": "/app/compatibility"}
+
+
+def _pillar_ctx(lang: str, section: str) -> dict:
+    """Hero art + glossary CTA shared by the three pillar landings."""
+    return {
+        "hero_svg": HERO_SVG[section],
+        "app_cta_href": APP_DEEP_LINK[section],
+        "app_cta_label": UI[lang][f"pillar_cta_{section}"],
+        # base.html's closing CTA aims at the app too, not the site root.
+        "cta_href": APP_DEEP_LINK[section],
+    }
 
 
 def _resolve_lang(lang: Optional[str]) -> str:
@@ -238,17 +258,25 @@ async def numerology_page(slug: str, request: Request, session: AsyncSession = D
 
 @router.get("/natal-chart", response_class=HTMLResponse)
 @router.get("/{lang}/natal-chart", response_class=HTMLResponse)
-async def natal_chart_hub(request: Request):
+async def natal_chart_hub(request: Request, session: AsyncSession = Depends(get_session)):
     lang = _resolve_lang(request.path_params.get("lang"))
     redirect = _legacy_lang_redirect(request, lang, "/natal-chart")
     if redirect:
         return redirect
+    # TZ-110: this hub carries its own generated content now (intro, sections
+    # and — the point of the ticket — a real FAQ block with FAQPage JSON-LD),
+    # the same shape /compatibility has had since TZ-094.
+    content = await get_seo_content("natal_pillar", NATAL_PILLAR["slug"], NATAL_PILLAR, session, lang)
     t = UI[lang]
     return templates.TemplateResponse(request, "seo/natal_hub.html", _ctx(
         lang, "/natal-chart", t["natal_hub_title"], t["natal_hub_desc"],
+        content=content,
         planets=[localize_natal_planet(p, lang) for p in NATAL_PLANETS],
         houses=[localize_natal_house(h, lang) for h in NATAL_HOUSES],
+        signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS],
         ascendant_name=localize_ascendant(ASCENDANT_SEO, lang)["name"],
+        today=TODAY(),
+        **_pillar_ctx(lang, "natal"),
     ))
 
 
@@ -323,15 +351,19 @@ async def natal_planet_page(slug: str, request: Request, session: AsyncSession =
 
 @router.get("/lunar-calendar", response_class=HTMLResponse)
 @router.get("/{lang}/lunar-calendar", response_class=HTMLResponse)
-async def lunar_calendar_hub(request: Request):
+async def lunar_calendar_hub(request: Request, session: AsyncSession = Depends(get_session)):
     lang = _resolve_lang(request.path_params.get("lang"))
     redirect = _legacy_lang_redirect(request, lang, "/lunar-calendar")
     if redirect:
         return redirect
+    content = await get_seo_content("lunar_pillar", LUNAR_PILLAR["slug"], LUNAR_PILLAR, session, lang)
     t = UI[lang]
     return templates.TemplateResponse(request, "seo/lunar_hub.html", _ctx(
         lang, "/lunar-calendar", t["lunar_hub_title"], t["lunar_hub_desc"],
+        content=content,
         days=[localize_lunar_day(d, lang) for d in LUNAR_DAY_SEO],
+        today=TODAY(),
+        **_pillar_ctx(lang, "lunar"),
     ))
 
 
@@ -379,6 +411,7 @@ async def compatibility_pillar(request: Request, session: AsyncSession = Depends
         signs=[localize_sign(s, lang) for s in ZODIAC_SIGNS],
         h1=t["compat_hub_h1"],
         today=TODAY(),
+        **_pillar_ctx(lang, "compat"),
     ))
 
 

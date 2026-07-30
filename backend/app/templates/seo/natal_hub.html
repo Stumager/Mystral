@@ -1,15 +1,49 @@
 {% extends "seo/base.html" %}
 {% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ t.natal_hub_h1 }}","description":"{{ description }}","inLanguage":"{{ lang }}","author":{"@type":"Organization","name":"Mystral"},"publisher":{"@type":"Organization","name":"Mystral"},"datePublished":"2026-01-01","dateModified":"{{ today }}","mainEntityOfPage":{"@type":"WebPage","@id":"{{ canonical }}"}}</script>
+{% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_natal }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
+{% block head_extra %}{% include "seo/_pillar_style.html" %}{% endblock %}
+{% block hdr_home %}{% include "seo/_pillar_home.html" %}{% endblock %}
 {% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_natal }}{% endblock %}
 {% block content %}
-<h1>{{ t.natal_hub_h1 }}</h1>
-<p>{{ t.natal_hub_intro }}</p>
+<div class="pillar-hero">
+  <div class="hero-art" role="img" aria-label="{{ t.hero_natal_alt }}">{{ hero_svg|safe }}</div>
+  <p class="hero-eyebrow">{{ t.bc_natal }}</p>
+  <h1>{{ t.natal_hub_h1 }}</h1>
+  <p class="hero-lede">{{ t.natal_hub_intro }}</p>
+  {% include "seo/_pillar_cta.html" %}
+</div>
+
+{# TZ-110 п.2: proof of value before the click. Static, clearly badged as an
+   example — a real chart needs birth data the visitor has not entered yet. #}
+<section class="preview">
+  <div class="preview-hd"><h2>{{ t.preview_title }}</h2><span class="badge">{{ t.preview_badge }}</span></div>
+  <div class="pv">
+    <div class="pv-split">
+      <div class="pv-mini" aria-hidden="true">{{ hero_svg|safe }}</div>
+      <div class="pv-side">
+        <div class="pv-row"><span class="pv-glyph">☉</span><span class="pv-name">{{ planets[0].name }}</span><span class="pv-val">{{ houses[9].name }}</span></div>
+        <div class="pv-row"><span class="pv-glyph">☽</span><span class="pv-name">{{ planets[1].name }}</span><span class="pv-val">{{ houses[3].name }}</span></div>
+        <div class="pv-row"><span class="pv-glyph">↑</span><span class="pv-name">{{ ascendant_name }}</span><span class="pv-val">{{ signs[6].name }}</span></div>
+      </div>
+    </div>
+    <p class="pv-quote">{{ t.preview_natal_quote }}</p>
+  </div>
+</section>
+
+<p>{{ content.intro }}</p>
+{% for sec in content.sections %}
+<h2>{{ sec.title }}</h2>
+<p>{{ sec.text }}</p>
+{% endfor %}
 {% endblock %}
 {% block links %}
+<h2>{{ t.natal_planets_title }}</h2>
 <div class="links">{% for p in planets %}<a href="{{ prefix }}/natal-chart/planets/{{ p.slug }}">{{ p.symbol }} {{ p.name }}</a>{% endfor %}</div>
 <h2>{{ t.natal_houses_title }}</h2>
 <div class="links">{% for h in houses %}<a href="{{ prefix }}/natal-chart/houses/{{ h.slug }}">{{ h.number }}. {{ h.name }}</a>{% endfor %}</div>
 <div class="links"><a href="{{ prefix }}/natal-chart/ascendant">{{ ascendant_name }}</a></div>
 {% endblock %}
+{% block body_extra %}{% include "seo/_pillar_veil.html" %}{% endblock %}

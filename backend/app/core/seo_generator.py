@@ -30,6 +30,19 @@ _QUALITY = (
     "фразой о каждом, не обсуждая и не подвергая сомнению точность дат рождения."
 )
 
+# TZ-110 п.4: the three pillar landings must never surface the platform's
+# technology in their own copy — the product vocabulary is esoteric
+# («Послание светил», «Голос звёзд», «Зов Луны») per the TZ-095 glossary, and
+# a generated paragraph casually mentioning «AI» or «интеграция» would
+# contradict the wording the app itself uses. Appended ONLY to the three
+# pillar prompts: every other page type's prompt stays byte-identical, so
+# their already-cached content and any future regeneration are unaffected.
+_NO_TECH = (
+    "Никогда не употребляй слова «AI», «ИИ», «искусственный интеллект», «нейросеть», "
+    "«алгоритм», «интеграция», «сервис», «технология», «приложение» и подобную техническую "
+    "лексику — пиши языком астрологической традиции. "
+)
+
 # TZ-060: response_format=json_object (see _generate_and_store) already forces
 # syntactically valid JSON at the API level — this instruction is defense in
 # depth against the model still choosing bad content inside a valid string
@@ -120,7 +133,35 @@ PROMPTS = {
         "5) Самые сложные пары знаков и как их гармонизировать, 6) Совместимость в любви и браке, "
         "7) Совместимость в дружбе и на работе, "
         "8) Почему полная совместимость требует натальной карты и синастрии. "
-        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Создай 5 FAQ с ответами. " + _NO_TECH + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "natal_pillar": (
+        "Напиши исчерпывающее руководство по натальной карте (карте рождения). "
+        "Включи секции: 1) Что такое натальная карта и что она показывает, "
+        "2) Какие данные нужны для расчёта и почему так важно точное время рождения, "
+        "3) Планеты в натальной карте и за что отвечает каждая, "
+        "4) Дома гороскопа — двенадцать сфер жизни, "
+        "5) Асцендент и Большая тройка: Солнце, Луна, Асцендент, "
+        "6) Аспекты между планетами — гармоничные и напряжённые, "
+        "7) Как читать натальную карту шаг за шагом, "
+        "8) Частые ошибки при самостоятельном разборе карты. "
+        "Создай 5 FAQ с ответами. " + _NO_TECH + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "lunar_pillar": (
+        "Напиши исчерпывающее руководство по лунному календарю. "
+        "Включи секции: 1) Что такое лунный день и чем он отличается от календарного, "
+        "2) Лунный месяц и восемь фаз Луны, "
+        "3) Растущая и убывающая Луна — что планировать на каждой, "
+        "4) Новолуние и полнолуние — как проживать эти дни, "
+        "5) Луна в знаках зодиака и её влияние на настроение, "
+        "6) Благоприятные и неблагоприятные лунные дни, "
+        "7) Лунный календарь для красоты, здоровья, денег и стрижки, "
+        "8) Как пользоваться лунным календарём каждый день. "
+        "Создай 5 FAQ с ответами. " + _NO_TECH + _QUALITY +
         "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
         "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
     ),
@@ -162,6 +203,13 @@ _QUALITY_I18N = (
 _JSON_SCHEMA = (
     "Return JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
     "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+)
+
+# TZ-110 п.4 — the _NO_TECH clause above, for the 5 prefixed languages.
+_NO_TECH_I18N = (
+    "Never use the words 'AI', 'artificial intelligence', 'neural network', 'algorithm', "
+    "'integration', 'service', 'technology' or 'app', nor any similar technical vocabulary — "
+    "write in the language of astrological tradition. "
 )
 
 PROMPTS_I18N = {
@@ -234,7 +282,31 @@ PROMPTS_I18N = {
         "4) The most harmonious sign pairs, 5) The most challenging sign pairs and how to work through them, "
         "6) Compatibility in love and marriage, 7) Compatibility in friendship and at work, "
         "8) Why true compatibility requires a full natal chart and synastry. "
-        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+        "Create 5 FAQ. " + _NO_TECH_I18N + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "natal_pillar": (
+        "Write a comprehensive guide to the natal chart (birth chart). "
+        "Include sections: 1) What a natal chart is and what it shows, "
+        "2) What birth data is needed and why the exact time of birth matters so much, "
+        "3) The planets in the natal chart and what each one governs, "
+        "4) The houses of the horoscope — the twelve areas of life, "
+        "5) The Ascendant and the Big Three: Sun, Moon, Ascendant, "
+        "6) Aspects between planets — harmonious and challenging, "
+        "7) How to read a natal chart step by step, "
+        "8) Common mistakes people make reading their own chart. "
+        "Create 5 FAQ. " + _NO_TECH_I18N + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "lunar_pillar": (
+        "Write a comprehensive guide to the lunar calendar. "
+        "Include sections: 1) What a lunar day is and how it differs from a calendar day, "
+        "2) The lunar month and the eight phases of the Moon, "
+        "3) The waxing and waning Moon — what to plan during each, "
+        "4) New Moon and Full Moon — how to live through those days, "
+        "5) The Moon across the zodiac signs and its effect on mood, "
+        "6) Favorable and unfavorable lunar days, "
+        "7) The lunar calendar for beauty, health, money and haircuts, "
+        "8) How to use the lunar calendar day to day. "
+        "Create 5 FAQ. " + _NO_TECH_I18N + _QUALITY_I18N + _JSON_SCHEMA
     ),
     "compat_sign": (
         "Write a detailed compatibility analysis for the zodiac sign {name} with other signs. "
@@ -340,6 +412,44 @@ def _has_empty_faq_answer(parsed: dict) -> bool:
     return any(not isinstance(item, dict) or not str(item.get("a", "")).strip() for item in faq)
 
 
+# TZ-110 п.4: _NO_TECH tells the model to stay off technical vocabulary, but a
+# prompt instruction is a request, not a guarantee — and unlike a stylistic
+# slip anywhere else, a pillar landing that says "AI" contradicts the glossary
+# the app itself follows and is the first page a visitor from search sees.
+# Enforced the same way TZ-106 enforces non-empty FAQ answers: reject before
+# persisting, so the page falls back (noindex) and regenerates, rather than
+# serving the slip to every later visitor from cache.
+#
+# Scoped to the three pillar types on purpose. Applied globally it would start
+# rejecting the other 186 pages' content on their next 30-day SWR refresh —
+# a silent, ticket-external change to pages nobody asked to touch.
+_PILLAR_TYPES = ("natal_pillar", "lunar_pillar", "compatibility_pillar")
+
+# \bAI\b and \bИИ\b are matched case-SENSITIVELY: lowercase "ai" is an ordinary
+# word in Portuguese and a common syllable in Spanish/Turkish, so an
+# ignore-case match here would reject perfectly good copy.
+_TECH_WORD_RE = re.compile(r"\bAI\b|\bИИ\b")
+_TECH_PHRASES = (
+    "искусственный интеллект", "искусственного интеллекта", "нейросет", "нейронна",
+    "штучний інтелект", "artificial intelligence", "neural network", "inteligencia artificial",
+    "inteligência artificial", "rede neural", "red neuronal", "yapay zeka", "sinir ağı",
+    "интеграц", "інтеграц", "integration", "integración", "integração", "entegrasyon",
+)
+
+
+def _has_tech_vocabulary(parsed: dict) -> str | None:
+    """The first banned term found anywhere in the generated copy, else None."""
+    blob = json.dumps(parsed, ensure_ascii=False)
+    m = _TECH_WORD_RE.search(blob)
+    if m:
+        return m.group(0)
+    low = blob.lower()
+    for phrase in _TECH_PHRASES:
+        if phrase in low:
+            return phrase
+    return None
+
+
 def _parse_content_json(raw: str, page_type: str, slug: str, lang: str) -> dict | None:
     """Extracts and parses the JSON object from a model response. Tries
     strict json.loads first, then json_repair as a fallback for the class of
@@ -385,6 +495,13 @@ def _parse_content_json(raw: str, page_type: str, slug: str, lang: str) -> dict 
         logger.error("SEO gen for %s/%s/%s: faq has an empty answer, rejecting: %r",
                      page_type, slug, lang, parsed.get("faq"))
         return None
+
+    if page_type in _PILLAR_TYPES:
+        banned = _has_tech_vocabulary(parsed)
+        if banned is not None:
+            logger.error("SEO gen for %s/%s/%s: pillar copy contains banned technical term %r, rejecting",
+                         page_type, slug, lang, banned)
+            return None
 
     return parsed
 
@@ -580,8 +697,8 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
 def seo_page_items() -> list[tuple[str, str, dict]]:
     """(page_type, slug, raw ru data) for all individual SEO pages."""
     from app.data.seo_data import (
-        ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS,
-        NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS,
+        ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_SEO, LUNAR_PILLAR, NATAL_HOUSES,
+        NATAL_PILLAR, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS,
     )
 
     items: list[tuple[str, str, dict]] = []
@@ -601,6 +718,8 @@ def seo_page_items() -> list[tuple[str, str, dict]]:
         items.append(("natal_house", h["slug"], h))
     items.append(("ascendant", ASCENDANT_SEO["slug"], ASCENDANT_SEO))
     items.append(("compatibility_pillar", COMPATIBILITY_PILLAR["slug"], COMPATIBILITY_PILLAR))
+    items.append(("natal_pillar", NATAL_PILLAR["slug"], NATAL_PILLAR))
+    items.append(("lunar_pillar", LUNAR_PILLAR["slug"], LUNAR_PILLAR))
     for s in ZODIAC_SIGNS:
         items.append(("compat_sign", s["slug"], s))
     return items

@@ -4,9 +4,40 @@
 {% if faq %}<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for f in faq %}{"@type":"Question","name":"{{ f.q }}","acceptedAnswer":{"@type":"Answer","text":"{{ f.a }}"}}{% if not loop.last %},{% endif %}{% endfor %}]}</script>{% endif %}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_compat }}","item":"{{ canonical }}"}]}</script>
 {% endblock %}
+{% block head_extra %}{% include "seo/_pillar_style.html" %}{% endblock %}
+{% block hdr_home %}{% include "seo/_pillar_home.html" %}{% endblock %}
 {% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_compat }}{% endblock %}
 {% block content %}
-<h1>{{ h1 }}</h1>
+<div class="pillar-hero">
+  <div class="hero-art" role="img" aria-label="{{ t.hero_compat_alt }}">{{ hero_svg|safe }}</div>
+  <p class="hero-eyebrow">{{ t.bc_compat }}</p>
+  <h1>{{ h1 }}</h1>
+  <p class="hero-lede">{{ t.compat_hub_desc }}</p>
+  {% include "seo/_pillar_cta.html" %}
+</div>
+
+{# TZ-110 п.2: a sample pair. The two signs match the glyphs in the hero art
+   above (♌ / ♎) and the wording of preview_compat_quote — the figures are
+   illustrative and the block is badged as an example. #}
+<section class="preview">
+  <div class="preview-hd"><h2>{{ t.preview_title }}</h2><span class="badge">{{ t.preview_badge }}</span></div>
+  <div class="pv">
+    <div class="pv-split">
+      <div class="pv-mini" aria-hidden="true">{{ hero_svg|safe }}</div>
+      <div class="pv-side">
+        <div class="pv-score">
+          <span class="pv-score-n">84</span>
+          <span class="pv-score-l">{{ t.preview_score_label }}<br>{{ signs[4].name }} &amp; {{ signs[6].name }}</span>
+        </div>
+        <div class="bar"><div class="bar-t"><span>{{ t.preview_love }}</span><span>88</span></div><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div></div>
+        <div class="bar"><div class="bar-t"><span>{{ t.preview_friendship }}</span><span>81</span></div><div class="bar-track"><div class="bar-fill" style="width:81%"></div></div></div>
+        <div class="bar"><div class="bar-t"><span>{{ t.preview_work }}</span><span>72</span></div><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div></div>
+      </div>
+    </div>
+    <p class="pv-quote">{{ t.preview_compat_quote }}</p>
+  </div>
+</section>
+
 <p>{{ content.intro }}</p>
 {% for sec in content.sections %}
 <h2>{{ sec.title }}</h2>
@@ -17,3 +48,4 @@
 <h2>{{ t.compat_by_sign }}</h2>
 <div class="links">{% for s in signs %}<a href="{{ prefix }}/compatibility/{{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>
 {% endblock %}
+{% block body_extra %}{% include "seo/_pillar_veil.html" %}{% endblock %}

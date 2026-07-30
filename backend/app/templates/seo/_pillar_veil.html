@@ -1,0 +1,45 @@
+{# TZ-110 п.6: atmospheric departure animation for the pillar CTA.
+
+   Progressive enhancement on purpose — the CTA is a plain <a href> that works
+   with JS disabled, and this script only intercepts it when it can actually
+   play the animation. Reduced-motion users, modified clicks (ctrl/cmd/middle,
+   i.e. "open in a new tab") and non-primary buttons all fall through to the
+   browser's own navigation, unchanged.
+
+   The redirect is a hard timeout, not an animationend listener: if the
+   animation is ever dropped by the compositor, a missed event would strand the
+   visitor on a covered page with no way forward. #}
+<div id="mx-veil" aria-hidden="true">
+  <div class="mx-veil-mark">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon points="50,6 94,50 50,94 6,50" fill="none" stroke="#E8CD7E" stroke-width="1.2"/>
+      <polygon points="50,17 83,50 50,83 17,50" fill="none" stroke="#E8CD7E" stroke-width="1.2" transform="rotate(45 50 50)"/>
+      <circle cx="50" cy="50" r="34" fill="none" stroke="#C9A84C" stroke-width=".8" opacity=".5"/>
+      <circle cx="50" cy="50" r="4" fill="#F0D680"/>
+    </svg>
+  </div>
+  {% for a in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] %}<i class="mx-spark" style="--a:{{ a }}deg"></i>{% endfor %}
+</div>
+<script>
+(function () {
+  var veil = document.getElementById('mx-veil');
+  var links = document.querySelectorAll('a[data-veil]');
+  if (!veil || !links.length) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  Array.prototype.forEach.call(links, function (a) {
+    a.addEventListener('click', function (e) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      veil.classList.add('on');
+      var href = a.getAttribute('href');
+      setTimeout(function () { window.location.href = href; }, 1150);
+    });
+  });
+
+  // Back/forward out of the bfcache restores the page mid-animation with the
+  // veil still opaque over it — clear it on every restore, not just on load.
+  window.addEventListener('pageshow', function () { veil.classList.remove('on'); });
+})();
+</script>

@@ -1,0 +1,11 @@
+{# TZ-110 п.5: the generation CTA. Its label comes from the TZ-095 glossary
+   (t.pillar_cta_*), never a technical verb, and app_cta_href is a plain
+   /app/{section} deep link — the TZ-096 mechanism handles the unauthenticated
+   case by parking the visitor on login and restoring exactly that section
+   afterwards. Nothing here touches the authenticated backend: calculation and
+   payment stay entirely inside the app. #}
+<a href="{{ app_cta_href }}" class="app-cta" data-veil>
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 13.9 9l6 1.9-6 1.9L12 18.6 10.1 12.8l-6-1.9 6-1.9z"/><path d="M18.4 3v3.2M20 4.6h-3.2"/></svg>
+  {{ app_cta_label }}
+</a>
+<span class="app-cta-hint">{{ t.pillar_cta_hint }}</span>

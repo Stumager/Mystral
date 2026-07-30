@@ -149,11 +149,29 @@ ASCENDANT_SEO = {
 }
 
 # TZ-094: the /compatibility pillar page — unlike the other hubs (zodiac/
-# tarot/runes/natal-chart/lunar-calendar), this one carries its own
-# LLM-generated content (a general compatibility overview) in addition to
-# linking out to the 12 /compatibility/{sign} pages, so it needs a
-# seo_page_items() entry like any other individually-generated page.
+# tarot/runes), this one carries its own LLM-generated content (a general
+# compatibility overview) in addition to linking out to the 12
+# /compatibility/{sign} pages, so it needs a seo_page_items() entry like any
+# other individually-generated page.
 COMPATIBILITY_PILLAR = {
     "slug": "compatibility",
     "keywords": ["совместимость знаков зодиака", "совместимость по гороскопу"],
+}
+
+# TZ-110: /natal-chart and /lunar-calendar were the odd ones out — real
+# landing pages by intent, but structurally still bare link hubs with one
+# static intro paragraph and no FAQ at all, while the third pillar
+# (/compatibility) has carried generated content since TZ-094. Giving them
+# their own page_type is what makes a FAQ block (and its FAQPage JSON-LD)
+# possible on them, so all three pillars are finally the same shape.
+# Deliberately NOT extended to the section hubs (/tarot, /runes, /zodiac,
+# /numerology) — those are card indexes, not explaining pages.
+NATAL_PILLAR = {
+    "slug": "natal-chart",
+    "keywords": ["натальная карта", "расчёт натальной карты", "натальная карта онлайн"],
+}
+
+LUNAR_PILLAR = {
+    "slug": "lunar-calendar",
+    "keywords": ["лунный календарь", "лунный день сегодня", "фазы луны"],
 }
