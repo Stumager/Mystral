@@ -26,8 +26,13 @@ from app.core.seo_generator import _generate_and_store, localize_data, seo_page_
 from app.data.seo_i18n import PREFIX_LANGS  # noqa: E402
 from app.models.user import SeoContent  # noqa: E402
 
+# TZ-110: kept in sync with seo_generator.seo_page_items() by a test — this
+# tuple is a hand-maintained copy, and a type missing from it is skipped
+# silently even by a default full run (it only gates --types), so new page
+# types would never be generated in batch at all.
 PAGE_TYPES = ("zodiac", "tarot", "rune", "numerology", "natal_planet", "lunar_day",
-              "natal_house", "ascendant", "compatibility_pillar", "compat_sign")
+              "natal_house", "ascendant", "compatibility_pillar", "natal_pillar",
+              "lunar_pillar", "compat_sign")
 BACKOFF_STEPS = (30, 60, 120)
 
 
