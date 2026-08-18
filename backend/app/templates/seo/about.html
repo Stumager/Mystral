@@ -1,0 +1,26 @@
+{% extends "seo/base.html" %}
+{% block schema %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","name":"{{ t.about_h1 }}","url":"{{ canonical }}","mainEntity":{"@type":"Organization","name":"Mystral","url":"https://mystral.space","email":"mailto:sasha.nechunaev1234@gmail.com","founder":{"@type":"Person","name":"Alexander Nechunaev"}}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{ t.bc_home }}","item":"https://mystral.space"},{"@type":"ListItem","position":2,"name":"{{ t.bc_about }}","item":"{{ canonical }}"}]}</script>
+{% endblock %}
+{% block breadcrumbs %}<a href="/">{{ t.bc_home }}</a> › {{ t.bc_about }}{% endblock %}
+{% block content %}
+<h1>{{ t.about_h1 }}</h1>
+<p>{{ t.about_lede }}</p>
+
+<h2>{{ t.about_who_h2 }}</h2>
+<p>{{ t.about_who_body }}</p>
+
+<h2>{{ t.about_method_h2 }}</h2>
+<p><b>{{ t.nav_natal }}.</b> {{ t.about_method_natal }}</p>
+<p><b>{{ t.nav_lunar }}.</b> {{ t.about_method_lunar }}</p>
+<p><b>{{ t.nav_compat }}.</b> {{ t.about_method_compat }}</p>
+<p><b>{{ t.about_matrix_label }}.</b> {{ t.about_method_matrix }}</p>
+<p><b>{{ t.bc_numerology }}.</b> {{ t.about_method_numerology }}</p>
+<p><b>{{ t.bc_tarot }} / {{ t.bc_runes }}.</b> {{ t.about_method_tarot }}</p>
+<p>{{ t.about_ai_disclosure }}</p>
+
+<h2>{{ t.about_trust_h2 }}</h2>
+<p>{{ t.about_trust_body }}</p>
+<p>{{ t.about_legal_lede }} <a href="/privacy">{{ t.footer_privacy }}</a>, <a href="/terms">{{ t.footer_terms }}</a></p>
+{% endblock %}

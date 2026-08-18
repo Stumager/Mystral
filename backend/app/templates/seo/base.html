@@ -59,6 +59,10 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
 .links{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:24px 0}
 .links a{padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:13px;color:#B6AC98}
 .ft{padding:32px 24px;border-top:1px solid rgba(201,168,76,.1);text-align:center;font-size:12px;color:#6E6757;margin-top:40px}
+.ft-links{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px;margin-bottom:10px}
+.ft-links a{color:#8A8170;font-size:12px}
+.ft-legal{font-size:11px;color:#544F44;margin-top:6px}
+.ft-legal a{color:#8A8170}
 </style>
 {% block schema %}{% endblock %}
 {% block head_extra %}{% endblock %}
@@ -91,7 +95,14 @@ p{margin:0 0 16px;font-size:15px;color:#B6AC98}
   </div>
   {% block links %}{% endblock %}
 </main>
-<footer class="ft">{{ t.footer }}</footer>
+{# TZ-111: visible contact/requisites in the footer for E-E-A-T trust
+   signals — Privacy/Terms existed but weren't linked from any SEO page,
+   and the operator's legal identity was nowhere outside those two pages. #}
+<footer class="ft">
+  <nav class="ft-links"><a href="{{ prefix }}/about">{{ t.nav_about }}</a><a href="/privacy">{{ t.footer_privacy }}</a><a href="/terms">{{ t.footer_terms }}</a></nav>
+  <p>{{ t.footer }}</p>
+  <p class="ft-legal">{{ t.footer_legal }} · <a href="mailto:sasha.nechunaev1234@gmail.com">sasha.nechunaev1234@gmail.com</a></p>
+</footer>
 {% block body_extra %}{% endblock %}
 </body>
 </html>

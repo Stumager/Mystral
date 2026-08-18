@@ -637,9 +637,10 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 194 paths x 6 languages (168 from TZ-083 + 26 new in
-        # TZ-094: 1 compatibility hub + 12 compat signs + 12 houses + 1 ascendant)
-        assert count == 1165, f"sitemap has {count} URLs"
+        # 1 homepage + 195 paths x 6 languages (168 from TZ-083 + 26 from
+        # TZ-094: 1 compatibility hub + 12 compat signs + 12 houses + 1
+        # ascendant + 1 from TZ-111: /about)
+        assert count == 1171, f"sitemap has {count} URLs"
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

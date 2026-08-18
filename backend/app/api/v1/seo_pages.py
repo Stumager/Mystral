@@ -92,6 +92,22 @@ def _ctx(lang: str, path: str, title: str, description: str, content: Optional[d
     return ctx
 
 
+@router.get("/about", response_class=HTMLResponse)
+@router.get("/{lang}/about", response_class=HTMLResponse)
+async def about_page(request: Request):
+    """TZ-111: E-E-A-T trust page — fully static hand-written content, no
+    seo_generator/DB involved (unlike the *_hub pages), so there is nothing
+    to cache and no fallback state."""
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/about")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/about.html", _ctx(
+        lang, "/about", t["about_title"], t["about_desc"],
+    ))
+
+
 @router.get("/zodiac", response_class=HTMLResponse)
 @router.get("/{lang}/zodiac", response_class=HTMLResponse)
 async def zodiac_hub(request: Request):
@@ -484,7 +500,7 @@ async def constellation_svg(slug: str, request: Request):
 async def sitemap():
     today = date.today().isoformat()
     paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"),
-             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9")]
+             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9"), ("/about", "0.5")]
     for s in ZODIAC_SIGNS:
         paths.append((f"/zodiac/{s['slug']}", "0.9"))
     for c in TAROT_CARDS:
