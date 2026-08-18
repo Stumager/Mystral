@@ -1,0 +1,28 @@
+# Mystral
+
+> Mystral is an esoteric platform: natal charts, lunar calendar, zodiac compatibility, Tarot, runes, numerology, and the Destiny Matrix. Calculations are real (Swiss Ephemeris astronomy, classical numerology, cross-checked formulas); explanatory text is written by language models grounded in that calculated data. Available in Russian (default) and English, Spanish, Portuguese, Turkish, Ukrainian (under /en, /es, /pt, /tr, /uk).
+
+Mystral is built and maintained by a single independent developer, not an agency or a fund — see /about for who's behind it and what each tool's calculation is based on.
+
+## Product pages
+
+- [Natal chart](https://mystral.space/natal-chart): Free natal chart calculation — planets, houses, aspects, ascendant — via real astronomical ephemeris data.
+- [Lunar calendar](https://mystral.space/lunar-calendar): The Moon's current phase and lunar day, calculated astronomically and interpreted through the traditional 30-day lunar calendar.
+- [Compatibility](https://mystral.space/compatibility): Zodiac, element, numerology, Chinese zodiac and synastry-based compatibility between two people.
+
+## Reference sections
+
+- [Zodiac signs](https://mystral.space/zodiac): All 12 zodiac signs — traits, compatibility, dates.
+- [Tarot cards](https://mystral.space/tarot): All 78 Tarot cards, upright and reversed meanings.
+- [Runes](https://mystral.space/runes): The 24 Elder Futhark runes — meaning and divination use.
+- [Numerology](https://mystral.space/numerology): Life path numbers and their meaning.
+
+## About
+
+- [About Mystral](https://mystral.space/about): Who builds Mystral and what each calculation is based on.
+- [Privacy Policy](https://mystral.space/privacy): Personal data handling.
+- [Terms of Use](https://mystral.space/terms): Terms of service and subscription details.
+
+## Optional
+
+- [Sitemap](https://mystral.space/sitemap.xml): Every indexed URL across all 6 languages, with hreflang alternates.
