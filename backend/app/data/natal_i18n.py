@@ -114,13 +114,46 @@ present here yet.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
     "es": {
+        "ceres": {
+            "name": "Ceres"
+        },
         "chiron": {
             "name": "Quirón"
         },
+        "juno": {
+            "name": "Juno"
+        },
         "jupiter": {
             "name": "Júpiter"
+        },
+        "lilith": {
+            "name": "Lilith"
         },
         "mars": {
             "name": "Marte"
@@ -133,6 +166,12 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "neptune": {
             "name": "Neptuno"
+        },
+        "pallas": {
+            "name": "Palas"
+        },
+        "part_of_fortune": {
+            "name": "Parte de la Fortuna"
         },
         "pluto": {
             "name": "Plutón"
@@ -154,14 +193,26 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "venus": {
             "name": "Venus"
+        },
+        "vesta": {
+            "name": "Vesta"
         }
     },
     "pt": {
+        "ceres": {
+            "name": "Ceres"
+        },
         "chiron": {
             "name": "Quíron"
         },
+        "juno": {
+            "name": "Juno"
+        },
         "jupiter": {
             "name": "Júpiter"
+        },
+        "lilith": {
+            "name": "Lilite"
         },
         "mars": {
             "name": "Marte"
@@ -174,6 +225,12 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "neptune": {
             "name": "Netuno"
+        },
+        "pallas": {
+            "name": "Palas"
+        },
+        "part_of_fortune": {
+            "name": "Parte da Fortuna"
         },
         "pluto": {
             "name": "Plutão"
@@ -195,14 +252,26 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "venus": {
             "name": "Vênus"
+        },
+        "vesta": {
+            "name": "Vesta"
         }
     },
     "tr": {
+        "ceres": {
+            "name": "Ceres"
+        },
         "chiron": {
             "name": "Kiron"
         },
+        "juno": {
+            "name": "Juno"
+        },
         "jupiter": {
             "name": "Jüpiter"
+        },
+        "lilith": {
+            "name": "Lilith"
         },
         "mars": {
             "name": "Mars"
@@ -215,6 +284,12 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "neptune": {
             "name": "Neptün"
+        },
+        "pallas": {
+            "name": "Pallas"
+        },
+        "part_of_fortune": {
+            "name": "Fortuna Parçası"
         },
         "pluto": {
             "name": "Plüton"
@@ -236,14 +311,26 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "venus": {
             "name": "Venüs"
+        },
+        "vesta": {
+            "name": "Vesta"
         }
     },
     "uk": {
+        "ceres": {
+            "name": "Церера"
+        },
         "chiron": {
             "name": "Хірон"
         },
+        "juno": {
+            "name": "Юнона"
+        },
         "jupiter": {
             "name": "Юпітер"
+        },
+        "lilith": {
+            "name": "Ліліт"
         },
         "mars": {
             "name": "Марс"
@@ -256,6 +343,12 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "neptune": {
             "name": "Нептун"
+        },
+        "pallas": {
+            "name": "Паллада"
+        },
+        "part_of_fortune": {
+            "name": "Частина Фортуни"
         },
         "pluto": {
             "name": "Плутон"
@@ -277,6 +370,9 @@ PLANET_NAMES_I18N: dict[str, dict[str, dict[str, str]]] = {
         },
         "venus": {
             "name": "Венера"
+        },
+        "vesta": {
+            "name": "Веста"
         }
     }
 }
