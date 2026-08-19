@@ -177,6 +177,37 @@ PROMPTS = {
         "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
         "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
     ),
+    "destiny_pillar": (
+        "Напиши исчерпывающее руководство по Матрице судьбы. "
+        "Включи секции: 1) Что такое Матрица судьбы и как появился этот метод, "
+        "2) Как рассчитывается матрица — формула по дате рождения, "
+        "3) Личный квадрат — четыре точки и что они показывают, "
+        "4) Родовой квадрат — четыре точки родового наследия, "
+        "5) Центр матрицы — точка предназначения, "
+        "6) 22 аркана как языки энергии — светлая и теневая сторона, "
+        "7) Как читать свою матрицу шаг за шагом, "
+        "8) Частые ошибки при самостоятельном разборе матрицы. "
+        "Создай 5 FAQ с ответами. " + _NO_TECH + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
+    "destiny_arcana": (
+        "Напиши подробное толкование {number}-го аркана «{name}» в контексте Матрицы судьбы — "
+        "не общее значение карты Таро, а именно энергию этого аркана как одной из девяти точек матрицы. "
+        "Используй как основу проверенные ключевые слова энергии: в светлом проявлении — {light}; "
+        "в теневом проявлении — {shadow}. "
+        "Включи секции: 1) Общее значение этого аркана в матрице, "
+        "2) Светлая сторона — как проявляется в характере и поступках, "
+        "3) Теневая сторона — как проявляется и как её распознать, "
+        "4) Если аркан выпал в личном квадрате — что это значит, "
+        "5) Если аркан выпал в родовом квадрате — что это значит, "
+        "6) Как раскрыть светлую сторону этого аркана, "
+        "7) Как трансформировать теневое проявление, "
+        "8) Совместимость этой энергии с другими арканами матрицы. "
+        "Создай 5 FAQ с ответами. " + _QUALITY +
+        "Верни JSON: {{\"intro\": \"...\", \"sections\": [{{\"title\": \"...\", \"text\": \"...\"}}], "
+        "\"faq\": [{{\"q\": \"...\", \"a\": \"...\"}}], \"cta_text\": \"...\"}}"
+    ),
 }
 
 # For the 5 prefixed languages: English master templates with an explicit
@@ -318,6 +349,34 @@ PROMPTS_I18N = {
         "8) Advice for harmonious relationships with {name}. "
         "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
     ),
+    "destiny_pillar": (
+        "Write a comprehensive guide to the Destiny Matrix. "
+        "Include sections: 1) What the Destiny Matrix is and where the method comes from, "
+        "2) How the matrix is calculated — the formula derived from a birth date, "
+        "3) The personal square — its four points and what each one shows, "
+        "4) The ancestral square — its four points of inherited family patterns, "
+        "5) The centre of the matrix — the core point of purpose, "
+        "6) The 22 arcana as languages of energy — light and shadow sides, "
+        "7) How to read your own matrix step by step, "
+        "8) Common mistakes people make reading their own matrix. "
+        "Create 5 FAQ. " + _NO_TECH_I18N + _QUALITY_I18N + _JSON_SCHEMA
+    ),
+    "destiny_arcana": (
+        "Write a detailed interpretation of arcanum {number}, \"{name}\", in the context of the Destiny "
+        "Matrix — not the general Tarot card meaning, but this arcanum's energy as one of the matrix's "
+        "nine points. "
+        "Use the following verified energy keywords as a basis: light expression — {light}; "
+        "shadow expression — {shadow}. "
+        "Include sections: 1) The general meaning of this arcanum in the matrix, "
+        "2) Its light side — how it shows up in character and behavior, "
+        "3) Its shadow side — how it shows up and how to recognize it, "
+        "4) What it means when this arcanum falls in the personal square, "
+        "5) What it means when this arcanum falls in the ancestral square, "
+        "6) How to bring out its light side, "
+        "7) How to transform its shadow expression, "
+        "8) How this energy combines with other arcana in the matrix. "
+        "Create 5 FAQ. " + _QUALITY_I18N + _JSON_SCHEMA
+    ),
 }
 
 # ru entry is the previously hardcoded system message, unchanged.
@@ -423,7 +482,7 @@ def _has_empty_faq_answer(parsed: dict) -> bool:
 # Scoped to the three pillar types on purpose. Applied globally it would start
 # rejecting the other 186 pages' content on their next 30-day SWR refresh —
 # a silent, ticket-external change to pages nobody asked to touch.
-_PILLAR_TYPES = ("natal_pillar", "lunar_pillar", "compatibility_pillar")
+_PILLAR_TYPES = ("natal_pillar", "lunar_pillar", "compatibility_pillar", "destiny_pillar")
 
 # \bAI\b and \bИИ\b are matched case-SENSITIVELY: lowercase "ai" is an ordinary
 # word in Portuguese and a common syllable in Spanish/Turkish, so an
@@ -668,13 +727,16 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
     content, but its best_text/worst_text (used by the compat_sign prompt)
     only exist after localize_compat_sign() builds them — needed for ru too."""
     from app.data.seo_i18n import (
-        localize_ascendant, localize_compat_sign, localize_lunar_day, localize_natal_house,
-        localize_natal_planet, localize_num, localize_rune, localize_sign, tarot_display_name,
+        localize_ascendant, localize_compat_sign, localize_destiny_arcana, localize_lunar_day,
+        localize_natal_house, localize_natal_planet, localize_num, localize_rune, localize_sign,
+        tarot_display_name,
     )
     if page_type == "lunar_day":
         return localize_lunar_day(data, lang)
     if page_type == "compat_sign":
         return localize_compat_sign(data, lang)
+    if page_type == "destiny_arcana":
+        return localize_destiny_arcana(data, lang)
     if lang == "ru":
         return data
     if page_type == "zodiac":
@@ -697,8 +759,9 @@ def localize_data(page_type: str, data: dict, lang: str) -> dict:
 def seo_page_items() -> list[tuple[str, str, dict]]:
     """(page_type, slug, raw ru data) for all individual SEO pages."""
     from app.data.seo_data import (
-        ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_SEO, LUNAR_PILLAR, NATAL_HOUSES,
-        NATAL_PILLAR, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, TAROT_CARDS, ZODIAC_SIGNS,
+        ASCENDANT_SEO, COMPATIBILITY_PILLAR, DESTINY_ARCANA_SEO, DESTINY_PILLAR, LUNAR_DAY_SEO,
+        LUNAR_PILLAR, NATAL_HOUSES, NATAL_PILLAR, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO,
+        TAROT_CARDS, ZODIAC_SIGNS,
     )
 
     items: list[tuple[str, str, dict]] = []
@@ -722,6 +785,9 @@ def seo_page_items() -> list[tuple[str, str, dict]]:
     items.append(("lunar_pillar", LUNAR_PILLAR["slug"], LUNAR_PILLAR))
     for s in ZODIAC_SIGNS:
         items.append(("compat_sign", s["slug"], s))
+    items.append(("destiny_pillar", DESTINY_PILLAR["slug"], DESTINY_PILLAR))
+    for a in DESTINY_ARCANA_SEO:
+        items.append(("destiny_arcana", a["slug"], a))
     return items
 
 
