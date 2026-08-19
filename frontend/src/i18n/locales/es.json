@@ -608,6 +608,12 @@
     "loading": "El karma está hablando...",
     "error": "Algo salió mal. Inténtalo de nuevo."
   },
+  "moneyLine": {
+    "title": "Línea del Dinero",
+    "interpret": "Mensaje del Dinero",
+    "loading": "El dinero está hablando...",
+    "error": "Algo salió mal. Inténtalo de nuevo."
+  },
   "onboarding": {
     "title": "Cuéntanos sobre ti ✨",
     "subtitle": "Para crear tu horóscopo personalizado",

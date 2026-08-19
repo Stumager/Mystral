@@ -234,3 +234,19 @@ class TestKarmicTailInterpretClosesSessionBeforeStreaming:
             )
         assert res.status_code == 200
         assert close_tracker["closed_when_stream_started"] is True
+
+
+class TestMoneyLineInterpretClosesSessionBeforeStreaming:
+    """TZ-115 — the 12th streaming endpoint, same module as matrix.py's
+    /matrix/interpret above. Pro-only, so this runs on pro_headers."""
+
+    async def test_interpret(self, client, pro_headers, close_tracker):
+        fake_stream = _fake_stream_factory(close_tracker)
+        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+            res = await client.post(
+                "/v1/matrix/money-line/interpret",
+                headers=pro_headers,
+                json={"lang": "ru"},
+            )
+        assert res.status_code == 200
+        assert close_tracker["closed_when_stream_started"] is True

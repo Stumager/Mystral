@@ -15,6 +15,10 @@ no new user input — but its own access model is different, confirmed
 separately with the product owner: unlike the base matrix, it has no free
 sample at all. Both GET /matrix/karmic-tail and POST
 /matrix/karmic-tail/interpret reject free users.
+
+TZ-115 (Денежная линия, "Послание денег") — third module on the same nine
+points, same access model as TZ-114: no free sample, both GET
+/matrix/money-line and POST /matrix/money-line/interpret reject free users.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -29,6 +33,7 @@ from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
 from app.data.destiny_matrix import POINT_IDS, arcana_name, build_matrix, calculate
 from app.data.karmic_tail import KARMIC_TAIL, build_karmic_tail, calculate_tail, tail_code
+from app.data.money_line import MONEY_LINE_POSITIONS, build_money_line, calculate_money_line
 from app.models.user import User, UserProfile
 
 router = APIRouter()
@@ -158,6 +163,23 @@ async def interpret(
     )
 
 
+# What each money-line position stands for, phrased for the model — mirrors
+# POINT_PROMPT_RU/EN above. "entry" is deliberately the same value as the
+# karmic tail's first digit (see money_line.py's docstring) — the prompt
+# says so explicitly rather than leaving the model to notice on its own.
+MONEY_POSITION_PROMPT_RU = {
+    "entry": "Вход в денежный поток — что притягивает деньги в сторону человека",
+    "source": "Источник дохода — за какие качества и сферы деятельности платят",
+    "block": "Блок денежного потока — что перекрывает деньги, когда энергия не проработана",
+}
+
+MONEY_POSITION_PROMPT_EN = {
+    "entry": "Entry into the money flow — what draws money toward this person",
+    "source": "Income source — which qualities and spheres of activity get paid",
+    "block": "Money-flow block — what shuts money off when this energy is unworked",
+}
+
+
 class KarmicTailInterpretRequest(BaseModel):
     lang: str = "ru"
 
@@ -224,6 +246,84 @@ async def karmic_tail_interpret(
     prompt += lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "karmic_tail_interpret", 0, 20)
+    msgs = [
+        {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
+        {"role": "user", "content": prompt},
+    ]
+    return StreamingResponse(
+        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+class MoneyLineInterpretRequest(BaseModel):
+    lang: str = "ru"
+
+
+@router.get("/matrix/money-line")
+async def money_line(
+    lang: str = "ru",
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """TZ-115: same access model as the karmic tail — no free sample."""
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+    bd = await _birth_date(session, current_user)
+    return {"birth_date": bd.isoformat(), **build_money_line(bd, lang)}
+
+
+@router.post("/matrix/money-line/interpret")
+async def money_line_interpret(
+    req: MoneyLineInterpretRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    bd = await _birth_date(session, current_user)
+
+    # Same TZ-089/091/097 fix as the other streaming endpoints above.
+    await session.close()
+
+    ru = req.lang == "ru"
+    points = calculate(bd)
+    values = calculate_money_line(points)
+    labels = MONEY_POSITION_PROMPT_RU if ru else MONEY_POSITION_PROMPT_EN
+
+    full = ", ".join(
+        f"{labels[pos]}: аркан {values[pos]} ({arcana_name(values[pos], req.lang)})" if ru
+        else f"{labels[pos]}: arcana {values[pos]} ({arcana_name(values[pos], req.lang)})"
+        for pos in MONEY_LINE_POSITIONS
+    )
+
+    if ru:
+        prompt = (
+            f"Денежная линия человека целиком: {full}.\n\n"
+            f"Напиши персональное послание денежной линии для этого человека.\n"
+            f"Структура ответа:\n"
+            f"1. Что притягивает деньги в сторону человека (точка входа)\n"
+            f"2. За какие качества и сферы деятельности будут платить (источник дохода)\n"
+            f"3. Что перекрывает поток, если эта энергия не проработана, и один "
+            f"конкретный шаг для проработки (блок)\n"
+            f"Обращайся на «ты». 150-250 слов, без воды."
+        )
+    else:
+        prompt = (
+            f"This person's full money line: {full}.\n\n"
+            f"Write a personal money-line reading for this person.\n"
+            f"Structure:\n"
+            f"1. What draws money toward this person (the entry point)\n"
+            f"2. Which qualities and spheres of activity will get paid (the income source)\n"
+            f"3. What shuts the flow off when this energy is unworked, and one "
+            f"concrete step to work on it (the block)\n"
+            f"150-250 words, no filler."
+        )
+    prompt += lang_enforce(req.lang)
+
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "money_line_interpret", 0, 20)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},

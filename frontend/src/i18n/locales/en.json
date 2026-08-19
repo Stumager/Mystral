@@ -608,6 +608,12 @@
     "loading": "Karma is speaking...",
     "error": "Something went wrong. Try again."
   },
+  "moneyLine": {
+    "title": "Money Line",
+    "interpret": "Message of Money",
+    "loading": "Money is speaking...",
+    "error": "Something went wrong. Try again."
+  },
   "onboarding": {
     "title": "Tell us about you ✨",
     "subtitle": "To create your personal horoscope",
