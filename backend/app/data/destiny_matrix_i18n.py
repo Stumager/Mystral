@@ -13,4 +13,153 @@ destiny_matrix. Empty until that runs; pick() falls back to English for any
 language not present here yet.
 """
 
-ARCANA_MATRIX_I18N: dict[str, dict[str, dict[str, str]]] = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ARCANA_MATRIX_I18N: dict[str, dict[str, dict[str, str]]] = {
+    "es": {
+        "1": {
+            "light": "voluntad, iniciativa, don de persuasión, capacidad de comenzar",
+            "shadow": "manipulación, ajetreo sin resultado, promesas en lugar de acciones"
+        },
+        "10": {
+            "light": "el giro afortunado, el sentido del momento, la flexibilidad",
+            "shadow": "apuesta al azar, vaivenes, evasión de responsabilidad"
+        },
+        "11": {
+            "light": "claridad, honestidad, capacidad de ver la causa y el efecto",
+            "shadow": "condena, negociación con la conciencia, dobles estándares"
+        },
+        "12": {
+            "light": "un cambio de perspectiva, una pausa madura, aceptación",
+            "shadow": "martirio, estancamiento, espera en"
+        },
+        "13": {
+            "light": "finalización, renovación, el coraje de dejar ir",
+            "shadow": "aferrarse a lo que ha terminado, miedo al cambio, un final prolongado"
+        },
+        "14": {
+            "light": "balance, medida, combinación de opuestos",
+            "shadow": "medias tintas, mezcla eterna sin elección"
+        },
+        "15": {
+            "light": "pasión, vitalidad, honestidad sobre los propios deseos",
+            "shadow": "adicciones, pactos contigo mismo, el poder de la materia"
+        },
+        "16": {
+            "light": "un colapso liberador, verdad en lugar de ilusión",
+            "shadow": "destrucción como hábito, crisis de la nada"
+        },
+        "17": {
+            "light": "esperanza, inspiración, el don de ser visto",
+            "shadow": "sueños en lugar de pasos, dependencia de la admiración"
+        },
+        "18": {
+            "light": "imaginación, sensibilidad, trabajo con el inconsciente",
+            "shadow": "ansiedad, autoengaño, niebla en lugar de claridad"
+        },
+        "19": {
+            "light": "alegría, claridad, calidez natural hacia las personas",
+            "shadow": "brillo performativo, agotamiento, vanidad"
+        },
+        "2": {
+            "shadow": "frialdad, secretismo por el secretismo, alejamiento de la intimidad"
+        },
+        "20": {
+            "light": "despertar, revisión honesta, la llamada de la vocación",
+            "shadow": "culpa por el pasado, condena de uno mismo, postergación"
+        },
+        "21": {
+            "light": "integridad, un ciclo completado, un horizonte amplio",
+            "shadow": "descansar en los laureles, huir hacia la escala pura"
+        },
+        "22": {
+            "light": "libertad, ligereza, disposición a empezar desde cero",
+            "shadow": "irresponsabilidad, escape, una vida sin raíces"
+        },
+        "3": {
+            "light": "abundancia, cuidado, sensualidad, fertilidad creativa"
+        },
+        "4": {
+            "light": "estructura, responsabilidad, habilidad para mantener el apoyo",
+            "shadow": "rigidez, control, miedo a perder autoridad"
+        },
+        "5": {
+            "light": "mentoría, tradición, la búsqueda de sentido",
+            "shadow": "dogmatismo, reglas ajenas en lugar de las propias"
+        },
+        "6": {
+            "light": "elección desde el corazón, atracción, honestidad en las relaciones",
+            "shadow": "indecisión, deriva, elección por miedo"
+        },
+        "7": {
+            "light": "impulso, victoria a través de la concentración, manteniendo tu propio rumbo",
+            "shadow": "carrera por la carrera misma, agresión, pérdida de control"
+        },
+        "8": {
+            "light": "poder tranquilo, resistencia, doma de impulsos",
+            "shadow": "ira reprimida, violencia contra uno mismo, agotamiento"
+        },
+        "9": {
+            "light": "sabiduría, autosuficiencia, honestidad contigo mismo",
+            "shadow": "aislamiento, negativa a pedir ayuda, orgullosa soledad"
+        }
+    },
+    "pt": {
+        "1": {
+            "light": "vontade, iniciativa, dom de persuasão, capacidade de começar"
+        },
+        "2": {
+            "light": "intuição, profundidade, habilidade de ouvir o silêncio",
+            "shadow": "frieza, sigilo pelo sigilo, afastamento da intimidade"
+        },
+        "3": {
+            "light": "abundância, cuidado, sensualidade, fertilidade criativa",
+            "shadow": "hiperproteção, preguiça, viver pelas mãos dos outros"
+        }
+    }
+}
