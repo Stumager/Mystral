@@ -300,6 +300,19 @@ def _money_line_registry() -> dict[str, list[TranslationItem]]:
     }
 
 
+def _childrens_matrix_registry() -> dict[str, list[TranslationItem]]:
+    """TZ-116: 22 arcana x strength/support keyword lines, same shape as
+    money_line's registry but for the children's-matrix-specific text."""
+    from app.data.childrens_matrix import CHILD_ARCANA_ENERGY
+
+    return {
+        "CHILD_ARCANA_I18N": [
+            (str(n), field, ed[f"{field}_ru"], ed[f"{field}_en"])
+            for n, ed in CHILD_ARCANA_ENERGY.items() for field in ("strength", "support")
+        ],
+    }
+
+
 SECTION_REGISTRY = {
     "compatibility": _compatibility_registry,
     "tarot": _tarot_registry,
@@ -310,6 +323,7 @@ SECTION_REGISTRY = {
     "destiny_matrix": _destiny_matrix_registry,
     "karmic_tail": _karmic_tail_registry,
     "money_line": _money_line_registry,
+    "childrens_matrix": _childrens_matrix_registry,
 }
 
 _LANG_NAME = {"es": "Spanish", "pt": "Brazilian Portuguese", "tr": "Turkish", "uk": "Ukrainian"}
