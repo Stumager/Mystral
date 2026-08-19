@@ -45,6 +45,26 @@ concept interprets it per single arcana (1-22), the same shape as
 destiny_matrix.ARCANA_ENERGY. MONEY_ENERGY below is fully original text,
 written for this project without reading back or paraphrasing any
 competitor's wording, in that same shape.
+
+Content safety (reviewed with the product owner before this shipped):
+matrica-sudby.ru's own text around the money line carries a fatalistic
+"karmic ban" frame — a past-life debt can flatly prevent this life's
+money from arriving, and its "block" position is described as "always
+negative" with no way through. None of that made it into MONEY_ENERGY —
+each `block` entry names a workable behaviour pattern (e.g. arcana 20 is
+"carrying a parent's money story without noticing it isn't yours", not
+"unblock money by forgiving your parents or it won't come"), and the
+matrix.py prompt frames the block position as something to work on, not
+a verdict. test_money_line.py has a keyword guard against this
+regressing.
+
+Separately, the competitor's arcana 3/4 route money through "female/male
+spheres of activity" — flagged for a decision alongside the above. The
+product owner's call was to leave that gendering as-is, consistent with
+keeping TZ-114's "Одинокая женщина" archetype; MONEY_ENERGY[3]/[4] here
+were never gendered in the first place (written from the arcana's
+general theme, not the competitor's text), so nothing needed changing to
+honour that call.
 """
 from __future__ import annotations
 
@@ -97,7 +117,7 @@ MONEY_ENERGY = {
         "flow_ru": "доход держится на структуре — системе, регламенте, надёжном каркасе дела",
         "block_ru": "жёсткий контроль до отказа делегировать хоть что-то",
         "flow_en": "income holds up on structure — a system, a process, a reliable backbone",
-        "block_en": "control so tight that delegating even one task feels impossible",
+        "block_en": "control so tight that delegating even one task feels out of reach",
     },
     5: {
         "flow_ru": "деньги приходят через передачу знаний — обучение, наставничество, экспертизу",

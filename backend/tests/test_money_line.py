@@ -69,6 +69,31 @@ class TestCalculateMoneyLine:
                 assert entry[f"{field}_ru"], n
                 assert entry[f"{field}_en"], n
 
+    def test_no_fatalistic_or_blame_framing(self):
+        """Content-safety guard (see module docstring): matrica-sudby.ru's
+        own money-line text frames blocked money as a karmic punishment a
+        person may be powerless to fix ("karmic ban", "always negative",
+        past-life guilt causing this life's money to be taken away) —
+        reviewed with the product owner and deliberately kept out of
+        MONEY_ENERGY. This locks that decision in against a future edit
+        (by a person or an AI-generation pass) accidentally reintroducing
+        it."""
+        banned_ru = (
+            "карм", "провал", "наказан", "проклят", "обречен", "обречён",
+            "невозможно", "никогда не", "не сможет",
+        )
+        banned_en = (
+            "karma", "curse", "cursed", "doom", "punish", "impossible",
+            "never will", "won't ever",
+        )
+        for n, entry in MONEY_ENERGY.items():
+            for field in ("flow_ru", "block_ru"):
+                low = entry[field].lower()
+                assert not any(w in low for w in banned_ru), (n, field, entry[field])
+            for field in ("flow_en", "block_en"):
+                low = entry[field].lower()
+                assert not any(w in low for w in banned_en), (n, field, entry[field])
+
 
 class TestBuildMoneyLine:
     def test_payload_shape(self):
