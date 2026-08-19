@@ -12,7 +12,8 @@ from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
 from app.data.seo_art import HERO_SVG
 from app.data.seo_data import (
-    ASCENDANT_SEO, COMPATIBILITY_PILLAR, LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO, LUNAR_PILLAR,
+    ASCENDANT_SEO, COMPATIBILITY_PILLAR, DESTINY_ARCANA_BY_SLUG, DESTINY_ARCANA_SEO,
+    DESTINY_PILLAR, LUNAR_DAY_BY_SLUG, LUNAR_DAY_SEO, LUNAR_PILLAR,
     NATAL_HOUSES, NATAL_HOUSES_BY_SLUG, NATAL_PILLAR, NATAL_PLANETS, NATAL_PLANETS_BY_SLUG,
     NUMEROLOGY_BY_SLUG, NUMEROLOGY_SEO, RUNE_BY_SLUG, RUNE_SEO,
     SUITS, TAROT_BY_SLUG, TAROT_CARDS, ZODIAC_BY_SLUG, ZODIAC_SIGNS,
@@ -20,7 +21,7 @@ from app.data.seo_data import (
 from app.data.seo_i18n import (
     ALL_LANGS, LANG_NATIVE, OG_LOCALE, PREFIX_LANGS, SUITS_HDR, UI,
     abs_url, hreflang_alternates, localize_ascendant, localize_card,
-    localize_compat_sign, localize_lunar_day, localize_natal_house,
+    localize_compat_sign, localize_destiny_arcana, localize_lunar_day, localize_natal_house,
     localize_natal_planet, localize_num, localize_rune, localize_sign,
     url_prefix,
 )
@@ -35,7 +36,8 @@ TODAY = lambda: date.today().isoformat()
 # index.html by the frontend and then land on "home" (pageFromPath only
 # matches ^/app/…). The SPA carries its own language state; the deep link
 # only has to name the section. TZ-096 handles the unauthenticated case.
-APP_DEEP_LINK = {"natal": "/app/natal", "lunar": "/app/lunar", "compat": "/app/compatibility"}
+APP_DEEP_LINK = {"natal": "/app/natal", "lunar": "/app/lunar", "compat": "/app/compatibility",
+                  "matrix": "/app/matrix"}
 
 
 def _pillar_ctx(lang: str, section: str) -> dict:
@@ -456,6 +458,63 @@ async def compat_sign_page(sign: str, request: Request, session: AsyncSession = 
     ))
 
 
+# TZ-113: the example matrix shown (badged) on the /destiny-matrix hub —
+# the exact birth date TZ-101 cross-checked against independent calculators
+# (PROGRESS.md step 0), not a made-up illustration.
+_EXAMPLE_BIRTH = date(1990, 5, 15)
+
+
+@router.get("/destiny-matrix", response_class=HTMLResponse)
+@router.get("/{lang}/destiny-matrix", response_class=HTMLResponse)
+async def destiny_matrix_hub(request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/destiny-matrix")
+    if redirect:
+        return redirect
+    content = await get_seo_content("destiny_pillar", DESTINY_PILLAR["slug"], DESTINY_PILLAR, session, lang)
+    t = UI[lang]
+    from app.data.destiny_matrix import arcana_name, calculate
+    values = calculate(_EXAMPLE_BIRTH)
+    example = {
+        "core": arcana_name(values["core"], lang),
+        "personality": arcana_name(values["personality"], lang),
+        "talents": arcana_name(values["talents"], lang),
+    }
+    return templates.TemplateResponse(request, "seo/destiny_hub.html", _ctx(
+        lang, "/destiny-matrix", t["destiny_hub_title"], t["destiny_hub_desc"],
+        content=content,
+        arcana=[localize_destiny_arcana(a, lang) for a in DESTINY_ARCANA_SEO],
+        example=example,
+        today=TODAY(),
+        **_pillar_ctx(lang, "matrix"),
+    ))
+
+
+@router.get("/destiny-matrix/arcana/{slug}", response_class=HTMLResponse)
+@router.get("/{lang}/destiny-matrix/arcana/{slug}", response_class=HTMLResponse)
+async def destiny_arcana_page(slug: str, request: Request, session: AsyncSession = Depends(get_session)):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, f"/destiny-matrix/arcana/{slug}")
+    if redirect:
+        return redirect
+    raw = DESTINY_ARCANA_BY_SLUG.get(slug)
+    if not raw:
+        raise HTTPException(404)
+    arcana = localize_destiny_arcana(raw, lang)
+    content = await get_seo_content("destiny_arcana", slug, arcana, session, lang)
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/destiny_arcana.html", _ctx(
+        lang, f"/destiny-matrix/arcana/{slug}",
+        t["destiny_arcana_title"].format(**arcana),
+        t["destiny_arcana_desc"].format(**arcana),
+        content=content,
+        arcana=arcana,
+        all_arcana=[localize_destiny_arcana(a, lang) for a in DESTINY_ARCANA_SEO],
+        h1=t["destiny_arcana_h1"].format(**arcana),
+        today=TODAY(),
+    ))
+
+
 CONSTELLATIONS = {
     "aries": {"pts": [[28,48],[45,38],[68,30]], "lines": [[0,1],[1,2]], "bright": [2]},
     "taurus": {"pts": [[22,20],[40,45],[28,58],[22,52],[50,58],[52,72],[60,40]], "lines": [[0,1],[1,2],[2,3],[1,4],[4,5],[3,5],[0,6]], "bright": [0,5]},
@@ -500,7 +559,8 @@ async def constellation_svg(slug: str, request: Request):
 async def sitemap():
     today = date.today().isoformat()
     paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"),
-             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9"), ("/about", "0.5")]
+             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9"), ("/destiny-matrix", "0.9"),
+             ("/about", "0.5")]
     for s in ZODIAC_SIGNS:
         paths.append((f"/zodiac/{s['slug']}", "0.9"))
     for c in TAROT_CARDS:
@@ -518,6 +578,8 @@ async def sitemap():
     paths.append(("/natal-chart/ascendant", "0.8"))
     for s in ZODIAC_SIGNS:
         paths.append((f"/compatibility/{s['slug']}", "0.8"))
+    for a in DESTINY_ARCANA_SEO:
+        paths.append((f"/destiny-matrix/arcana/{a['slug']}", "0.8"))
 
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n')

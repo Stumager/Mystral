@@ -171,6 +171,25 @@ UI = {
         "method_note_compat": "Разбор сочетает классическую синастрию с проверенными техниками по знакам и стихиям.",
         "method_note_more": "Подробнее о методологии",
         "about_matrix_label": "Матрица судьбы",
+        # TZ-113: /destiny-matrix pillar + 22 arcana leaf pages. CTA and
+        # light/shadow labels reuse the exact in-app matrix.* glossary terms
+        # (frontend/src/i18n/locales/*.json) rather than inventing new ones.
+        "nav_matrix": "Матрица судьбы", "bc_matrix": "Матрица судьбы",
+        "pillar_cta_matrix": "Послание арканов",
+        "hero_matrix_alt": "Восьмиконечная звезда Матрицы судьбы — личный и родовой квадраты",
+        "method_note_matrix": "Формула Матрицы судьбы сверена с независимыми источниками и калькуляторами перед запуском.",
+        "destiny_hub_h1": "Матрица судьбы — расчёт по дате рождения",
+        "destiny_hub_intro": "Матрица судьбы — восьмиконечная звезда из личного и родового квадратов: каждая точка получает число одного из 22 арканов. Расчёт по дню, месяцу и году рождения, толкование раскрывает светлую и теневую сторону энергии каждой точки.",
+        "destiny_hub_title": "Матрица судьбы — расчёт онлайн по дате рождения | Mystral",
+        "destiny_hub_desc": "Матрица судьбы по дате рождения: личный и родовой квадраты, 22 аркана, светлая и теневая сторона каждой точки. Как рассчитывается октаграмма и что она показывает.",
+        "arcana_list_title": "Все 22 аркана Матрицы",
+        "destiny_arcana_h1": "{name} — {number}-й аркан в Матрице судьбы",
+        "destiny_arcana_title": "{name} — {number}-й аркан Матрицы судьбы | Mystral",
+        "destiny_arcana_desc": "{name} — значение {number}-го аркана в Матрице судьбы: светлая и теневая сторона, проявление в личном и родовом квадрате.",
+        "other_arcana": "Другие арканы Матрицы",
+        "label_light": "В плюсе", "label_shadow": "В тени",
+        "preview_matrix_quote": "Точка опоры показывает главную задачу воплощения, личный квадрат — характер и путь, родовой — то, что досталось по наследству и что предстоит трансформировать.",
+        "point_core": "Точка опоры", "point_personality": "Личность", "point_talents": "Таланты",
     },
     "en": {
         "nav_home": "Home", "nav_zodiac": "Zodiac", "nav_tarot": "Tarot", "nav_runes": "Runes",
@@ -293,6 +312,23 @@ UI = {
         "method_note_compat": "The reading combines classical synastry with proven sign- and element-based techniques.",
         "method_note_more": "More about our methodology",
         "about_matrix_label": "Destiny Matrix",
+        # TZ-113
+        "nav_matrix": "Destiny Matrix", "bc_matrix": "Destiny Matrix",
+        "pillar_cta_matrix": "Message of the Arcana",
+        "hero_matrix_alt": "An eight-pointed star of the Destiny Matrix — the personal and ancestral squares",
+        "method_note_matrix": "The Destiny Matrix formula was checked against independent sources and calculators before launch.",
+        "destiny_hub_h1": "Destiny Matrix — Calculated from Your Birth Date",
+        "destiny_hub_intro": "The Destiny Matrix is an eight-pointed star built from a personal and an ancestral square, where every point resolves to one of 22 arcana. The calculation uses the day, month and year of birth; the reading covers each point's light and shadow energy.",
+        "destiny_hub_title": "Destiny Matrix — Free Online Calculation by Birth Date | Mystral",
+        "destiny_hub_desc": "The Destiny Matrix by birth date: the personal and ancestral squares, 22 arcana, the light and shadow side of every point. How the octagram is calculated and what it shows.",
+        "arcana_list_title": "All 22 Arcana of the Matrix",
+        "destiny_arcana_h1": "{name} — Arcanum {number} in the Destiny Matrix",
+        "destiny_arcana_title": "{name} — Arcanum {number} of the Destiny Matrix | Mystral",
+        "destiny_arcana_desc": "{name} — the meaning of arcanum {number} in the Destiny Matrix: its light and shadow side, and how it shows up in the personal and ancestral square.",
+        "other_arcana": "Other Arcana of the Matrix",
+        "label_light": "At its best", "label_shadow": "In shadow",
+        "preview_matrix_quote": "The core point shows the central task of this lifetime; the personal square shapes character and path, while the ancestral square carries what was inherited and what still needs transforming.",
+        "point_core": "Inner core", "point_personality": "Personality", "point_talents": "Talents",
     },
     "es": {
         "nav_home": "Inicio", "nav_zodiac": "Zodiaco", "nav_tarot": "Tarot", "nav_runes": "Runas",
@@ -415,6 +451,23 @@ UI = {
         "method_note_compat": "El análisis combina la sinastría clásica con técnicas probadas por signo y elemento.",
         "method_note_more": "Más sobre nuestra metodología",
         "about_matrix_label": "Matriz del Destino",
+        # TZ-113
+        "nav_matrix": "Matriz del Destino", "bc_matrix": "Matriz del Destino",
+        "pillar_cta_matrix": "Mensaje de los Arcanos",
+        "hero_matrix_alt": "Una estrella de ocho puntas de la Matriz del Destino — los cuadrados personal y ancestral",
+        "method_note_matrix": "La fórmula de la Matriz del Destino se verificó con fuentes y calculadoras independientes antes del lanzamiento.",
+        "destiny_hub_h1": "Matriz del Destino — cálculo por fecha de nacimiento",
+        "destiny_hub_intro": "La Matriz del Destino es una estrella de ocho puntas formada por un cuadrado personal y uno ancestral, donde cada punto se resuelve en uno de los 22 arcanos. El cálculo usa el día, el mes y el año de nacimiento; la lectura recorre el lado luminoso y la sombra de cada punto.",
+        "destiny_hub_title": "Matriz del Destino — cálculo online gratis por fecha de nacimiento | Mystral",
+        "destiny_hub_desc": "La Matriz del Destino por fecha de nacimiento: los cuadrados personal y ancestral, 22 arcanos, el lado luminoso y la sombra de cada punto. Cómo se calcula el octagrama y qué muestra.",
+        "arcana_list_title": "Los 22 arcanos de la Matriz",
+        "destiny_arcana_h1": "{name} — arcano {number} en la Matriz del Destino",
+        "destiny_arcana_title": "{name} — arcano {number} de la Matriz del Destino | Mystral",
+        "destiny_arcana_desc": "{name} — el significado del arcano {number} en la Matriz del Destino: su lado luminoso y su sombra, y cómo se manifiesta en el cuadrado personal y ancestral.",
+        "other_arcana": "Otros arcanos de la Matriz",
+        "label_light": "En su mejor versión", "label_shadow": "En sombra",
+        "preview_matrix_quote": "El punto de apoyo muestra la tarea central de esta vida; el cuadrado personal moldea el carácter y el camino, mientras que el cuadrado ancestral guarda lo heredado y lo que aún falta transformar.",
+        "point_core": "Punto de apoyo", "point_personality": "Personalidad", "point_talents": "Talentos",
     },
     "pt": {
         "nav_home": "Início", "nav_zodiac": "Zodíaco", "nav_tarot": "Tarô", "nav_runes": "Runas",
@@ -537,6 +590,23 @@ UI = {
         "method_note_compat": "A análise combina sinastria clássica com técnicas comprovadas por signo e elemento.",
         "method_note_more": "Mais sobre nossa metodologia",
         "about_matrix_label": "Matriz do Destino",
+        # TZ-113
+        "nav_matrix": "Matriz do Destino", "bc_matrix": "Matriz do Destino",
+        "pillar_cta_matrix": "Mensagem dos Arcanos",
+        "hero_matrix_alt": "Uma estrela de oito pontas da Matriz do Destino — os quadrados pessoal e ancestral",
+        "method_note_matrix": "A fórmula da Matriz do Destino foi verificada com fontes e calculadoras independentes antes do lançamento.",
+        "destiny_hub_h1": "Matriz do Destino — cálculo pela data de nascimento",
+        "destiny_hub_intro": "A Matriz do Destino é uma estrela de oito pontas formada por um quadrado pessoal e um ancestral, em que cada ponto resulta em um dos 22 arcanos. O cálculo usa o dia, o mês e o ano de nascimento; a leitura percorre o lado luminoso e a sombra de cada ponto.",
+        "destiny_hub_title": "Matriz do Destino — cálculo online grátis pela data de nascimento | Mystral",
+        "destiny_hub_desc": "A Matriz do Destino pela data de nascimento: os quadrados pessoal e ancestral, 22 arcanos, o lado luminoso e a sombra de cada ponto. Como o octagrama é calculado e o que ele mostra.",
+        "arcana_list_title": "Os 22 arcanos da Matriz",
+        "destiny_arcana_h1": "{name} — arcano {number} na Matriz do Destino",
+        "destiny_arcana_title": "{name} — arcano {number} da Matriz do Destino | Mystral",
+        "destiny_arcana_desc": "{name} — o significado do arcano {number} na Matriz do Destino: seu lado luminoso e sua sombra, e como se manifesta no quadrado pessoal e ancestral.",
+        "other_arcana": "Outros arcanos da Matriz",
+        "label_light": "No seu melhor", "label_shadow": "Na sombra",
+        "preview_matrix_quote": "O ponto de apoio mostra a tarefa central desta vida; o quadrado pessoal molda o caráter e o caminho, enquanto o quadrado ancestral guarda o que foi herdado e o que ainda precisa ser transformado.",
+        "point_core": "Ponto de apoio", "point_personality": "Personalidade", "point_talents": "Talentos",
     },
     "tr": {
         "nav_home": "Ana Sayfa", "nav_zodiac": "Burçlar", "nav_tarot": "Tarot", "nav_runes": "Rünler",
@@ -659,6 +729,23 @@ UI = {
         "method_note_compat": "Bu analiz klasik sinastriyi burç ve element temelli kanıtlanmış tekniklerle birleştirir.",
         "method_note_more": "Yöntemimiz hakkında daha fazla bilgi",
         "about_matrix_label": "Kader Matrisi",
+        # TZ-113
+        "nav_matrix": "Kader Matrisi", "bc_matrix": "Kader Matrisi",
+        "pillar_cta_matrix": "Arkanaların Mesajı",
+        "hero_matrix_alt": "Kader Matrisi'nin sekiz köşeli yıldızı — kişisel kare ve soy karesi",
+        "method_note_matrix": "Kader Matrisi formülü, yayından önce bağımsız kaynaklar ve hesap makineleriyle karşılaştırıldı.",
+        "destiny_hub_h1": "Kader Matrisi — doğum tarihinden hesaplama",
+        "destiny_hub_intro": "Kader Matrisi, kişisel kare ve soy karesinden oluşan sekiz köşeli bir yıldızdır; her nokta 22 arkanadan birine karşılık gelir. Hesaplama doğum günü, ayı ve yılını kullanır; yorum her noktanın en iyi hâlini ve gölgesini ele alır.",
+        "destiny_hub_title": "Kader Matrisi — doğum tarihinden ücretsiz online hesaplama | Mystral",
+        "destiny_hub_desc": "Doğum tarihine göre Kader Matrisi: kişisel kare ve soy karesi, 22 arkana, her noktanın en iyi hâli ve gölgesi. Sekiz köşeli yıldız nasıl hesaplanır ve neyi gösterir.",
+        "arcana_list_title": "Matrisin 22 arkanasının tamamı",
+        "destiny_arcana_h1": "{name} — Kader Matrisi'nde {number}. arkana",
+        "destiny_arcana_title": "{name} — Kader Matrisi'nin {number}. arkanası | Mystral",
+        "destiny_arcana_desc": "{name} — Kader Matrisi'nde {number}. arkananın anlamı: en iyi hâli ve gölgesi, kişisel kare ve soy karesinde nasıl ortaya çıktığı.",
+        "other_arcana": "Matrisin diğer arkanaları",
+        "label_light": "En iyi hâlinde", "label_shadow": "Gölgede",
+        "preview_matrix_quote": "Dayanak noktası bu yaşamın temel görevini gösterir; kişisel kare karakteri ve yolu şekillendirirken, soy karesi mirası ve hâlâ dönüştürülmesi gerekeni taşır.",
+        "point_core": "Dayanak noktası", "point_personality": "Kişilik", "point_talents": "Yetenekler",
     },
     "uk": {
         "nav_home": "Головна", "nav_zodiac": "Зодіак", "nav_tarot": "Таро", "nav_runes": "Руни",
@@ -781,6 +868,23 @@ UI = {
         "method_note_compat": "Розбір поєднує класичну синастрію з перевіреними техніками за знаками й стихіями.",
         "method_note_more": "Докладніше про методологію",
         "about_matrix_label": "Матриця долі",
+        # TZ-113
+        "nav_matrix": "Матриця долі", "bc_matrix": "Матриця долі",
+        "pillar_cta_matrix": "Послання арканів",
+        "hero_matrix_alt": "Восьмипроменева зірка Матриці долі — особистий і родовий квадрати",
+        "method_note_matrix": "Формулу Матриці долі перед запуском звірили з незалежними джерелами й калькуляторами.",
+        "destiny_hub_h1": "Матриця долі — розрахунок за датою народження",
+        "destiny_hub_intro": "Матриця долі — восьмипроменева зірка з особистого і родового квадратів: кожна точка отримує число одного з 22 арканів. Розрахунок за днем, місяцем і роком народження, тлумачення розкриває плюс і тінь енергії кожної точки.",
+        "destiny_hub_title": "Матриця долі — розрахунок онлайн за датою народження | Mystral",
+        "destiny_hub_desc": "Матриця долі за датою народження: особистий і родовий квадрати, 22 аркани, плюс і тінь кожної точки. Як розраховується октаграма і що вона показує.",
+        "arcana_list_title": "Усі 22 аркани Матриці",
+        "destiny_arcana_h1": "{name} — {number}-й аркан у Матриці долі",
+        "destiny_arcana_title": "{name} — {number}-й аркан Матриці долі | Mystral",
+        "destiny_arcana_desc": "{name} — значення {number}-го аркана в Матриці долі: плюс і тінь, прояв в особистому і родовому квадраті.",
+        "other_arcana": "Інші аркани Матриці",
+        "label_light": "У плюсі", "label_shadow": "У тіні",
+        "preview_matrix_quote": "Точка опори показує головне завдання втілення, особистий квадрат — характер і шлях, родовий — те, що дісталося у спадок і що належить трансформувати.",
+        "point_core": "Точка опори", "point_personality": "Особистість", "point_talents": "Таланти",
     },
 }
 
@@ -1159,4 +1263,24 @@ def localize_compat_sign(sign_raw: dict, lang: str) -> dict:
         "best_names": best, "worst_names": worst,
         # joined strings for prompt building — str.format(**data) can't join a list
         "best_text": ", ".join(best), "worst_text": ", ".join(worst),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Destiny Matrix (TZ-113): /destiny-matrix/arcana/{1..22} reuses the name and
+# light/shadow energy already computed by app.data.destiny_matrix.
+# ---------------------------------------------------------------------------
+
+def localize_destiny_arcana(arcana_seo: dict, lang: str) -> dict:
+    """Imported locally rather than at module scope: destiny_matrix.py itself
+    does `from app.data.seo_i18n import TAROT_MAJOR_I18N` at import time, so a
+    top-level import back into it here would be circular."""
+    from app.data.destiny_matrix import arcana_energy, arcana_name
+    n = arcana_seo["number"]
+    energy = arcana_energy(n, lang)
+    return {
+        **arcana_seo,
+        "name": arcana_name(n, lang),
+        "light": energy["light"],
+        "shadow": energy["shadow"],
     }

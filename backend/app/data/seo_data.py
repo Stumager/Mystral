@@ -175,3 +175,23 @@ LUNAR_PILLAR = {
     "slug": "lunar-calendar",
     "keywords": ["лунный календарь", "лунный день сегодня", "фазы луны"],
 }
+
+# TZ-113: the fourth pillar landing, same shape as the three above —
+# /destiny-matrix explains the method in general (octagram, personal/
+# ancestral square) with no birth data attached to any of it.
+DESTINY_PILLAR = {
+    "slug": "destiny-matrix",
+    "keywords": ["матрица судьбы", "расчёт матрицы судьбы", "матрица судьбы онлайн"],
+}
+
+# The 22 arcana as leaf pages under /destiny-matrix/arcana/{1..22} — same
+# "thin index, real content lives elsewhere" shape as LUNAR_DAY_SEO: name
+# and light/shadow energy come from app.data.destiny_matrix (arcana_name(),
+# arcana_energy()) via seo_i18n.localize_destiny_arcana(), not duplicated
+# here. Slug is the plain arcana number as a string ("1".."22"), matching
+# the URL and destiny_matrix_i18n.ARCANA_MATRIX_I18N's own string keys.
+DESTINY_ARCANA_SEO = [
+    {"slug": str(n), "number": n, "keywords": [f"{n} аркан матрица судьбы", f"аркан {n} значение в матрице"]}
+    for n in range(1, 23)
+]
+DESTINY_ARCANA_BY_SLUG = {a["slug"]: a for a in DESTINY_ARCANA_SEO}

@@ -231,12 +231,54 @@ def _build_compat_rings() -> str:
     return "".join(parts)
 
 
+# ---------------------------------------------------------------------------
+# /destiny-matrix — the octagram itself: two overlaid squares, personal on
+# the cardinal points (a diamond) and ancestral on the diagonals (axis-
+# aligned), same figure and geometry as DestinyOctagram.tsx / _octagram().
+# ---------------------------------------------------------------------------
+
+def _build_matrix_octagram() -> str:
+    cx = cy = 150.0
+    parts = [
+        '<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mx-art">',
+        _defs("dm"),
+        f'<circle cx="{cx}" cy="{cy}" r="150" fill="url(#dmbg)"/>',
+        _star_field([(32, 46, 1.0), (260, 56, .9), (40, 244, .8), (254, 236, 1.1),
+                     (150, 18, .7), (20, 148, .8), (280, 152, .7), (150, 282, .6)]),
+    ]
+
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="144" fill="none" stroke="{GOLD}" stroke-width=".8" '
+                 f'opacity=".22" stroke-dasharray="2 9" class="mx-spin-slow"/>')
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="116" fill="none" stroke="{GOLD}" stroke-width=".8" opacity=".18"/>')
+
+    parts.append(_octagram(cx, cy, 108, GOLD_LIGHT, 1.1, .55))
+    parts.append(_octagram(cx, cy, 108, GOLD, .8, .22))
+
+    # 8 points: 4 personal (cardinal, on the diamond) + 4 ancestral
+    # (diagonal, on the axis-aligned square) — the centre is the 9th.
+    personal_pts = [_polar(cx, cy, 108, d) for d in (0, 90, 180, 270)]
+    ancestral_pts = [_polar(cx, cy, 108, d) for d in (45, 135, 225, 315)]
+    for x, y in personal_pts:
+        parts.append(f'<circle cx="{x}" cy="{y}" r="4.4" fill="none" stroke="{GOLD_PALE}" stroke-width=".9" opacity=".3"/>')
+        parts.append(f'<circle cx="{x}" cy="{y}" r="3" fill="{GOLD_PALE}" class="mx-pulse"/>')
+    for x, y in ancestral_pts:
+        parts.append(f'<circle cx="{x}" cy="{y}" r="3.6" fill="none" stroke="{GOLD}" stroke-width=".8" opacity=".25"/>')
+        parts.append(f'<circle cx="{x}" cy="{y}" r="2.3" fill="{GOLD}" opacity=".85"/>')
+
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{GOLD_PALE}" filter="url(#dmglow)" class="mx-breathe"/>')
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="2.6" fill="{GOLD_PALE}"/>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
 NATAL_WHEEL_SVG = _build_natal_wheel()
 LUNAR_CIRCLE_SVG = _build_lunar_circle()
 COMPAT_RINGS_SVG = _build_compat_rings()
+MATRIX_OCTAGRAM_SVG = _build_matrix_octagram()
 
 HERO_SVG = {
     "natal": NATAL_WHEEL_SVG,
     "lunar": LUNAR_CIRCLE_SVG,
     "compat": COMPAT_RINGS_SVG,
+    "matrix": MATRIX_OCTAGRAM_SVG,
 }
