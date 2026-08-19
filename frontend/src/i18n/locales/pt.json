@@ -602,6 +602,12 @@
     "point_father_task": "Tarefa da linhagem paterna",
     "point_mother_task": "Tarefa da linhagem materna"
   },
+  "karmicTail": {
+    "title": "Cauda Kármica",
+    "interpret": "Mensagem do Karma",
+    "loading": "O karma está falando...",
+    "error": "Algo deu errado. Tente novamente."
+  },
   "onboarding": {
     "title": "Conte-nos sobre você ✨",
     "subtitle": "Para criar seu horóscopo personalizado",

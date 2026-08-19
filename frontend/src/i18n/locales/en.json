@@ -602,6 +602,12 @@
     "point_father_task": "Father's line task",
     "point_mother_task": "Mother's line task"
   },
+  "karmicTail": {
+    "title": "Karmic Tail",
+    "interpret": "Message of Karma",
+    "loading": "Karma is speaking...",
+    "error": "Something went wrong. Try again."
+  },
   "onboarding": {
     "title": "Tell us about you ✨",
     "subtitle": "To create your personal horoscope",
