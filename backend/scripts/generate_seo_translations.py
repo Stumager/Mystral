@@ -32,7 +32,7 @@ from app.models.user import SeoContent  # noqa: E402
 # types would never be generated in batch at all.
 PAGE_TYPES = ("zodiac", "tarot", "rune", "numerology", "natal_planet", "lunar_day",
               "natal_house", "ascendant", "compatibility_pillar", "natal_pillar",
-              "lunar_pillar", "compat_sign")
+              "lunar_pillar", "compat_sign", "destiny_pillar", "destiny_arcana")
 BACKOFF_STEPS = (30, 60, 120)
 
 

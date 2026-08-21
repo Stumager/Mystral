@@ -27,6 +27,7 @@ PILLARS = [
     ("/natal-chart", "natal", "/app/natal", "pillar_cta_natal", "hero_natal_alt"),
     ("/lunar-calendar", "lunar", "/app/lunar", "pillar_cta_lunar", "hero_lunar_alt"),
     ("/compatibility", "compat", "/app/compatibility", "pillar_cta_compat", "hero_compat_alt"),
+    ("/destiny-matrix", "matrix", "/app/matrix", "pillar_cta_matrix", "hero_matrix_alt"),
 ]
 PILLAR_PATHS = [p[0] for p in PILLARS]
 ALL_LANGS = ("ru",) + PREFIX_LANGS
@@ -35,6 +36,7 @@ NON_PILLAR_PATHS = [
     "/zodiac", "/tarot", "/runes", "/zodiac/leo", "/tarot/the-fool", "/runes/fehu",
     "/numerology/life-path-1", "/lunar-calendar/day/1", "/natal-chart/planets/sun",
     "/natal-chart/houses/1", "/natal-chart/ascendant", "/compatibility/aries",
+    "/destiny-matrix/arcana/1",
 ]
 
 
@@ -105,6 +107,18 @@ class TestPillarHeroAndPreview:
         assert "Лев" in res.text and "Весы" in res.text
         assert 'class="bar-fill"' in res.text
 
+    async def test_matrix_preview_shows_the_cross_checked_example_date(self, client):
+        # TZ-101's verified example (15.05.1990: core=6, personality=15,
+        # talents=5 — cross-checked against an independent calculator, see
+        # PROGRESS.md) computed live via app.data.destiny_matrix.calculate(),
+        # not a hand-typed illustration.
+        res = await client.get("/destiny-matrix")
+        assert "Точка опоры" in res.text
+        from app.data.destiny_matrix import arcana_name
+        assert arcana_name(6, "ru") in res.text
+        assert arcana_name(15, "ru") in res.text
+        assert arcana_name(5, "ru") in res.text
+
     @pytest.mark.parametrize("path", NON_PILLAR_PATHS)
     async def test_non_pillar_pages_get_no_hero_or_preview(self, client, path):
         res = await client.get(path)
@@ -113,7 +127,7 @@ class TestPillarHeroAndPreview:
 
     def test_every_hero_svg_is_wellformed_xml(self):
         from app.data.seo_art import HERO_SVG
-        assert set(HERO_SVG) == {"natal", "lunar", "compat"}
+        assert set(HERO_SVG) == {"natal", "lunar", "compat", "matrix"}
         for section, svg in HERO_SVG.items():
             ET.fromstring(svg)  # raises on malformed markup
             assert 'aria-hidden="true"' in svg, section
@@ -121,10 +135,13 @@ class TestPillarHeroAndPreview:
     def test_hero_art_is_deterministic(self):
         # Rebuilt art must be byte-identical across processes, or every
         # response would differ and caching/ETags would stop meaning anything.
-        from app.data.seo_art import _build_compat_rings, _build_lunar_circle, _build_natal_wheel
+        from app.data.seo_art import (
+            _build_compat_rings, _build_lunar_circle, _build_matrix_octagram, _build_natal_wheel,
+        )
         assert _build_natal_wheel() == _build_natal_wheel()
         assert _build_lunar_circle() == _build_lunar_circle()
         assert _build_compat_rings() == _build_compat_rings()
+        assert _build_matrix_octagram() == _build_matrix_octagram()
 
 
 class TestPillarFaq:

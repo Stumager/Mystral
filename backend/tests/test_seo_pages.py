@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.data.seo_data import (
-    LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO, ZODIAC_SIGNS,
+    DESTINY_ARCANA_SEO, LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO,
+    ZODIAC_SIGNS,
 )
 from app.data.seo_i18n import PREFIX_LANGS
 
@@ -353,6 +354,78 @@ class TestAllHousesAndCompatSignsPages:
         assert res.status_code == 200, f"/{lang}/compatibility -> {res.status_code}"
 
 
+class TestDestinyMatrixPages:
+    """TZ-113: the fourth pillar landing (/destiny-matrix) plus its 22 arcana
+    leaf pages, following the exact TZ-073/82/83/94 "walk every slug"
+    precedent so no slug can hide an untested 500."""
+
+    async def test_destiny_matrix_hub_returns_html(self, client):
+        res = await client.get("/destiny-matrix")
+        assert res.status_code == 200
+        assert "<h1" in res.text
+
+    async def test_destiny_matrix_hub_lists_all_22_arcana(self, client):
+        res = await client.get("/destiny-matrix")
+        for a in DESTINY_ARCANA_SEO:
+            assert f'/destiny-matrix/arcana/{a["slug"]}"' in res.text, a["slug"]
+
+    async def test_destiny_arcana_returns_html(self, client):
+        res = await client.get("/destiny-matrix/arcana/1")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_destiny_arcana_has_h1(self, client):
+        res = await client.get("/destiny-matrix/arcana/1")
+        assert "<h1" in res.text
+
+    async def test_destiny_arcana_has_canonical(self, client):
+        res = await client.get("/destiny-matrix/arcana/1")
+        assert 'rel="canonical"' in res.text
+        assert "https://mystral.space/destiny-matrix/arcana/1" in res.text
+
+    async def test_destiny_arcana_shows_light_and_shadow(self, client):
+        res = await client.get("/destiny-matrix/arcana/1")
+        # ARCANA_ENERGY[1]["light_ru"]/["shadow_ru"] — structural data,
+        # present regardless of whether generation succeeded.
+        assert "воля, инициатива" in res.text
+        assert "манипуляция, суета" in res.text
+
+    async def test_destiny_arcana_invalid_slug(self, client):
+        res = await client.get("/destiny-matrix/arcana/23")
+        assert res.status_code == 404
+
+    async def test_destiny_arcana_traversal_slug(self, client):
+        res = await client.get("/destiny-matrix/arcana/..%2F..%2Fetc%2Fpasswd")
+        assert res.status_code == 404
+
+    async def test_destiny_arcana_does_not_collide_with_in_app_spa_section(self, client):
+        # Mirrors TestCompatibilityPages' equivalent check: /app/matrix is
+        # purely client-side SPA state, so there is no routing ambiguity here.
+        res = await client.get("/destiny-matrix")
+        assert res.status_code == 200
+        assert "text/html" in res.headers["content-type"]
+
+    @pytest.mark.parametrize("arcana", DESTINY_ARCANA_SEO, ids=lambda a: a["slug"])
+    async def test_every_arcana_slug_ru(self, client, arcana):
+        res = await client.get(f"/destiny-matrix/arcana/{arcana['slug']}")
+        assert res.status_code == 200, f"/destiny-matrix/arcana/{arcana['slug']} -> {res.status_code}"
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    @pytest.mark.parametrize("arcana", DESTINY_ARCANA_SEO, ids=lambda a: a["slug"])
+    async def test_every_arcana_slug_all_langs(self, client, lang, arcana):
+        res = await client.get(f"/{lang}/destiny-matrix/arcana/{arcana['slug']}")
+        assert res.status_code == 200, f"/{lang}/destiny-matrix/arcana/{arcana['slug']} -> {res.status_code}"
+
+    async def test_destiny_matrix_hub_ru(self, client):
+        res = await client.get("/destiny-matrix")
+        assert res.status_code == 200
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    async def test_destiny_matrix_hub_all_langs(self, client, lang):
+        res = await client.get(f"/{lang}/destiny-matrix")
+        assert res.status_code == 200, f"/{lang}/destiny-matrix -> {res.status_code}"
+
+
 def _fake_llm_response(payload: str):
     msg = types.SimpleNamespace(content=payload)
     choice = types.SimpleNamespace(message=msg, finish_reason="stop")
@@ -509,7 +582,7 @@ class TestLangPages:
 
     async def test_lang_hubs(self, client):
         for path in ("/es/zodiac", "/es/tarot", "/es/runes", "/es/natal-chart",
-                     "/es/lunar-calendar", "/es/compatibility"):
+                     "/es/lunar-calendar", "/es/compatibility", "/es/destiny-matrix"):
             res = await client.get(path)
             assert res.status_code == 200, path
             assert '<html lang="es">' in res.text, path
@@ -628,6 +701,9 @@ class TestSitemapI18n:
         assert "<loc>https://mystral.space/natal-chart/houses/1</loc>" in res.text
         assert "<loc>https://mystral.space/es/compatibility/aries</loc>" in res.text
         assert "<loc>https://mystral.space/uk/natal-chart/houses/12</loc>" in res.text
+        assert "<loc>https://mystral.space/destiny-matrix</loc>" in res.text
+        assert "<loc>https://mystral.space/es/destiny-matrix/arcana/1</loc>" in res.text
+        assert "<loc>https://mystral.space/uk/destiny-matrix/arcana/22</loc>" in res.text
 
     async def test_sitemap_has_xhtml_alternates(self, client):
         res = await client.get("/sitemap.xml")
@@ -637,10 +713,11 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 195 paths x 6 languages (168 from TZ-083 + 26 from
+        # 1 homepage + 218 paths x 6 languages (168 from TZ-083 + 26 from
         # TZ-094: 1 compatibility hub + 12 compat signs + 12 houses + 1
-        # ascendant + 1 from TZ-111: /about)
-        assert count == 1171, f"sitemap has {count} URLs"
+        # ascendant + 1 from TZ-111: /about + 23 from TZ-113: 1 destiny-matrix
+        # hub + 22 arcana leaf pages)
+        assert count == 1309, f"sitemap has {count} URLs"
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

@@ -13,4 +13,531 @@ destiny_matrix. Empty until that runs; pick() falls back to English for any
 language not present here yet.
 """
 
-ARCANA_MATRIX_I18N: dict[str, dict[str, dict[str, str]]] = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ARCANA_MATRIX_I18N: dict[str, dict[str, dict[str, str]]] = {
+    "es": {
+        "1": {
+            "light": "voluntad, iniciativa, don de persuasión, capacidad de comenzar",
+            "shadow": "manipulación, ajetreo sin resultado, promesas en lugar de acciones"
+        },
+        "10": {
+            "light": "el giro afortunado, el sentido del momento, la flexibilidad",
+            "shadow": "apuesta al azar, vaivenes, evasión de responsabilidad"
+        },
+        "11": {
+            "light": "claridad, honestidad, capacidad de ver la causa y el efecto",
+            "shadow": "condena, negociación con la conciencia, dobles estándares"
+        },
+        "12": {
+            "light": "un cambio de perspectiva, una pausa madura, aceptación",
+            "shadow": "martirio, estancamiento, espera en"
+        },
+        "13": {
+            "light": "finalización, renovación, el coraje de dejar ir",
+            "shadow": "aferrarse a lo que ha terminado, miedo al cambio, un final prolongado"
+        },
+        "14": {
+            "light": "balance, medida, combinación de opuestos",
+            "shadow": "medias tintas, mezcla eterna sin elección"
+        },
+        "15": {
+            "light": "pasión, vitalidad, honestidad sobre los propios deseos",
+            "shadow": "adicciones, pactos contigo mismo, el poder de la materia"
+        },
+        "16": {
+            "light": "un colapso liberador, verdad en lugar de ilusión",
+            "shadow": "destrucción como hábito, crisis de la nada"
+        },
+        "17": {
+            "light": "esperanza, inspiración, el don de ser visto",
+            "shadow": "sueños en lugar de pasos, dependencia de la admiración"
+        },
+        "18": {
+            "light": "imaginación, sensibilidad, trabajo con el inconsciente",
+            "shadow": "ansiedad, autoengaño, niebla en lugar de claridad"
+        },
+        "19": {
+            "light": "alegría, claridad, calidez natural hacia las personas",
+            "shadow": "brillo performativo, agotamiento, vanidad"
+        },
+        "2": {
+            "shadow": "frialdad, secretismo por el secretismo, alejamiento de la intimidad"
+        },
+        "20": {
+            "light": "despertar, revisión honesta, la llamada de la vocación",
+            "shadow": "culpa por el pasado, condena de uno mismo, postergación"
+        },
+        "21": {
+            "light": "integridad, un ciclo completado, un horizonte amplio",
+            "shadow": "descansar en los laureles, huir hacia la escala pura"
+        },
+        "22": {
+            "light": "libertad, ligereza, disposición a empezar desde cero",
+            "shadow": "irresponsabilidad, escape, una vida sin raíces"
+        },
+        "3": {
+            "light": "abundancia, cuidado, sensualidad, fertilidad creativa"
+        },
+        "4": {
+            "light": "estructura, responsabilidad, habilidad para mantener el apoyo",
+            "shadow": "rigidez, control, miedo a perder autoridad"
+        },
+        "5": {
+            "light": "mentoría, tradición, la búsqueda de sentido",
+            "shadow": "dogmatismo, reglas ajenas en lugar de las propias"
+        },
+        "6": {
+            "light": "elección desde el corazón, atracción, honestidad en las relaciones",
+            "shadow": "indecisión, deriva, elección por miedo"
+        },
+        "7": {
+            "light": "impulso, victoria a través de la concentración, manteniendo tu propio rumbo",
+            "shadow": "carrera por la carrera misma, agresión, pérdida de control"
+        },
+        "8": {
+            "light": "poder tranquilo, resistencia, doma de impulsos",
+            "shadow": "ira reprimida, violencia contra uno mismo, agotamiento"
+        },
+        "9": {
+            "light": "sabiduría, autosuficiencia, honestidad contigo mismo",
+            "shadow": "aislamiento, negativa a pedir ayuda, orgullosa soledad"
+        }
+    },
+    "pt": {
+        "1": {
+            "light": "vontade, iniciativa, dom de persuasão, capacidade de começar"
+        },
+        "10": {
+            "light": "a virada de sorte, senso de momento, flexibilidade",
+            "shadow": "aposta no acaso, oscilações, fuga da responsabilidade"
+        },
+        "11": {
+            "light": "clareza, honestidade, capacidade de ver causa e efeito",
+            "shadow": "julgamento dos outros, barganha com a consciência, padrões duplos"
+        },
+        "12": {
+            "light": "mudança de perspectiva, uma pausa madura, aceitação",
+            "shadow": "martírio, travamento, espera em vez de movimento"
+        },
+        "13": {
+            "light": "conclusão, renovação, a coragem de deixar ir",
+            "shadow": "apego ao que já passou, medo de mudanças, um final arrastado"
+        },
+        "14": {
+            "light": "equilíbrio, medida, união de opostos",
+            "shadow": "meias-medidas, mistura eterna sem nunca escolher"
+        },
+        "15": {
+            "light": "paixão, vitalidade, honestidade sobre seus desejos",
+            "shadow": "dependências, acordos consigo mesmo, poder da matéria"
+        },
+        "16": {
+            "light": "um colapso libertador, verdade em vez de ilusão",
+            "shadow": "destruição como hábito, crise do nada"
+        },
+        "17": {
+            "light": "esperança, inspiração, o dom de ser visto",
+            "shadow": "sonhos em vez de passos, dependência da admiração"
+        },
+        "18": {
+            "light": "imaginação, sensibilidade, trabalho com o inconsciente",
+            "shadow": "ansiedade, autoengano, névoa em vez de clareza"
+        },
+        "19": {
+            "light": "alegria, clareza, calor natural para com as pessoas",
+            "shadow": "brilho performático, esgotamento, vaidade"
+        },
+        "2": {
+            "light": "intuição, profundidade, habilidade de ouvir o silêncio",
+            "shadow": "frieza, sigilo pelo sigilo, afastamento da intimidade"
+        },
+        "20": {
+            "light": "despertar, reavaliação honesta, o chamado da vocação",
+            "shadow": "culpa pelo passado, autocondenação, adiamento"
+        },
+        "21": {
+            "light": "integridade, um ciclo completo, um horizonte amplo",
+            "shadow": "descansar sobre os louros, fuga para a escala"
+        },
+        "22": {
+            "light": "liberdade, leveza, prontidão para começar do zero",
+            "shadow": "irresponsabilidade, fuga, uma vida sem raízes"
+        },
+        "3": {
+            "light": "abundância, cuidado, sensualidade, fertilidade criativa",
+            "shadow": "hiperproteção, preguiça, viver pelas mãos dos outros"
+        },
+        "4": {
+            "light": "estrutura, responsabilidade, capacidade de manter o apoio",
+            "shadow": "rigidez, controle, medo de perder autoridade"
+        },
+        "5": {
+            "light": "mentoria, tradição, a busca por significado",
+            "shadow": "dogmatismo, regras alheias em vez das suas"
+        },
+        "6": {
+            "light": "escolha do coração, atração, honestidade nos relacionamentos",
+            "shadow": "indecisão, oscilações, escolha por medo"
+        },
+        "7": {
+            "light": "momentum, vitória através da concentração, manter seu próprio curso",
+            "shadow": "corrida pela corrida, agressão, perda de controle"
+        },
+        "8": {
+            "light": "poder tranquilo, resistência, domínio dos impulsos"
+        },
+        "9": {
+            "light": "sabedoria, autossuficiência, honestidade consigo mesmo",
+            "shadow": "isolamento, recusa em pedir ajuda, solidão orgulhosa"
+        }
+    },
+    "tr": {
+        "1": {
+            "light": "irade, inisiyatif, ikna yeteneği, başlatma becerisi",
+            "shadow": "manipülasyon, sonuçsuz telaş, eylem yerine vaatler"
+        },
+        "10": {
+            "light": "şanslı dönüş, anı hissetme, esneklik",
+            "shadow": "şansa oynama, salınımlar, sorumluluktan kaçma"
+        },
+        "11": {
+            "light": "açıklık, dürüstlük, sebep ve sonucu görme yeteneği",
+            "shadow": "başkalarını yargılama, vicdanla pazarlık, çifte standartlar"
+        },
+        "12": {
+            "light": "bakış açısının değişimi, olgun bir ara, kabullenme",
+            "shadow": "fedakarlık, takılıp kalma, adım atmak yerine beklemek"
+        },
+        "13": {
+            "light": "tamamlama, yenileme, bırakma cesareti",
+            "shadow": "geçmişe tutunmak, değişim korkusu, uzayan bir son"
+        },
+        "14": {
+            "light": "denge, ölçü, uyumsuzu birleştirme",
+            "shadow": "yarım önlemler, seçim yapmadan sonsuz karıştırma"
+        },
+        "15": {
+            "light": "tutku, canlılık, arzular hakkında dürüstlük",
+            "shadow": "bağımlılıklar, kendinle pazarlıklar, maddenin gücü"
+        },
+        "16": {
+            "light": "özgürleştirici çöküş, illüzyon yerine gerçek",
+            "shadow": "yıkım bir alışkanlık olarak, birdenbire kriz"
+        },
+        "17": {
+            "light": "umut, ilham, görünür olma armağanı",
+            "shadow": "hayaller yerine adımlar, hayranlığa bağımlılık"
+        },
+        "18": {
+            "light": "hayal gücü, duyarlılık, bilinçdışı ile çalışma",
+            "shadow": "kaygı, kendini kandırma, berraklık yerine sis"
+        },
+        "19": {
+            "light": "sevinç, berraklık, insanlara karşı doğal sıcaklık",
+            "shadow": "gösterişli parlaklık, tükenmişlik, kibir"
+        },
+        "2": {
+            "shadow": "soğukluk, sırların kendisi için sırlar, yakınlıktan kaçınma"
+        },
+        "20": {
+            "light": "uyanış, dürüst bir yeniden değerlendirme, mesleğin çağrısı",
+            "shadow": "geçmişe dair suçluluk, kendini yargılama, erteleme"
+        },
+        "21": {
+            "light": "bütünlük, tamamlanmış bir döngü, geniş ufuk",
+            "shadow": "elde edilenle yetinme, ölçeğe kaçış"
+        },
+        "22": {
+            "light": "özgürlük, hafiflik,",
+            "shadow": "sorumsuzluk, kaçış, köksüz bir hayat"
+        },
+        "3": {
+            "light": "bolluk, bakım, duygusallık, yaratıcı verimlilik",
+            "shadow": "aşırı korumacılık, tembellik, başkalarının elleriyle yaşamak"
+        },
+        "4": {
+            "light": "yapı, sorumluluk, zemini sağlam tutma becerisi",
+            "shadow": "sertlik, kontrol, otoriteyi kaybetme korkusu"
+        },
+        "5": {
+            "light": "mentorluk, gelenek, anlam arayışı",
+            "shadow": "dogmatizm, kendi kuralların yerine başkalarının kuralları"
+        },
+        "6": {
+            "light": "kalpten seçim, çekim, ilişkilerde dürüstlük",
+            "shadow": "kararsızlık, sürüklenme, korkudan seçim yapma"
+        },
+        "7": {
+            "light": "momentum, zafer odaklanma yoluyla, kendi rotanı koru",
+            "shadow": "yarış uğruna yarış, saldırganlık, kontrolü kaybetme"
+        },
+        "8": {
+            "light": "sakin güç, dayanıklılık, dürtüleri evcilleştirme",
+            "shadow": "bastırılmış öfke, kendine şiddet, tükenmişlik"
+        },
+        "9": {
+            "light": "bilgelik, kendi kendine yeterlilik, kendine karşı dürüstlük",
+            "shadow": "izolasyon, yardım istemeyi reddetme, gururlu özlem"
+        }
+    },
+    "uk": {
+        "1": {
+            "light": "воля, ініціатива, дар переконання, вміння починати",
+            "shadow": "маніпуляція, суєта без результату, обіцянки замість справ"
+        },
+        "10": {
+            "light": "вдалий поворот, відчуття моменту, гнучкість",
+            "shadow": "ставка на випадок, гойдалки, відмова від відповідальності"
+        },
+        "11": {
+            "light": "ясність, чесність, вміння бачити причину та наслідок",
+            "shadow": "осудження, торг з совістю, подвійні стандарти"
+        },
+        "12": {
+            "light": "зміна кута зору, зріла пауза, прийняття",
+            "shadow": "жертовність, застрягання, очікування замість кроку"
+        },
+        "13": {
+            "light": "завершення, оновлення, сміливість відпустити",
+            "shadow": "чіпляння за віджиле, страх змін, затягнутий фінал"
+        },
+        "14": {
+            "light": "баланс, міра, поєднання непосднуваного",
+            "shadow": "напівзаходи, вічне змішування без вибору"
+        },
+        "15": {
+            "light": "пристрасть, вітальність, чесність про свої бажання",
+            "shadow": "залежності, угоди з собою, влада матерії"
+        },
+        "16": {
+            "light": "звільняючий злам, правда замість ілюзії",
+            "shadow": "знищення як звичка, криза на рівному місці"
+        },
+        "17": {
+            "light": "надія, натхнення, дар бути помітним",
+            "shadow": "мрії замість кроків, залежність від захоплення"
+        },
+        "18": {
+            "light": "уява, чутливість, робота з несвідомим",
+            "shadow": "тривога, самообман, туман замість ясності"
+        },
+        "19": {
+            "light": "радість, ясність, природне тепло до людей",
+            "shadow": "показне сяйво, вигорання, марнославство"
+        },
+        "2": {
+            "light": "інтуїція, глибина, вміння слухати тишу",
+            "shadow": "холодність, таємниці заради таємниць, уникнення близькості"
+        },
+        "20": {
+            "light": "пробудження, чесний перегляд, поклик покликання",
+            "shadow": "вина за минуле, суд над собою, відкладання"
+        },
+        "21": {
+            "light": "цілісність, завершений цикл, широта горизонту",
+            "shadow": "зупинка на досягнутому, втеча в масштаб"
+        },
+        "22": {
+            "light": "свобода, легкість, готовність почати з нуля",
+            "shadow": "безвідповідальність, втеча, життя без коріння"
+        },
+        "3": {
+            "light": "достаток, турбота, чуттєвість, творча плодючість",
+            "shadow": "гіперопіка, лінь, життя чужими руками"
+        },
+        "4": {
+            "light": "структура, відповідальність, вміння тримати опору",
+            "shadow": "жорсткість, контроль, страх втратити владу"
+        },
+        "5": {
+            "light": "наставництво, традиція, пошук сенсу",
+            "shadow": "догматизм, чужі правила замість своїх"
+        },
+        "6": {
+            "light": "вибір від серця, притягання, чесність у стосунках",
+            "shadow": "нерішучість, метання, вибір зі страху"
+        },
+        "7": {
+            "light": "рух, перемога через зібраність, свій курс",
+            "shadow": "гонка заради гонки, агрес"
+        },
+        "8": {
+            "light": "спокійна міць, витримка, приборкання імпульсів",
+            "shadow": "пригнічений гнів, насильство над собою, надрив"
+        },
+        "9": {
+            "light": "мудрість, самостійність, чесність із собою",
+            "shadow": "ізоляція, відмова просити допомоги, горда туга"
+        }
+    }
+}

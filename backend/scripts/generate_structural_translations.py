@@ -274,6 +274,32 @@ def _destiny_matrix_registry() -> dict[str, list[TranslationItem]]:
     }
 
 
+def _karmic_tail_registry() -> dict[str, list[TranslationItem]]:
+    """TZ-114: 26 karmic-tail combinations x name/essence/task lines. `key`
+    is the tail code ("t1-t2-t3"), matching KARMIC_TAIL's own keys."""
+    from app.data.karmic_tail import KARMIC_TAIL
+
+    return {
+        "KARMIC_TAIL_I18N": [
+            (code, field, entry[f"{field}_ru"], entry[f"{field}_en"])
+            for code, entry in KARMIC_TAIL.items() for field in ("name", "essence", "task")
+        ],
+    }
+
+
+def _money_line_registry() -> dict[str, list[TranslationItem]]:
+    """TZ-115: 22 arcana x flow/block keyword lines, same shape as
+    destiny_matrix's ARCANA_MATRIX_I18N but money-specific."""
+    from app.data.money_line import MONEY_ENERGY
+
+    return {
+        "MONEY_ENERGY_I18N": [
+            (str(n), field, ed[f"{field}_ru"], ed[f"{field}_en"])
+            for n, ed in MONEY_ENERGY.items() for field in ("flow", "block")
+        ],
+    }
+
+
 SECTION_REGISTRY = {
     "compatibility": _compatibility_registry,
     "tarot": _tarot_registry,
@@ -282,6 +308,8 @@ SECTION_REGISTRY = {
     "runes": _runes_registry,
     "lunar": _lunar_registry,
     "destiny_matrix": _destiny_matrix_registry,
+    "karmic_tail": _karmic_tail_registry,
+    "money_line": _money_line_registry,
 }
 
 _LANG_NAME = {"es": "Spanish", "pt": "Brazilian Portuguese", "tr": "Turkish", "uk": "Ukrainian"}

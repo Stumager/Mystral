@@ -98,7 +98,8 @@ class TestFooterTrustSignalsSiteWide:
     # "/" is the frontend SPA homepage, not a seo_pages.py template — the
     # backend test client 404s on it, same as every other non-SEO path.
     PAGES = ["/zodiac", "/tarot/the-fool", "/natal-chart", "/lunar-calendar",
-             "/compatibility", "/runes/fehu", "/numerology/life-path-1", "/about"]
+             "/compatibility", "/runes/fehu", "/numerology/life-path-1", "/about",
+             "/destiny-matrix", "/destiny-matrix/arcana/1"]
 
     @pytest.mark.parametrize("path", PAGES)
     async def test_footer_links_to_about_privacy_terms(self, client, path):
@@ -131,6 +132,7 @@ class TestPillarMethodNotes:
         ("/natal-chart", "method_note_natal"),
         ("/lunar-calendar", "method_note_lunar"),
         ("/compatibility", "method_note_compat"),
+        ("/destiny-matrix", "method_note_matrix"),
     ]
 
     @pytest.mark.parametrize("path,key", NOTES)
@@ -151,19 +153,29 @@ class TestPillarMethodNotes:
 
 
 class TestNginxRoutesAbout:
-    """Regression guard for the exact class of bug already hit twice this
-    project (TZ-096 deep-link prefix, TZ-110's batch-script PAGE_TYPES):
-    a new SEO path silently falls through to the SPA in production unless
-    nginx's routing regex is updated too."""
+    """Regression guard for the exact class of bug already hit three times
+    this project (TZ-096 deep-link prefix, TZ-110's batch-script PAGE_TYPES,
+    TZ-111's own /about): a new SEO path silently falls through to the SPA
+    in production unless nginx's routing regex is updated too. TZ-113 adds
+    /destiny-matrix into the SAME test rather than a parallel one-off check,
+    so the next new pillar just extends SLUGS below."""
 
-    def test_about_is_in_the_backend_routing_regex(self):
+    # Every top-level SEO section slug that must resolve to the backend, not
+    # the frontend SPA's location / fallback. Parametrized (not one slug per
+    # test method) so a future addition is a one-line list edit, not a new
+    # copy-pasted test.
+    SLUGS = ["zodiac", "tarot", "runes", "numerology", "natal-chart",
+             "lunar-calendar", "compatibility", "about", "destiny-matrix"]
+
+    @pytest.mark.parametrize("slug", SLUGS)
+    def test_slug_is_in_the_backend_routing_regex(self, slug):
         import pathlib
         conf = pathlib.Path(__file__).resolve().parents[2] / "nginx" / "nginx.prod.conf"
         text = conf.read_text(encoding="utf-8")
         m = re.search(r"location ~ \^/\(\(en\|es\|pt\|tr\|uk\)/\)\?\(([^)]+)\)", text)
         assert m, "could not find the SEO backend-routing regex in nginx.prod.conf"
         alternatives = m.group(1).split("|")
-        assert "about" in alternatives
+        assert slug in alternatives, slug
 
 
 class TestSitemapIncludesAbout:

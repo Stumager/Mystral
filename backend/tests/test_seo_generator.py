@@ -345,22 +345,30 @@ class TestPillarGlossaryEnforcement:
         assert self._parse(bad, page_type="tarot") is not None
         assert self._parse(bad, page_type="natal_pillar") is None
 
-    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
-    def test_all_three_pillar_types_are_covered(self, ptype):
+    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar", "destiny_pillar"])
+    def test_all_four_pillar_types_are_covered(self, ptype):
         assert self._parse(self._payload(intro="Powered by AI."), page_type=ptype) is None
+
+    def test_destiny_arcana_is_not_pillar_scoped(self):
+        # destiny_arcana is a leaf page (like natal_planet/lunar_day), not a
+        # pillar — it must not get the _NO_TECH enforcement.
+        bad = self._payload(intro="Our AI reads the arcanum for you.")
+        assert self._parse(bad, page_type="destiny_arcana") is not None
 
 
 class TestPillarPromptsAndRegistry:
-    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
+    PILLAR_TYPES = ["natal_pillar", "lunar_pillar", "compatibility_pillar", "destiny_pillar"]
+
+    @pytest.mark.parametrize("ptype", PILLAR_TYPES)
     @pytest.mark.parametrize("lang", ["ru", "en", "es", "pt", "tr", "uk"])
     def test_pillar_prompt_builds_for_every_language(self, ptype, lang):
-        from app.data.seo_data import COMPATIBILITY_PILLAR, LUNAR_PILLAR, NATAL_PILLAR
+        from app.data.seo_data import COMPATIBILITY_PILLAR, DESTINY_PILLAR, LUNAR_PILLAR, NATAL_PILLAR
         data = {"natal_pillar": NATAL_PILLAR, "lunar_pillar": LUNAR_PILLAR,
-                "compatibility_pillar": COMPATIBILITY_PILLAR}[ptype]
+                "compatibility_pillar": COMPATIBILITY_PILLAR, "destiny_pillar": DESTINY_PILLAR}[ptype]
         prompt = _build_prompt(ptype, data, lang)
         assert prompt and len(prompt) > 500
 
-    @pytest.mark.parametrize("ptype", ["natal_pillar", "lunar_pillar", "compatibility_pillar"])
+    @pytest.mark.parametrize("ptype", PILLAR_TYPES)
     def test_pillar_prompts_carry_the_no_tech_clause(self, ptype):
         assert "«AI»" in PROMPTS[ptype]
         assert "'AI'" in PROMPTS_I18N[ptype]
@@ -368,9 +376,17 @@ class TestPillarPromptsAndRegistry:
     def test_non_pillar_prompts_are_left_alone(self):
         # Their cached content must not diverge because of this ticket.
         for ptype in ("zodiac", "tarot", "rune", "numerology", "natal_planet",
-                      "lunar_day", "natal_house", "ascendant", "compat_sign"):
+                      "lunar_day", "natal_house", "ascendant", "compat_sign", "destiny_arcana"):
             assert "«AI»" not in PROMPTS[ptype], ptype
             assert "'AI'" not in PROMPTS_I18N[ptype], ptype
+
+    @pytest.mark.parametrize("lang", ["ru", "en", "es", "pt", "tr", "uk"])
+    def test_destiny_arcana_prompt_builds_for_every_language(self, lang):
+        from app.data.seo_data import DESTINY_ARCANA_SEO
+        from app.data.seo_i18n import localize_destiny_arcana
+        data = localize_destiny_arcana(DESTINY_ARCANA_SEO[0], lang)
+        prompt = _build_prompt("destiny_arcana", data, lang)
+        assert prompt and len(prompt) > 300
 
     def test_new_pillars_are_in_seo_page_items(self):
         # Without this the batch generation script would never produce them.
@@ -378,3 +394,6 @@ class TestPillarPromptsAndRegistry:
         assert ("natal_pillar", "natal-chart") in items
         assert ("lunar_pillar", "lunar-calendar") in items
         assert ("compatibility_pillar", "compatibility") in items
+        assert ("destiny_pillar", "destiny-matrix") in items
+        assert ("destiny_arcana", "1") in items
+        assert ("destiny_arcana", "22") in items
