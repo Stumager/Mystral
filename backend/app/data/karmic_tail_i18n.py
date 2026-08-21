@@ -9,4 +9,845 @@ karmic_tail. Empty until that runs; pick() falls back to English for any
 language not present here yet.
 """
 
-KARMIC_TAIL_I18N: dict[str, dict[str, dict[str, str]]] = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+KARMIC_TAIL_I18N: dict[str, dict[str, dict[str, str]]] = {
+    "es": {
+        "12-16-4": {
+            "essence": "autoridad obtenida mediante la dureza, miedo a perder el estatus, desconfianza hacia la iniciativa ajena",
+            "name": "El Emperador",
+            "task": "compartir autoridad y reconocer los méritos ajenos"
+        },
+        "12-19-7": {
+            "essence": "la lucha como la única forma familiar de vivir, dificultades para simplemente estar en paz",
+            "name": "El Guerrero",
+            "task": "distinguir una amenaza real de un viejo hábito de defenderse"
+        },
+        "15-20-5": {
+            "essence": "protesta contra cualquier regla, incluso útil, lucha por la lucha misma",
+            "name": "El Rebelde",
+            "task": "elegir por qué vale la pena luchar y con qué se puede estar de acuerdo"
+        },
+        "15-5-8": {
+            "essence": "confianza minada en los seres queridos, esperar un golpe de donde menos se espera",
+            "name": "Traición en la familia",
+            "task": "darle a la confianza una nueva oportunidad, sin ponerla a prueba de antemano"
+        },
+        "15-8-11": {
+            "essence": "ira no procesada que estalla a través del cuerpo en lugar de a través de las palabras",
+            "name": "agresión física",
+            "task": "dar una salida segura a esa fuerza antes de que la encuentre por sí sola"
+        },
+        "18-3-12": {
+            "essence": "el cuerpo como lugar donde se almacena el dolor no procesado, un hábito de aguantar hasta el límite",
+            "name": "Sufrimiento físico",
+            "task": "escuchar al cuerpo antes de que te obligue a detenerte"
+        },
+        "18-6-15": {
+            "essence": "un don de influencia, una vez usado para causar daño, desconfianza en tu propio poder",
+            "name": "El mago oscuro",
+            "task": "recuperar ese poder gradualmente, probándolo en algo bueno primero"
+        },
+        "18-6-6": {
+            "essence": "intentar retener los sentimientos mediante la fuerza de voluntad o el ritual en lugar de la honestidad",
+            "name": "Magia amorosa",
+            "task": "elegir la sinceridad en las relaciones en lugar de controlarlas"
+        },
+        "18-9-9": {
+            "essence": "conocimiento que se mantiene en secreto por miedo a que sea mal utilizado",
+            "name": "El Mago",
+            "task": "compartir tu conocimiento con aquellos que realmente se han ganado esa confianza"
+        },
+        "21-10-16": {
+            "essence": "autoridad espiritual que se usaba para decidir por otros",
+            "name": "El sacerdote espiritual",
+            "task": "compartir tu experiencia sin imponerla como la única correcta"
+        },
+        "21-10-7": {
+            "essence": "convicciones que alguna vez costaron caro, miedo de volver a defender aquello en lo que crees",
+            "name": "Guerrero de la fe",
+            "task": "defender tus puntos de vista con calma, sin estar listo para luchar por cada uno de ellos"
+        },
+        "21-4-10": {
+            "essence": "hábito de someterse a la voluntad ajena, pérdida de la sensación de los propios límites",
+            "name": "El alma oprimida",
+            "task": "notar el momento en que el silencio perjudica, y decir «no»"
+        },
+        "21-7-13": {
+            "essence": "una fuerza que una vez derribó más de lo que debía, miedo de volver a causar daño",
+            "name": "El Destructor",
+            "task": "dirigir esa fuerza hacia lo que realmente necesita terminar, y nada más"
+        },
+        "3-13-10": {
+            "essence": "una decisión pasada de acabar con todo, agotamiento de la lucha, renuncia a la propia vida",
+            "name": "Punto de no retorno",
+            "task": "aprender a pedir ayuda antes del borde, no después de él"
+        },
+        "3-22-19": {
+            "essence": "una vida truncada antes de comenzar, miedo a ocupar espacio, una sensación de no existir plenamente",
+            "name": "El niño no nacido",
+            "task": "reclamar desde cero tu derecho a nacer y ser visto"
+        },
+        "3-7-22": {
+            "essence": "la falta de libertad como hábito, las decisiones ajenas en lugar de las propias, la dependencia de la aprobación externa",
+            "name": "El prisionero",
+            "task": "darse permiso para elegir, incluso algo pequeño, sin permiso ajeno"
+        },
+        "6-14-8": {
+            "essence": "poder mediante el miedo, desconfianza hacia la voluntad ajena, necesidad de controlar todo a su alrededor",
+            "name": "Dictador",
+            "task": "practicar la influencia sin presión — liderar en lugar de someter"
+        },
+        "6-17-11": {
+            "essence": "un don que una vez no dejaron desarrollar, miedo a volver a declarar las capacidades",
+            "name": "Talento desperdiciado",
+            "task": "dar un paso visible en tu oficio sin esperar permiso"
+        },
+        "6-20-14": {
+            "essence": "el hábito de entregarse a los demás, la desvalorización de las propias necesidades",
+            "name": "El sacrificio de la familia",
+            "task": "encontrar el equilibrio entre cuidar de los seres queridos y cuidar de uno mismo"
+        },
+        "6-5-17": {
+            "essence": "poder a través de la superioridad, miedo a admitir un error, soledad en el pedestal",
+            "name": "Soberbia",
+            "task": "permítete estar equivocado frente a los demás"
+        },
+        "6-8-20": {
+            "essence": "expectativas familiares incumplidas, culpa hacia la línea familiar, expiar una deuda que no es tuya",
+            "name": "La decepción de la línea",
+            "task": "separar tus propias metas de las esperanzas incumplidas de otros"
+        },
+        "9-12-3": {
+            "essence": "autosuficiencia en lugar de cercanía, miedo a volver a confiar y ser vulnerable",
+            "name": "La mujer solitaria",
+            "task": "dejar entrar ayuda y apoyo sin perderse a uno mismo"
+        },
+        "9-15-6": {
+            "essence": "vida en un sube y baja emocional, atracción hacia escenarios dramáticos en lugar de estabilidad",
+            "name": "Mundo de las pasiones",
+            "task": "elegir un sentimiento constante en lugar de la intensidad habitual"
+        },
+        "9-18-9": {
+            "essence": "influencia sutil sobre las decisiones ajenas, la tentación de dirigir solapadamente en lugar de abiertamente",
+            "name": "El Hechicero",
+            "task": "decir claramente lo que quieres lograr"
+        },
+        "9-3-21": {
+            "essence": "control como forma de cuidado, desconfianza de que se las arreglarán sin ti",
+            "name": "El Supervisor",
+            "task": "soltar el control donde la confianza ya es suficiente"
+        },
+        "9-9-18": {
+            "essence": "la fuerza de la intención usada fuera de propósito, la tentación del camino fácil a través de la manipulación",
+            "name": "El Mago",
+            "task": "usar tu don abiertamente, sin motivos ocultos"
+        }
+    },
+    "pt": {
+        "12-16-4": {
+            "essence": "autoridade conquistada pela dureza, medo de perder status, desconfiança da iniciativa alheia",
+            "name": "O Imperador",
+            "task": "compartilhar autoridade e reconhecer os méritos alheios"
+        },
+        "12-19-7": {
+            "essence": "lutar como o único modo familiar de viver, dificuldade em simplesmente estar em paz",
+            "name": "O Guerreiro",
+            "task": "distinguir uma ameaça real de um velho hábito de se defender"
+        },
+        "15-20-5": {
+            "essence": "resistência a qualquer regra, mesmo uma útil, luta pela luta",
+            "name": "O Rebelde",
+            "task": "escolher pelo que vale a pena lutar e com o que se pode concordar"
+        },
+        "15-5-8": {
+            "essence": "confiança abalada em pessoas próximas, esperando um golpe de onde menos se espera",
+            "name": "Traição na família",
+            "task": "dar à confiança uma nova chance, sem testá-la de antemão"
+        },
+        "15-8-11": {
+            "essence": "raiva não processada que irrompe pelo corpo em vez de pelas palavras",
+            "name": "Agressão Física",
+            "task": "encontrar uma saída segura para a força, antes que ela encontre uma por conta própria"
+        },
+        "18-3-12": {
+            "essence": "o corpo como um lugar onde a dor não processada é armazenada, um hábito de suportar até o limite",
+            "name": "Sofrimento físico",
+            "task": "ouvir o corpo antes que ele te force a parar"
+        },
+        "18-6-15": {
+            "essence": "um dom para influência que, uma vez usado para causar dano, gera desconfiança do próprio poder",
+            "name": "O Mago Sombrio",
+            "task": "recuperar esse poder gradualmente, testando-o primeiro em algo bom"
+        },
+        "18-6-6": {
+            "essence": "tentar segurar os sentimentos através da força de vontade ou do ritual em vez da honestidade",
+            "name": "magia do amor",
+            "task": "escolher a sinceridade"
+        },
+        "18-9-9": {
+            "essence": "conhecimento mantido em segredo por medo de que seja usado para o mal",
+            "name": "O Mago",
+            "task": "compartilhar seu conhecimento com aqueles que realmente merecem essa confiança"
+        },
+        "21-10-16": {
+            "essence": "autoridade espiritual que era usada para decidir pelos outros",
+            "name": "O Sacerdote Espiritual",
+            "task": "compartilhar sua experiência sem impô-la como a única correta"
+        },
+        "21-10-7": {
+            "essence": "convicções que um dia custaram caro, medo de defender novamente aquilo em que se acredita",
+            "name": "Guerreiro da Fé",
+            "task": "defender suas opiniões com calma, sem estar disposto a lutar por cada uma delas"
+        },
+        "21-4-10": {
+            "essence": "hábito de se submeter à vontade alheia, uma sensação perdida dos próprios limites",
+            "name": "A Alma Oprimida",
+            "task": "perceber o momento em que o silêncio começa a te custar, e dizer «não»"
+        },
+        "21-7-13": {
+            "essence": "uma força que uma vez derrubou mais do que deveria, medo de causar dano novamente",
+            "name": "O Destruidor",
+            "task": "direcionar essa força para o que realmente precisa ser encerrado"
+        },
+        "3-13-10": {
+            "essence": "uma decisão passada de acabar com tudo, exaustão da luta, desistência da própria vida",
+            "name": "Ponto de não retorno",
+            "task": "aprender a pedir ajuda antes do limite, e não depois dele"
+        },
+        "3-22-19": {
+            "essence": "encarnação interrompida, medo de se afirmar, sensação de que você como se não existisse",
+            "name": "A Criança Não Nascida",
+            "task": "reivindicar do zero o seu direito de nascer e ser visto"
+        },
+        "3-7-22": {
+            "essence": "falta de liberdade como hábito, decisões alheias no lugar das próprias, dependência da aprovação alheia",
+            "name": "O Prisioneiro",
+            "task": "dar a si mesmo permissão para escolher — mesmo algo pequeno — sem pedir permissão a ninguém"
+        },
+        "6-14-8": {
+            "essence": "poder através do medo, desconfiança da vontade alheia, necessidade de controlar tudo ao redor",
+            "name": "O Ditador",
+            "task": "treinar influência sem pressão — liderar em vez de forçar"
+        },
+        "6-17-11": {
+            "essence": "um dom que uma vez não deixaram florescer, medo de reivindicar as habilidades novamente",
+            "name": "Talento desperdiçado",
+            "task": "dar um passo visível no seu ofício sem esperar permissão"
+        },
+        "6-20-14": {
+            "essence": "um hábito de se doar pelos outros, desvalorizando as próprias necessidades",
+            "name": "O sacrifício da família",
+            "task": "encontrar o equilíbrio entre cuidar dos entes queridos e cuidar de si mesmo"
+        },
+        "6-5-17": {
+            "essence": "poder através da superioridade, medo de admitir um erro, solidão no pedestal",
+            "name": "Orgulho",
+            "task": "permitir-se estar errado na frente dos outros"
+        },
+        "6-8-20": {
+            "essence": "expectativas familiares não cumpridas, culpa em relação à linhagem familiar, tentativa de expiar uma dívida que não é sua",
+            "name": "A Decepção da Linhagem",
+            "task": "separar seus próprios objetivos das esperanças não realizadas de outra pessoa"
+        },
+        "9-12-3": {
+            "essence": "autossuficiência em vez de proximidade, medo de confiar novamente e ser vulnerável",
+            "name": "A mulher solitária",
+            "task": "deixar entrar ajuda e apoio sem perder a si mesmo"
+        },
+        "9-15-6": {
+            "essence": "vida em um balanço emocional, atração por cenários dramáticos em vez de estabilidade",
+            "name": "Mundo das Paixões",
+            "task": "escolher um sentimento constante em vez da intensidade familiar"
+        },
+        "9-18-9": {
+            "essence": "influência sutil sobre as escolhas alheias, a tentação de conduzir às escondidas em vez de abertamente",
+            "name": "O Feiticeiro",
+            "task": "dizer diretamente sobre o que você quer alcançar"
+        },
+        "9-3-21": {
+            "essence": "controle como forma de cuidado, desconfiança de que conseguirão sem você",
+            "name": "O Supervisor",
+            "task": "soltar o controle onde a confiança já é suficiente"
+        },
+        "9-9-18": {
+            "essence": "a força da intenção usada fora de propósito, a tentação do caminho fácil através da manipulação",
+            "name": "O Mago",
+            "task": "usar seu dom abertamente, sem motivos ocultos"
+        }
+    },
+    "tr": {
+        "12-16-4": {
+            "essence": "sertlikle kazanılmış otorite, statü kaybetme korkusu, başkalarının inisiyatifine güvensizlik",
+            "name": "İmparator",
+            "task": "yetkiyi paylaşmak ve başkalarının katkılarını takdir etmek"
+        },
+        "12-19-7": {
+            "essence": "mücadele etmek yaşamak için tek alışılmış yol olarak, sadece huzur içinde olmakta zorluk",
+            "name": "Savaşçı",
+            "task": "gerçek bir tehdidi, eski bir savunma alışkanlığından ayırt etmek"
+        },
+        "15-20-5": {
+            "essence": "herhangi bir kurala karşı direniş, yararlı olana bile, kavga uğruna kavga",
+            "name": "Asi",
+            "task": "neyin uğruna savaşmaya değer olduğunu ve neyin basitçe kabul edilebileceğini seçmek"
+        },
+        "15-5-8": {
+            "essence": "yakınlara olan güvenin sarsılması, en beklemediğin yerden darbe beklentisi",
+            "name": "Ailede ihanet",
+            "task": "güvene, onu önceden sınamadan yeni bir şans vermek"
+        },
+        "15-8-11": {
+            "essence": "işlenmemiş öfke, kelimeler yerine beden yoluyla dışa vuran",
+            "name": "Fiziksel saldırganlık",
+            "task": "güç için, kendi başına çıkmadan önce güvenli bir çıkış bulmak"
+        },
+        "18-3-12": {
+            "essence": "bedenin işlenmemiş acının depolandığı bir yer olması, sonuna kadar dayanma alışkanlığı",
+            "name": "Fiziksel acı",
+            "task": "bedeni seni durmaya zorlamadan önce dinle"
+        },
+        "18-6-15": {
+            "essence": "etki yeteneği, bir kez zarar vermek için kullanıldığında, kendi gücüne güvensizlik",
+            "name": "Kara Büyücü",
+            "task": "gücünü kademeli olarak geri kazanmak, onu iyi işlerde test ederek"
+        },
+        "18-6-6": {
+            "essence": "duyguları dürüstlük yerine irade gücü veya ritüelle tutmaya çalışmak",
+            "name": "Aşk büyüsü",
+            "task": "ilişkilerde samimiyeti, onları kontrol etmeye tercih etmek"
+        },
+        "18-9-9": {
+            "essence": "kötüye kullanılacağı korkusuyla gizli tutulan bilgi",
+            "name": "Büyücü",
+            "task": "bildiklerini gerçekten güveni hak etmiş insanlarla paylaşmak"
+        },
+        "21-10-16": {
+            "essence": "başkaları adına karar vermek için kullanılan manevi otorite",
+            "name": "Ruhani Rahip",
+            "task": "deneyimini, onu tek doğru yol olarak dayatmadan paylaşmak"
+        },
+        "21-10-7": {
+            "essence": "bir zamanlar pahalıya mal olan inançlar, inandığın şeyi tekrar savunma korkusu",
+            "name": "İman Savaşçısı",
+            "task": "fikirlerini sakince savunmak, her biri için savaşmaya hazır olmadan"
+        },
+        "21-4-10": {
+            "essence": "bir başkasının iradesine boyun eğme alışkanlığı, kendi sınırlarınızın kaybolmuş hissi",
+            "name": "Ezilen ruh",
+            "task": "sessizliğin zarar vermeye başladığı anı fark etmek ve «hayır» demek"
+        },
+        "21-7-13": {
+            "essence": "bir zamanlar olması gerekenden fazlasını yıkan bir güç, yeniden zarar verme korkusu",
+            "name": "Yok Edici",
+            "task": "bu gücü gerçekten sonlandırılması gereken şeye yönlendirmek"
+        },
+        "3-13-10": {
+            "essence": "geçmişte her şeyi bitirme kararı, mücadeleden yorgun düşme, kendi hayatından vazgeçme",
+            "name": "dönüşü olmayan nokta",
+            "task": "yardım istemeyi uçurumdan önce öğren, sonrasında değil"
+        },
+        "3-22-19": {
+            "essence": "kesintiye uğramış bir hayat, kendini ifade etme korkusu, sanki yokmuşsun gibi hissetme",
+            "name": "Doğmamış çocuk",
+            "task": "sıfırdan var olma ve görülme hakkını yeniden kendine mal etmek"
+        },
+        "3-7-22": {
+            "essence": "özgür olmamak bir alışkanlık olarak, başkalarının kararlarıyla yaşamak, başkalarının onayına bağımlı olmak",
+            "name": "Mahkum",
+            "task": "kendine seçme izni ver — küçük bir şey bile olsa — başkasının izni olmadan"
+        },
+        "6-14-8": {
+            "essence": "korkuyla güç, başkalarının iradesine gü",
+            "name": "Diktatör",
+            "task": "baskı olmadan etkiyi eğitmek — boyun eğdirmek yerine yönlendirmek"
+        },
+        "6-17-11": {
+            "essence": "bir zamanlar açığa çıkmasına izin verilmeyen bir hediye, yeteneklerini tekrar gösterme korkusu",
+            "name": "Ziyan edilmiş yetenek",
+            "task": "zanaatında gözle görülür bir adım atmak, izin beklemeden"
+        },
+        "6-20-14": {
+            "essence": "başkaları için kendini feda etme alışkanlığı, kendi ihtiyaçlarını değersizleştirme",
+            "name": "Ailenin Fedakarlığı",
+            "task": "sevdiklerine bakmak ile kendine bakmak arasında denge bulmak"
+        },
+        "6-5-17": {
+            "essence": "üstünlük yoluyla güç, hata kabul etme korkusu, kaide üzerinde yalnızlık",
+            "name": "kibir",
+            "task": "kendine başkalarının önünde haksız olmaya izin vermek"
+        },
+        "6-8-20": {
+            "essence": "yerine getirilmemiş aile beklentileri, aileye karşı suçluluk duygusu, kendine ait olmayan bir borcu telafi etme çabası",
+            "name": "Soyun Hayal Kırıklığı",
+            "task": "kendi hedeflerini başkalarının gerçekleşmemiş umutlarından ayırmak"
+        },
+        "9-12-3": {
+            "essence": "kendi kendine yeterlilik yakınlık yerine, yeniden güvenme ve savunmasız olma korkusu",
+            "name": "Yalnız Kadın",
+            "task": "yardımı ve desteği içeri almak, kendini kaybetmeden"
+        },
+        "9-15-6": {
+            "essence": "duygusal bir tahterevallide yaşam, istikrar yerine dramatik senaryolara çekilme",
+            "name": "Tutkuların Dünyası",
+            "task": "tanıdık yoğunluk yerine dengeli bir duyguyu seçmek"
+        },
+        "9-18-9": {
+            "essence": "başkalarının kararları üzerinde ince bir etki, açıkça değil de gizlice yönlendirme cazibesi",
+            "name": "Büyücü",
+            "task": "ne elde etmek istediğini doğrudan söylemek"
+        },
+        "9-3-21": {
+            "essence": "kontrol, bir bakım biçimi olarak, senden başkasının başarabileceğine güvensizlik",
+            "name": "Gözetmen",
+            "task": "güvenin yeterli olduğu yerde kontrolü bırakmak"
+        },
+        "9-9-18": {
+            "essence": "niyetin gücünün amacı dışında kullanılması, manipülasyon yoluyla kestirme yolun cazibesi",
+            "name": "Büyücü",
+            "task": "yeteneğini açıkça, gizli niyetler olmadan kullan"
+        }
+    },
+    "uk": {
+        "12-16-4": {
+            "essence": "влада, здобута жорсткістю, страх втратити статус, недовіра до чужої ініціативи",
+            "name": "Імператор",
+            "task": "ділитися владою і визнавати чужі заслуги"
+        },
+        "12-19-7": {
+            "essence": "боротьба як єдиний звичний спосіб жити, труднощі з тим, щоб просто бути у мирі",
+            "name": "Воїн",
+            "task": "відрізняти справжню загрозу від старої звички оборонятися"
+        },
+        "15-20-5": {
+            "essence": "протест проти будь-яких правил, навіть корисних, боротьба заради боротьби",
+            "name": "Бунтар",
+            "task": "обирати, за що варто боротися, а з чим можна погодитися"
+        },
+        "15-5-8": {
+            "essence": "підірвана довіра до близьких, очікування удару звідти, звідки не чекаєш",
+            "name": "Зрада в сім'ї",
+            "task": "давати довірі новий шанс, не перевіряючи його на міцність заздалегідь"
+        },
+        "15-8-11": {
+            "essence": "неопрацьований гнів, який проривається назовні через тіло, а не через слова",
+            "name": "фізична агресія",
+            "task": "знаходити безпечний вихід силі, перш ніж вона вийде сама"
+        },
+        "18-3-12": {
+            "essence": "тіло як місце, де зберігається непрожитий біль, звичка терпіти до останнього",
+            "name": "Фізичні страждання",
+            "task": "слухати тіло раніше, ніж воно змусить зупинитися"
+        },
+        "18-6-15": {
+            "essence": "дар впливу, одного разу використаний на шкоду, недовіра до власної сили",
+            "name": "Темний маг",
+            "task": "повертати собі силу поступово, перевіряючи її на добрих справах"
+        },
+        "18-6-6": {
+            "essence": "спроба утримати почуття силою волі або ритуалом замість чесності",
+            "name": "Любовна магія",
+            "task": "обирати щирість у відносинах замість контролю над ними"
+        },
+        "18-9-9": {
+            "essence": "знання, яке тримають у таємниці зі страху, що ним скористаються на зло",
+            "name": "Чарівник",
+            "task": "ділитися своїми знаннями з тими, кому"
+        },
+        "21-10-16": {
+            "essence": "духовний авторитет, який використовували",
+            "name": "Духовний жрець",
+            "task": "ділитися своїм досвідом, не нав'язуючи його як єдино вірний"
+        },
+        "21-10-7": {
+            "essence": "переконання, які колись коштували дорого, страх знову відстоювати те, у що віриш",
+            "name": "Воїн віри",
+            "task": "відстоювати погляди спокійно, без готовності воювати за кожен із них"
+        },
+        "21-4-10": {
+            "essence": "звичка підкорятися чужій волі, втрачене відчуття власних меж",
+            "name": "Пригнічена душа",
+            "task": "помічати момент, коли мовчання шкодить, і говорити «ні»"
+        },
+        "21-7-13": {
+            "essence": "сила, яка колись знесла більше, ніж слід було, страх знову завдати шкоди",
+            "name": "Руйнівник",
+            "task": "спрямовувати цю силу на те, що дійсно час завершити"
+        },
+        "3-13-10": {
+            "essence": "минуле рішення все обірвати, втома від боротьби, відмова від власного життя",
+            "name": "Точка неповернення",
+            "task": "вчитися просити про допомогу до краю, а не після нього"
+        },
+        "3-22-19": {
+            "essence": "обірване втілення, страх заявити про себе, відчуття, що тебе ніби немає",
+            "name": "Ненароджена дитина",
+            "task": "заново присвоїти собі право народитися і бути побаченим"
+        },
+        "3-7-22": {
+            "essence": "несвобода як звичка, чужі рішення замість своїх, залежність від чужого схвалення",
+            "name": "В'язень",
+            "task": "дозволити собі вибирати, навіть маленьке, без чужого дозволу"
+        },
+        "6-14-8": {
+            "essence": "влада через страх, недовіра до чужої волі, потреба контролювати все навколо",
+            "name": "Диктатор",
+            "task": "тренувати вплив без тиску — вести, а не підкоряти"
+        },
+        "6-17-11": {
+            "essence": "дар, який колись не дали розкрити, страх знову заявити про здібності",
+            "name": "Загублений талант",
+            "task": "робити помітний крок у своїй справі, не чекаючи дозволу"
+        },
+        "6-20-14": {
+            "essence": "звичка віддавати себе заради інших, знецінення власних потреб",
+            "name": "Жертва роду",
+            "task": "знаходити баланс між турботою про близьких і турботою про себе"
+        },
+        "6-5-17": {
+            "essence": "влада через перевагу, страх визнати помилку, самотність на п'єдесталі",
+            "name": "Гординя",
+            "task": "дозволити собі бути неправим на очах у інших"
+        },
+        "6-8-20": {
+            "essence": "невиконані родові очікування, почуття провини перед родиною, спроба спокутувати не свою провину",
+            "name": "Розчарування роду",
+            "task": "відокремити свої цілі від чужих нездійснених надій"
+        },
+        "9-12-3": {
+            "essence": "самодостатність замість близькості, страх знову довіритися і",
+            "name": "Самотня жінка",
+            "task": "впускати допомогу і підтримку, не втрачаючи себе"
+        },
+        "9-15-6": {
+            "essence": "життя на емоційних гойдалках, потяг до драматичних сценаріїв замість стабільності",
+            "name": "Світ страстей",
+            "task": "обирати рівне почуття замість звичного напруження"
+        },
+        "9-18-9": {
+            "essence": "тонкий вплив на чужі рішення, спокуса керувати потай, а не відкрито",
+            "name": "Чародій",
+            "task": "говорити прямо про те, чого хочеш досягти"
+        },
+        "9-3-21": {
+            "essence": "контроль як форма турботи, недовіра до того, що впораються без тебе",
+            "name": "Наглядач",
+            "task": "відпускати контроль там, де доста"
+        },
+        "9-9-18": {
+            "essence": "сила наміру, використана не за призначенням, спокуса легкого шляху через маніпуляцію",
+            "name": "Маг",
+            "task": "застосовувати свій дар відкрито, без прихованих мотивів"
+        }
+    }
+}
