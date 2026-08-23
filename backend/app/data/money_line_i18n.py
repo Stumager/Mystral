@@ -9,4 +9,541 @@ money_line. Empty until that runs; pick() falls back to English for any
 language not present here yet.
 """
 
-MONEY_ENERGY_I18N: dict[str, dict[str, dict[str, str]]] = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MONEY_ENERGY_I18N: dict[str, dict[str, dict[str, str]]] = {
+    "es": {
+        "1": {
+            "block": "dispersión en diez comienzos en lugar de terminar el que da dinero",
+            "flow": "el dinero sigue a la iniciativa — proponer primero, comenzar, tomar la delantera"
+        },
+        "10": {
+            "block": "esperar condiciones ideales y perder la oportunidad que ya está aquí",
+            "flow": "el ingreso llega a través de un momento oportuno — lo importante es notarlo y no dejarlo escapar"
+        },
+        "11": {
+            "block": "permanecer empleado en un lugar donde hace tiempo que hay estrechez, por miedo a la independencia",
+            "flow": "el dinero viene a través de la actividad — tu propio negocio, movimiento, responsabilidad real"
+        },
+        "12": {
+            "block": "sentir vergüenza de cobrar por algo que ayuda a las personas",
+            "flow": "el ingreso llega a través del servicio — lo que le das a las personas, no lo que tomas"
+        },
+        "13": {
+            "block": "aferrarse a un negocio que se desvanece solo porque duele el tiempo invertido",
+            "flow": "el dinero llega a través de un cambio de rumbo — un nuevo campo, un nuevo formato de trabajo"
+        },
+        "14": {
+            "block": "dedicarse a un negocio rentable, pero completamente ajeno, por el beneficio en sí",
+            "flow": "el ingreso crece donde el trabajo es elegido por vocación, no por cálculo"
+        },
+        "15": {
+            "block": "perseguir dinero rápido y esquemas arriesgados en lugar de un trabajo sistemático y constante",
+            "flow": "el dinero llega a través de inversiones a largo plazo y paciencia"
+        },
+        "16": {
+            "block": "aferrarse a un modelo de ingresos colapsado, negándose a construir uno nuevo",
+            "flow": "los ingresos llegan a través de la disposición a cambiar de sector bruscamente cuando el antigu"
+        },
+        "17": {
+            "block": "esconderse de la atención, aunque es precisamente la atención la que trae clientes",
+            "flow": "el dinero llega a través de la visibilidad — estar a la vista, compartir la propia voz"
+        },
+        "18": {
+            "block": "usar la ansiedad ajena para vender en lugar de aliviarla",
+            "flow": "el ingreso llega a través del trabajo con temas sutiles — la ansiedad, el miedo, el subconsciente"
+        },
+        "19": {
+            "block": "perseguir la apariencia del éxito en lugar del contacto real con la audiencia",
+            "flow": "el dinero llega a través de la apertura y el calor natural hacia las personas"
+        },
+        "2": {
+            "block": "trabajar en contra de una objeción interna cierra silenciosamente el flujo",
+            "flow": "los ingresos crecen cuando hay acuerdo entre lo que sientes y lo que haces"
+        },
+        "20": {
+            "block": "llevar el guion parental sobre el dinero sin siquiera notar que no es tuyo",
+            "flow": "el ingreso se revela a través de una revisión honesta de las creencias heredadas sobre el dinero"
+        },
+        "21": {
+            "block": "restringirse artificialmente a lo local, familiar y seguro",
+            "flow": "el dinero llega a través de la escala — trabajo internacional, amplio alcance, proyectos terminados"
+        },
+        "22": {
+            "block": "permanecer en la estructura ajena por miedo a la responsabilidad de tu propio emprendimiento",
+            "flow": "el ingreso llega a través de la independencia — trabajar por cuenta propia, fuentes pasivas"
+        },
+        "3": {
+            "block": "regalar lo que hace tiempo debería tener un precio",
+            "flow": "el dinero llega a través de la generosidad, el cuidado, la creación de algo que alimenta a otros"
+        },
+        "4": {
+            "block": "control tan estricto que delegar cualquier tarea parece fuera de alcance",
+            "flow": "el ingreso se sostiene en la estructura — un sistema, un reglamento, un armazón fiable del negocio"
+        },
+        "5": {
+            "block": "aferrarse a la metodología de otro en lugar de asumir la responsabilidad por la propia",
+            "flow": "el dinero llega a través de la transmisión de conocimiento — enseñanza, mentoría, experiencia"
+        },
+        "6": {
+            "block": "tomar un proyecto por cortesía, aunque por dentro ya había sonado un «no»",
+            "flow": "el ingreso crece a través de las relaciones y la elección honesta de con quién trabajar y con quién no"
+        },
+        "7": {
+            "block": "disipar energía a ráfagas en lugar de un curso constante y llevado hasta el final",
+            "flow": "el dinero sigue al movimiento enfocado hacia un resultado, sin mirar atrás"
+        },
+        "8": {
+            "block": "caos en los documentos y acuerdos, que algún día saldrá caro",
+            "flow": "el ingreso es estable donde hay orden, precisión y compromisos cumplidos"
+        },
+        "9": {
+            "block": "ocultar la experiencia por miedo a que resulte que nadie la necesita",
+            "flow": "el dinero llega a través de un trabajo profundo e independiente sobre un tema difícil"
+        }
+    },
+    "pt": {
+        "1": {
+            "block": "espalhar por dez começos em vez de concluir aquele que rende dinheiro",
+            "flow": "dinheiro segue a iniciativa — propor, começar primeiro, liderar"
+        },
+        "10": {
+            "block": "esperar por condições ideais e perder a oportunidade que já está aqui",
+            "flow": "a renda vem através de um momento oportuno — o importante é percebê-lo e não deixá-lo escapar"
+        },
+        "11": {
+            "block": "permanecer empregado em um lugar que há muito tempo é pequeno demais, por medo de agir por conta própria",
+            "flow": "dinheiro segue a atividade — seu próprio negócio, movimento, responsabilidade real"
+        },
+        "12": {
+            "block": "sentir vergonha de cobrar por algo que realmente ajuda as pessoas",
+            "flow": "a renda vem através do serviço — o que você dá às pessoas, não o que você extrai"
+        },
+        "13": {
+            "block": "apegar-se a um empreendimento em declínio apenas por causa",
+            "flow": "o dinheiro vem através da mudança de rumo — uma nova área, um novo formato de trabalho"
+        },
+        "14": {
+            "block": "fazer algo lucrativo, mas completamente alheio, apenas pelo",
+            "flow": "a renda cresce onde o trabalho é escolhido por amor, e não por cálculo"
+        },
+        "15": {
+            "block": "correr atrás de dinheiro rápido e esquemas arriscados em vez de trabalho sistemático e constante",
+            "flow": "dinheiro vem através de investimentos de longo prazo e paciência"
+        },
+        "16": {
+            "block": "agarrar-se a um modelo de renda que desabou, recusando-se a construir um novo",
+            "flow": "a renda vem através da disposição de mudar drasticamente de área quando a antiga está esgotada"
+        },
+        "17": {
+            "block": "esconder-se da atenção, embora seja exatamente ela que traz clientes",
+            "flow": "o dinheiro vem através da visibilidade — estar em evidência, compartilhar a própria voz"
+        },
+        "18": {
+            "block": "usar a ansiedade alheia para vender em vez de aliviá-la",
+            "flow": "a renda vem através do trabalho com temas sutis — ansiedade, medo, o subconsciente"
+        },
+        "19": {
+            "block": "correr atrás do sucesso aparente em vez do contato real com a audiência",
+            "flow": "dinheiro vem através da abertura e do calor natural para com as pessoas"
+        },
+        "2": {
+            "block": "trabalhar contra uma objeção interna silenciosamente interrompe o fluxo",
+            "flow": "a renda cresce quando há concordância entre o que você sente e o que você faz."
+        },
+        "20": {
+            "block": "carregar o roteiro parental sobre dinheiro sem sequer perceber que ele não é seu",
+            "flow": "a renda se revela através de uma revisão honesta das crenças herdadas sobre dinheiro"
+        },
+        "21": {
+            "block": "artificialmente se reduzir ao local, familiar e seguro",
+            "flow": "dinheiro vem através da escala — trabalho internacional, amplo alcance, projetos concluídos"
+        },
+        "22": {
+            "block": "permanecer na estrutura de outra pessoa por medo de assumir a responsabilidade pelo próprio empreendimento",
+            "flow": "a renda vem através da independência — trabalho por conta própria, fontes passivas"
+        },
+        "3": {
+            "block": "distribuir gratuitamente aquilo que há muito tempo deveria ter um preço",
+            "flow": "dinheiro vem através da generosidade, cuidado, criação de algo que alimenta os outros"
+        },
+        "4": {
+            "block": "controle tão rígido que delegar até mesmo uma tarefa parece fora de alcance",
+            "flow": "a renda se sustenta na estrutura — sistema, regulamento, arcabouço confiável do negócio"
+        },
+        "5": {
+            "block": "apegar-se à metodologia alheia em vez de assumir a responsabilidade pela sua própria",
+            "flow": "o dinheiro vem através da transmissão de conhecimento — ensino, mentoria, expertise"
+        },
+        "6": {
+            "block": "aceitar um projeto por educação, embora por dentro já tivesse soado o «não»",
+            "flow": "a renda cresce através de relacionamentos e uma escolha honesta de com quem trabalhar"
+        },
+        "7": {
+            "block": "gastar energia em rajadas em vez de um curso constante levado até o fim",
+            "flow": "o dinheiro segue o movimento focado em direção a um resultado, sem olhar para trás"
+        },
+        "8": {
+            "block": "caos em documentos e acordos, que um dia custará caro",
+            "flow": "a renda é estável onde há ordem, precisão e compromissos cumpridos"
+        },
+        "9": {
+            "block": "esconder a própria expertise por medo de que ninguém a queira",
+            "flow": "o dinheiro vem através de um trabalho profundo e independente sobre um tema complexo"
+        }
+    },
+    "tr": {
+        "1": {
+            "block": "on başlangıca yayılıp, paraya dönüşecek olanı bitirmek yerine",
+            "flow": "para inisiyatifi takip eder — önce teklif etmek, başlatmak, öncülük etmek"
+        },
+        "10": {
+            "block": "mükemmel koşulları beklemek ve zaten burada olan fırsatı kaçırmak",
+            "flow": "gelir, doğru an sayesinde gelir — önemli olan onu fark etmek ve kaçırmamak"
+        },
+        "11": {
+            "block": "korkudan kendi başına hareket edemeyip uzun zamandır dar olan bir yerde işte kalmak",
+            "flow": "para, aktivite yoluyla gelir — kendi işiniz, hareket, gerçek sorumluluk"
+        },
+        "12": {
+            "block": "insanlara gerçekten yardımcı olan bir şey için ücret talep etmekten utanmak",
+            "flow": "gelir hizmet yoluyla gelir — insanlara verdiğin şey, aldığın değil"
+        },
+        "13": {
+            "block": "bir solmakta olan girişime yalnızca ona yatırılan zamana acıdığı için tutunmak",
+            "flow": "para, rota değişikliğiyle gelir — yeni bir alan, yeni bir çalışma biçimi"
+        },
+        "14": {
+            "block": "kârlı ama tamamen yabancı bir işi sırf kâr için yapmak",
+            "flow": "İşin hesap için değil, gönülden seçildiği yerde gelir artar."
+        },
+        "15": {
+            "block": "hızlı kazanç ve riskli planların peşinde koşmak, sistemli çalışma yerine",
+            "flow": "Para, uzun vadeli yatırım ve sabır ile gelir."
+        },
+        "16": {
+            "block": "çökmüş bir kazanç modeline tutunup yenisini kurmayı reddetmek",
+            "flow": "gelir, eski alan tükendiğinde sert bir şekilde yön değiştirme isteğiyle gelir"
+        },
+        "17": {
+            "block": "dikkatten saklanmak, oysa tam da dikkat müşteri getiriyor",
+            "flow": "para, görünürlük yoluyla gelir — görünür olmak, k"
+        },
+        "18": {
+            "block": "başkasının kaygısını gidermek yerine onu satmak için kullanmak",
+            "flow": "gelir, ince konularla — kaygı, korku, bilinçaltı — çalışarak gelir"
+        },
+        "19": {
+            "block": "gösterişli başarının peşinde koşmak, izleyiciyle gerçek temas yerine",
+            "flow": "para, insanlara karşı açıklık ve doğal sıcaklıkla gelir"
+        },
+        "2": {
+            "block": "bir iç itiraza karşı çalışmak sessizce akışı kapatır",
+            "flow": "gelir, hissettiklerinle yaptığın iş arasında uyum olduğunda artar"
+        },
+        "20": {
+            "block": "bir ebeveynin para hikâyesini, onun sana ait olmadığını fark etmeden taşımak",
+            "flow": "gelir, para hakkındaki kalıtsal inançların dürüstçe yeniden gözden geçirilmesiyle açığa çıkar"
+        },
+        "21": {
+            "block": "yapay olarak kendini yerel, tanıdık ve güvenli olana daraltmak",
+            "flow": "para ölçek yoluyla gelir — uluslararası çalışma, geniş kapsam, tamamlanmış projeler"
+        },
+        "22": {
+            "block": "başkasının yapısında, kendi girişiminin sorumluluğundan korkarak kalmak",
+            "flow": "gelir bağımsızlık yoluyla gelir — kendin için çalışmak, pasif kaynaklar"
+        },
+        "3": {
+            "block": "ücretsiz dağıtmak, uzun zamandır fiyat etiketi koymanın gerektiği şeyi",
+            "flow": "para, cömertlik, şefkat, başkalarını besleyen bir şey yaratmak yoluyla gelir"
+        },
+        "4": {
+            "block": "kontrol o kadar sıkı ki tek bir görevin bile devredilmesi imkansız görünüyor",
+            "flow": "gelir yapıya dayanır — bir sisteme, bir düzene, işin güvenilir iskeletine"
+        },
+        "5": {
+            "block": "başkasının metoduna sarılmak, kendi metodunun sorumluluğunu almak yerine",
+            "flow": "para, bilgi aktarımı yoluyla gelir — öğretim, rehberlik, uzmanlık"
+        },
+        "6": {
+            "block": "kibarlıktan projeyi üstlenmek, içten içe zaten 'hayır' denmişken",
+            "flow": "gelir, ilişkiler ve kiminle çalışıp kiminle çalışmayacağına dair dürüst bir seçim yoluyla büyür"
+        },
+        "7": {
+            "block": "enerjiyi, tamamlanmış istikrarlı bir rota yerine ani patlamalarla harcamak",
+            "flow": "Para, arkaya bakmadan sonuca yönelik odaklanmış hareketi takip eder."
+        },
+        "8": {
+            "block": "belgelerde ve anlaşmalardaki kaos, bir gün pahalıya patlayacak",
+            "flow": "gelir, düzen, kesinlik ve yerine getirilmiş yükümlülüklerin olduğu yerde istikrarlıdır"
+        },
+        "9": {
+            "block": "uzmanlığını kimsenin istemeyeceği korkusuyla saklamak",
+            "flow": "para, zor bir konu üzerinde derin, bağımsız çalışma yoluyla gelir"
+        }
+    },
+    "uk": {
+        "1": {
+            "block": "розпорошення на десять починань замість одного доведеного до грошей",
+            "flow": "гроші йдуть через ініціативу — запропонувати, почати першим, очолити"
+        },
+        "10": {
+            "block": "чекати ідеальних умов і пропускати можливість, яка вже тут",
+            "flow": "дохід приходить через вдалий момент — важливо помітити його і не втратити"
+        },
+        "11": {
+            "block": "залишатися в наймі там, де давно тісно, через страх самостійності",
+            "flow": "гроші йдуть через активність — власна справа, рух, реальна відповідальність"
+        },
+        "12": {
+            "block": "соромитися називати ціну за те, що допомагає людям",
+            "flow": "дохід приходить через служіння — те, що віддаєш людям, а не те, що береш"
+        },
+        "13": {
+            "block": "триматися за згасаючу справу тільки тому, що шкода вкладеного часу",
+            "flow": "гроші приходять через зміну курсу — нову сферу, новий формат роботи"
+        },
+        "14": {
+            "block": "займатися прибутковою, але абсолютно чужою справою заради самого прибутку",
+            "flow": "дохід зростає там, де справа обрана до душі, а не за розрахунком"
+        },
+        "15": {
+            "block": "гнатися за швидкою наживою та ризикованими схемами замість системної роботи",
+            "flow": "гроші приходять через довгострокові вкладення і терпіння"
+        },
+        "16": {
+            "block": "чіплятися за зруйновану модель заробітку, відмовляючись будувати нову",
+            "flow": "дохід приходить через готовність різко змінити сферу, коли стара вичерпана"
+        },
+        "17": {
+            "block": "ховатися від уваги, хоча саме вона приносить клієнтів",
+            "flow": "гроші приходять через відомість — бути на виду, ділитися своїм голосом"
+        },
+        "18": {
+            "block": "використовувати чужу тривогу для продажу замість того, щоб її знімати",
+            "flow": "дохід приходить через роботу"
+        },
+        "19": {
+            "block": "гнатися за показним успіхом замість справжнього контакту з аудиторією",
+            "flow": "гроші приходять через відкритість і природне тепло до людей"
+        },
+        "2": {
+            "block": "робота всупереч внутрішній незгоді тихо перекриває потік",
+            "flow": "дохід зростає, коли є згода мі"
+        },
+        "20": {
+            "block": "нести батьківський сценарій про гроші, навіть не помітивши, що він не твій",
+            "flow": "дохід розкривається через чесний перегляд родових установок про гроші"
+        },
+        "21": {
+            "block": "штучно звужувати себе до локального, звичного, безпечного",
+            "flow": "гроші приходять через масштаб — міжнародну роботу, широке охоплення, завершені проекти"
+        },
+        "22": {
+            "block": "залишатися в чужій структурі через страх відповідальності за власну справу",
+            "flow": "дохід приходить через незалежність — роботу на себе"
+        },
+        "3": {
+            "block": "роздавати безкоштовно те, чому давно час призначити ціну",
+            "flow": "гроші приходять через щедрість, турботу, створення чогось, що годує інших"
+        },
+        "4": {
+            "block": "жорсткий контроль до відмови делегувати хоч щось",
+            "flow": "дохід тримається на структурі"
+        },
+        "5": {
+            "block": "триматися чужої методики замість того, щоб взяти відповідальність за свою",
+            "flow": "гроші приходять через передачу знань — навчання, наставництво, експертизу"
+        },
+        "6": {
+            "block": "братися за проєкт із ввічливості, хоча всередині вже прозвучало «ні»",
+            "flow": "дохід зростає через відносини та чесний вибір — з ким працювати, а з ким ні"
+        },
+        "7": {
+            "block": "розпорошувати енергію ривками замість рівного, доведеного до кінця курсу",
+            "flow": "гроші йдуть за цілеспрямованим рухом до результату, без огляду назад"
+        },
+        "8": {
+            "block": "хаос у документах та домовленостях, який колись дорого обійдеться",
+            "flow": "дохід стабільний там, де є порядок, точність і виконані зобов'язання"
+        },
+        "9": {
+            "block": "ховати експертизу зі страху, що вона виявиться нікому не потрібна",
+            "flow": "гроші приходять через глибоку, самостійну роботу над складною темою"
+        }
+    }
+}
