@@ -620,6 +620,12 @@
     "loading": "The matrix is speaking...",
     "error": "Something went wrong. Try again."
   },
+  "matrixCompatibility": {
+    "title": "Matrix Compatibility",
+    "interpret": "Message of the Couple",
+    "loading": "Fate is speaking...",
+    "error": "Something went wrong. Try again."
+  },
   "onboarding": {
     "title": "Tell us about you ✨",
     "subtitle": "To create your personal horoscope",

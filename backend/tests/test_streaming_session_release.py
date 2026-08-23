@@ -270,3 +270,23 @@ class TestChildrenMatrixInterpretClosesSessionBeforeStreaming:
             )
         assert res.status_code == 200
         assert close_tracker["closed_when_stream_started"] is True
+
+
+class TestMatrixCompatibilityInterpretClosesSessionBeforeStreaming:
+    """TZ-118 — the 14th streaming endpoint, same module as matrix.py's
+    /matrix/interpret above. Pro-only, so this runs on pro_headers. Reuses
+    the existing UserPartner (task 4's finding), not a new model."""
+
+    async def test_interpret(self, client, pro_headers, pro_user, close_tracker):
+        user, _ = pro_user
+        partner = await _make_partner(user.id)
+
+        fake_stream = _fake_stream_factory(close_tracker)
+        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+            res = await client.post(
+                f"/v1/matrix/compatibility/{partner.id}/interpret",
+                headers=pro_headers,
+                json={"lang": "ru"},
+            )
+        assert res.status_code == 200
+        assert close_tracker["closed_when_stream_started"] is True

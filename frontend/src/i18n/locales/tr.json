@@ -620,6 +620,12 @@
     "loading": "Matris konuşuyor...",
     "error": "Bir şeyler ters gitti. Tekrar dene."
   },
+  "matrixCompatibility": {
+    "title": "Matris Uyumu",
+    "interpret": "Çift Mesajı",
+    "loading": "Kader konuşuyor...",
+    "error": "Bir şeyler ters gitti. Tekrar dene."
+  },
   "onboarding": {
     "title": "Kendinden bahset ✨",
     "subtitle": "Kişisel burç yorumunu oluşturmak için",

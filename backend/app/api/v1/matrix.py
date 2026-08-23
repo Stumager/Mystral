@@ -27,6 +27,18 @@ there IS a free sample — the "talents" point (the child's main-talent
 hook) is visible to free users, the other eight points and the AI reading
 are Pro. Mirrors natal.py's "one free section, rest gated" shape rather
 than TZ-114/115's all-or-nothing gate.
+
+TZ-118 (Совместимость, "Послание пары") — fifth and final module, and the
+first that needs a second person's birth data. Reuses UserPartner from
+compatibility.py rather than a new model — confirmed by checking, not by
+analogy with TZ-116's UserChild: a Matrix partner and a Compatibility
+partner are the same real-world relationship, unlike a child, so the same
+row (and the same existing /partners CRUD) serves both features. Access
+model matches TZ-114/115: no free sample, both GET
+/matrix/compatibility/{partner_id} and its /interpret reject free users.
+See app/data/matrix_compatibility.py's docstring for the Step 0 formula
+verification and the content-safety decisions behind the interpret prompt
+below.
 """
 from datetime import date
 from uuid import UUID
@@ -45,8 +57,9 @@ from app.core.prompts import lang_enforce, system_prompt
 from app.data.childrens_matrix import FREE_POINT_ID, build_children_matrix
 from app.data.destiny_matrix import POINT_IDS, arcana_name, build_matrix, calculate
 from app.data.karmic_tail import KARMIC_TAIL, build_karmic_tail, calculate_tail, tail_code
+from app.data.matrix_compatibility import build_compatibility
 from app.data.money_line import MONEY_LINE_POSITIONS, build_money_line, calculate_money_line
-from app.models.user import User, UserChild, UserProfile
+from app.models.user import User, UserChild, UserPartner, UserProfile
 
 router = APIRouter()
 
@@ -527,6 +540,132 @@ async def matrix_child_interpret(
     prompt += lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "children_matrix_interpret", 0, 20)
+    msgs = [
+        {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
+        {"role": "user", "content": prompt},
+    ]
+    return StreamingResponse(
+        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---- Compatibility (TZ-118) ----
+#
+# No new CRUD here — task 4's finding was that a Matrix partner and a
+# Compatibility partner are the same relationship, so compatibility.py's
+# existing /partners GET/POST/DELETE already covers create/list/delete;
+# this module only needs to read one by id, same shape as
+# _get_owned_child above but against UserPartner.
+
+async def _get_owned_partner(session: AsyncSession, user: User, partner_id: str) -> UserPartner:
+    try:
+        pid = UUID(partner_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid partner_id")
+    partner = await session.get(UserPartner, pid)
+    if not partner or partner.user_id != user.id:
+        raise HTTPException(404, "Partner not found")
+    return partner
+
+
+class CompatibilityInterpretRequest(BaseModel):
+    lang: str = "ru"
+
+
+@router.get("/matrix/compatibility/{partner_id}")
+async def matrix_compatibility(
+    partner_id: str,
+    lang: str = "ru",
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """TZ-118: same access model as the karmic tail/money line — no free
+    sample, confirmed with the product owner (task 8)."""
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+    bd = await _birth_date(session, current_user)
+    partner = await _get_owned_partner(session, current_user, partner_id)
+    return {
+        "partner": {
+            "id": str(partner.id), "name": partner.label,
+            "birth_date": partner.birth_date.isoformat(),
+        },
+        **build_compatibility(bd, partner.birth_date, lang),
+    }
+
+
+@router.post("/matrix/compatibility/{partner_id}/interpret")
+async def matrix_compatibility_interpret(
+    partner_id: str,
+    req: CompatibilityInterpretRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+
+    bd = await _birth_date(session, current_user)
+    partner = await _get_owned_partner(session, current_user, partner_id)
+
+    # Same TZ-089/091/097 fix as the other streaming endpoints above.
+    await session.close()
+
+    ru = req.lang == "ru"
+    result = build_compatibility(bd, partner.birth_date, req.lang)
+    centre, tail = result["centre"], result["karmic_tail"]
+
+    # TZ-118 Step 0, decision 3: original wording built around the idea
+    # vc.ru independently confirmed — no predetermined good/bad
+    # combination, the value is in the conversation it starts. Baked into
+    # the prompt itself rather than a separate static field, since no
+    # frontend screen exists yet to show one (same "prep the pipeline,
+    # not the UI" scope as TZ-114/115/116).
+    if ru:
+        prompt = (
+            f"Совместимость двух людей по Матрице судьбы, партнёр — "
+            f"{partner.label}.\n"
+            f"Аркан в центре совместной матрицы — {centre['arcana']} "
+            f"({centre['arcana_name']}).\n"
+            f"Кармический хвост пары — комбинация {tail['code']} "
+            f"«{tail['name']}»: {tail['essence']}. "
+            f"Направление проработки: {tail['task']}.\n\n"
+            f"Напиши персональное послание совместимости для этой пары.\n"
+            f"Структура ответа:\n"
+            f"1. Характер и потенциал союза — что показывает аркан в центре\n"
+            f"2. Какой повторяющийся сценарий несёт кармический хвост пары "
+            f"и как он обычно проявляется\n"
+            f"3. Один конкретный шаг, который поможет паре вывести энергию "
+            f"из минуса в плюс\n"
+            f"Не выноси вердикт «подходите вы друг другу или нет» — нет "
+            f"заведомо хороших или плохих сочетаний, есть то, что стоит "
+            f"обсудить вдвоём. Обращайся на «ты». 150-250 слов, без воды."
+        )
+    else:
+        prompt = (
+            f"Destiny Matrix compatibility between two people, partner: "
+            f"{partner.label}.\n"
+            f"The centre arcana of the combined matrix is {centre['arcana']} "
+            f"({centre['arcana_name']}).\n"
+            f"The couple's karmic tail is combination {tail['code']} "
+            f"\"{tail['name']}\": {tail['essence']}. "
+            f"Direction for the work ahead: {tail['task']}.\n\n"
+            f"Write a personal compatibility reading for this couple.\n"
+            f"Structure:\n"
+            f"1. The character and potential of the union — what the "
+            f"centre arcana shows\n"
+            f"2. What recurring pattern the couple's karmic tail carries "
+            f"and how it usually shows up\n"
+            f"3. One concrete step that would help move the energy from "
+            f"minus to plus\n"
+            f"Do not hand down a verdict on whether they're \"compatible\" "
+            f"— there's no predetermined good or bad combination, only "
+            f"something worth discussing together. 150-250 words, no filler."
+        )
+    prompt += lang_enforce(req.lang)
+
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "matrix_compatibility_interpret", 0, 20)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},

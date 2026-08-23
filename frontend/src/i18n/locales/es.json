@@ -620,6 +620,12 @@
     "loading": "La matriz está hablando...",
     "error": "Algo salió mal. Inténtalo de nuevo."
   },
+  "matrixCompatibility": {
+    "title": "Compatibilidad de Matrices",
+    "interpret": "Mensaje de la Pareja",
+    "loading": "El destino está hablando...",
+    "error": "Algo salió mal. Inténtalo de nuevo."
+  },
   "onboarding": {
     "title": "Cuéntanos sobre ti ✨",
     "subtitle": "Para crear tu horóscopo personalizado",
