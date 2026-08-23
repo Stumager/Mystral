@@ -37,7 +37,7 @@ class TestNumerologyInterpretInFlightGuard:
         async def fast_stream(*a, **k):
             yield "data: [DONE]\n\n"
 
-        with patch("app.api.v1.numerology.safe_groq_stream", side_effect=fast_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", side_effect=fast_stream):
             res = await client.post("/v1/numerology/interpret", headers=auth_headers, json={"section": "core", "lang": "ru"})
         assert res.status_code == 200
 
@@ -49,7 +49,7 @@ class TestNumerologyInterpretInFlightGuard:
         async def fast_stream(*a, **k):
             yield "data: [DONE]\n\n"
 
-        with patch("app.api.v1.numerology.safe_groq_stream", side_effect=fast_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", side_effect=fast_stream):
             first = await client.post("/v1/numerology/interpret", headers=auth_headers, json={"section": "core", "lang": "ru"})
             assert first.status_code == 200
             second = await client.post("/v1/numerology/interpret", headers=auth_headers, json={"section": "core", "lang": "ru"})
@@ -65,7 +65,7 @@ class TestNumerologyInterpretInFlightGuard:
         async def fast_stream(*a, **k):
             yield "data: [DONE]\n\n"
 
-        with patch("app.api.v1.numerology.safe_groq_stream", side_effect=fast_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", side_effect=fast_stream):
             other_user = await client.post("/v1/numerology/interpret", headers=pro_headers, json={"section": "core", "lang": "ru"})
         assert other_user.status_code == 200
 
@@ -87,3 +87,71 @@ class TestRetryAfterHeaderReachesClient:
         assert res.status_code == 429
         assert "Retry-After" in res.headers
         assert int(res.headers["Retry-After"]) == res.json()["retry_after"]
+
+
+def _fake_stream_completed(messages, max_tokens=900, lang="ru", on_finish=None):
+    async def _gen():
+        yield 'data: {"text": "reading"}\n\n'
+        if on_finish:
+            on_finish("stop")
+        yield "data: [DONE]\n\n"
+    return _gen()
+
+
+class TestNumerologyInterpretCaching:
+    """TZ-120: core/square/karmic are pure functions of birth_date (+ name
+    for core) — cached. "forecast" depends on today's date (personal year/
+    month/day) and must NEVER be cached, or a user would get stuck reading
+    yesterday's forecast forever."""
+
+    async def test_core_section_second_request_does_not_call_the_llm(self, client, auth_headers):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            first = await client.post("/v1/numerology/interpret", headers=auth_headers,
+                                      json={"section": "core", "lang": "ru"})
+        assert first.status_code == 200
+
+        with patch("app.core.cached_stream.safe_groq_stream") as mock_llm:
+            second = await client.post("/v1/numerology/interpret", headers=auth_headers,
+                                       json={"section": "core", "lang": "ru"})
+            mock_llm.assert_not_called()
+        assert second.status_code == 200
+
+    async def test_square_section_is_also_cached(self, client, auth_headers):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            await client.post("/v1/numerology/interpret", headers=auth_headers,
+                              json={"section": "square", "lang": "ru"})
+        with patch("app.core.cached_stream.safe_groq_stream") as mock_llm:
+            await client.post("/v1/numerology/interpret", headers=auth_headers,
+                              json={"section": "square", "lang": "ru"})
+            mock_llm.assert_not_called()
+
+    async def test_karmic_section_is_also_cached(self, client, auth_headers):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            await client.post("/v1/numerology/interpret", headers=auth_headers,
+                              json={"section": "karmic", "lang": "ru"})
+        with patch("app.core.cached_stream.safe_groq_stream") as mock_llm:
+            await client.post("/v1/numerology/interpret", headers=auth_headers,
+                              json={"section": "karmic", "lang": "ru"})
+            mock_llm.assert_not_called()
+
+    async def test_forecast_section_is_never_cached(self, client, pro_headers):
+        """The one deliberate exception — personal year/month/day change
+        over time, so every request must reach the live model, proven by
+        counting actual invocations of the (plain, non-Mock) fake stream.
+        forecast isn't the free "core" exception, hence pro_headers here.
+        Patches app.api.v1.numerology.safe_groq_stream specifically — the
+        forecast branch never goes through cached_stream at all (cache_key
+        stays None), so that's the real call site for this one path."""
+        calls = {"n": 0}
+
+        def _counting_stream(messages, max_tokens=900, lang="ru", on_finish=None):
+            calls["n"] += 1
+            return _fake_stream_completed(messages, max_tokens, lang, on_finish)
+
+        with patch("app.api.v1.numerology.safe_groq_stream", _counting_stream):
+            r1 = await client.post("/v1/numerology/interpret", headers=pro_headers,
+                                   json={"section": "forecast", "lang": "ru"})
+            r2 = await client.post("/v1/numerology/interpret", headers=pro_headers,
+                                   json={"section": "forecast", "lang": "ru"})
+        assert r1.status_code == 200 and r2.status_code == 200
+        assert calls["n"] == 2

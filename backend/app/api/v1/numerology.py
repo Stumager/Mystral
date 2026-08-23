@@ -10,6 +10,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Optional
 
+from app.core.cached_stream import cached_groq_stream, interpretation_cache_key, name_fingerprint, peek_cached_interpretation
 from app.core.database import get_session
 from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
@@ -168,7 +169,12 @@ async def interpret(
     lp = life_path(bd)
     bd_num = birthday_number(bd)
 
+    # TZ-120: core/square/karmic are pure functions of birth_date (+ name
+    # for core) — cached, keyed by the actual inputs. "forecast" depends on
+    # today's date (personal year/month/day) and must never be cached; its
+    # branch below leaves cache_key as None.
     if req.section == "core":
+        cache_key = interpretation_cache_key("numerology", "core", bd.isoformat(), name_fingerprint(fn), req.lang)
         name_part = ""
         if fn:
             dn = destiny_number(fn)
@@ -200,6 +206,7 @@ async def interpret(
             )
 
     elif req.section == "square":
+        cache_key = interpretation_cache_key("numerology", "square", bd.isoformat(), req.lang)
         sq = pythagoras_square(bd, req.lang)
         cells_str = ", ".join(f"{c['number']}={c['count']}" for c in sq["cells"])
         strong = [c for c in sq["cells"] if c["count"] >= 3]
@@ -226,6 +233,7 @@ async def interpret(
             )
 
     elif req.section == "forecast":
+        cache_key = None
         py = personal_year(bd, today.year)
         pm = personal_month(bd, today.year, today.month)
         pd = personal_day(bd, today)
@@ -247,6 +255,7 @@ async def interpret(
             )
 
     elif req.section == "karmic":
+        cache_key = interpretation_cache_key("numerology", "karmic", bd.isoformat(), req.lang)
         kn = karmic_numbers(bd)
         mn = missing_numbers(bd)
         if ru:
@@ -269,17 +278,28 @@ async def interpret(
         raise HTTPException(400, "Invalid section")
     prompt += get_lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "numerology_interpret", 2, 20)
-    await check_not_in_flight(str(current_user.id), "numerology_interpret")
+    cached = await peek_cached_interpretation(cache_key) if cache_key else None
+
+    # A cache hit costs nothing, so it skips both the rate limit and the
+    # in-flight lock entirely — neither exists to protect anything but the
+    # LLM call, which a cache hit never makes.
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "numerology_interpret", 2, 30)
+        await check_not_in_flight(str(current_user.id), "numerology_interpret")
     sys = system_prompt(req.lang) + get_lang_enforce(req.lang)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
     async def stream():
         try:
-            async for chunk in safe_groq_stream(msgs, max_tokens=900, lang=req.lang):
-                yield chunk
+            if cache_key:
+                async for chunk in cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang):
+                    yield chunk
+            else:
+                async for chunk in safe_groq_stream(msgs, max_tokens=900, lang=req.lang):
+                    yield chunk
         finally:
-            await release_in_flight(str(current_user.id), "numerology_interpret")
+            if cached is None:
+                await release_in_flight(str(current_user.id), "numerology_interpret")
 
     return StreamingResponse(stream(),
                              media_type="text/event-stream",

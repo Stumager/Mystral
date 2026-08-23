@@ -10,9 +10,9 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.cached_stream import cached_groq_stream, interpretation_cache_key, name_fingerprint, peek_cached_interpretation
 from app.core.database import get_session
 from app.core.deps import get_current_user
-from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
 from app.core.structural_i18n import localized_field
@@ -716,10 +716,23 @@ async def composite_interpret(
         lang_prompts = PROMPTS.get(req.lang, PROMPTS["en"])
         prompt = lang_prompts.get(req.section, lang_prompts["overview"]) + lang_enforce(req.lang)
 
-        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "composite_interpret", 5, 50)
+        # TZ-120: the composite chart is a pure function of both people's
+        # birth date/time/location — cached, keyed by the actual inputs the
+        # calculation used (not just birth_date, since a corrected time or
+        # city changes the chart too) plus both names, which the prompt
+        # embeds directly.
+        cache_key = interpretation_cache_key(
+            "composite", prof.birth_date.isoformat(), f"{h1}:{m1}", f"{lat1:.2f}:{lon1:.2f}",
+            partner.birth_date.isoformat(), f"{h2}:{m2}", f"{lat2:.2f}:{lon2:.2f}",
+            name_fingerprint(user_name), name_fingerprint(partner_name), req.section, req.lang,
+        )
+        cached = await peek_cached_interpretation(cache_key)
+
+        if cached is None:
+            await check_rate_limit(str(current_user.id), current_user.subscription_tier, "composite_interpret", 5, 80)
         sys = system_prompt(req.lang) + lang_enforce(req.lang)
         msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
-        return StreamingResponse(safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        return StreamingResponse(cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
                                  media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
     except Exception as e:
@@ -740,6 +753,12 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
     s1, s2 = SIGNS[i1], SIGNS[i2]
     sys = system_prompt(req.lang) + lang_enforce(req.lang)
 
+    # TZ-120: the prompt below only ever uses the two zodiac SIGNS (not the
+    # exact birth dates) plus the score, so the cache key matches that —
+    # any two people sharing both signs and a score share a cache entry.
+    cache_key = interpretation_cache_key("compat", req.compat_type, s1, s2, str(req.score), req.lang)
+    cached = await peek_cached_interpretation(cache_key)
+
     if req.lang == "ru":
         prompt = (
             f"Совместимость ({req.compat_type}): {SIGNS_RU[i1]} и {SIGNS_RU[i2]}. Скор: {req.score}%.\n"
@@ -757,9 +776,10 @@ async def interpret(req: InterpretRequest, current_user: User = Depends(get_curr
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "compat_interpret", 5, 50)
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "compat_interpret", 5, 80)
     msgs = [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]
 
-    return StreamingResponse(safe_groq_stream(msgs, max_tokens=700, lang=req.lang),
+    return StreamingResponse(cached_groq_stream(cache_key, msgs, max_tokens=700, lang=req.lang),
                              media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

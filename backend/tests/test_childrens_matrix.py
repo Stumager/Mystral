@@ -118,7 +118,7 @@ class TestChildMatrixInterpretAccess:
     async def test_pro_user_gets_a_stream(self, client, pro_headers, pro_user):
         user, _ = pro_user
         child = await _make_child(user.id)
-        with patch("app.api.v1.matrix.safe_groq_stream", _fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream):
             res = await client.post(f"/v1/matrix/child/{child.id}/interpret", headers=pro_headers,
                                     json={"point": "core", "lang": "ru"})
         assert res.status_code == 200
@@ -152,7 +152,7 @@ class TestChildMatrixInterpretPrompt:
             captured["messages"] = messages
             return _fake_stream(messages, max_tokens, lang, on_finish)
 
-        with patch("app.api.v1.matrix.safe_groq_stream", _capturing_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _capturing_stream):
             await client.post(f"/v1/matrix/child/{child.id}/interpret", headers=headers,
                               json={"point": point, "lang": lang})
         return captured["messages"][-1]["content"]

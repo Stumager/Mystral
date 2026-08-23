@@ -143,7 +143,7 @@ class TestMoneyLineInterpretAccess:
         assert "FREE_LIMIT_REACHED" in res.text
 
     async def test_pro_user_gets_a_stream(self, client, pro_headers):
-        with patch("app.api.v1.matrix.safe_groq_stream", _fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream):
             res = await client.post("/v1/matrix/money-line/interpret", headers=pro_headers, json={"lang": "ru"})
         assert res.status_code == 200
         assert "reading" in res.text
@@ -161,7 +161,7 @@ class TestMoneyLineInterpretPrompt:
             captured["messages"] = messages
             return _fake_stream(messages, max_tokens, lang, on_finish)
 
-        with patch("app.api.v1.matrix.safe_groq_stream", _capturing_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _capturing_stream):
             await client.post("/v1/matrix/money-line/interpret", headers=headers, json={"lang": lang})
         return captured["messages"][-1]["content"]
 

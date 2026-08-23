@@ -67,7 +67,7 @@ async def _make_partner(user_id, birth_date=date(1992, 7, 10)):
 class TestNumerologyInterpretClosesSessionBeforeStreaming:
     async def test_core_section(self, client, auth_headers, close_tracker):
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.numerology.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 "/v1/numerology/interpret",
                 headers=auth_headers,
@@ -171,7 +171,7 @@ class TestCompatibilityInterpretClosesSessionBeforeStreaming:
         partner = await _make_partner(user.id)
 
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.compatibility.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 "/v1/compatibility/interpret",
                 headers=auth_headers,
@@ -210,7 +210,7 @@ class TestMatrixInterpretClosesSessionBeforeStreaming:
 
     async def test_interpret(self, client, pro_headers, close_tracker):
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 "/v1/matrix/interpret",
                 headers=pro_headers,
@@ -226,7 +226,7 @@ class TestKarmicTailInterpretClosesSessionBeforeStreaming:
 
     async def test_interpret(self, client, pro_headers, close_tracker):
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 "/v1/matrix/karmic-tail/interpret",
                 headers=pro_headers,
@@ -242,7 +242,7 @@ class TestMoneyLineInterpretClosesSessionBeforeStreaming:
 
     async def test_interpret(self, client, pro_headers, close_tracker):
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 "/v1/matrix/money-line/interpret",
                 headers=pro_headers,
@@ -262,7 +262,7 @@ class TestChildrenMatrixInterpretClosesSessionBeforeStreaming:
         child_id = created.json()["id"]
 
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 f"/v1/matrix/child/{child_id}/interpret",
                 headers=pro_headers,
@@ -282,7 +282,7 @@ class TestMatrixCompatibilityInterpretClosesSessionBeforeStreaming:
         partner = await _make_partner(user.id)
 
         fake_stream = _fake_stream_factory(close_tracker)
-        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", fake_stream):
             res = await client.post(
                 f"/v1/matrix/compatibility/{partner.id}/interpret",
                 headers=pro_headers,

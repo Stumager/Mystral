@@ -177,7 +177,7 @@ class TestMatrixCompatibilityInterpretAccess:
     async def test_pro_user_gets_a_stream(self, client, pro_headers, pro_user):
         user, _ = pro_user
         partner = await _make_partner(user.id)
-        with patch("app.api.v1.matrix.safe_groq_stream", _fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream):
             res = await client.post(f"/v1/matrix/compatibility/{partner.id}/interpret",
                                     headers=pro_headers, json={"lang": "ru"})
         assert res.status_code == 200
@@ -209,7 +209,7 @@ class TestMatrixCompatibilityInterpretPrompt:
             captured["messages"] = messages
             return _fake_stream(messages, max_tokens, lang, on_finish)
 
-        with patch("app.api.v1.matrix.safe_groq_stream", _capturing_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _capturing_stream):
             await client.post(f"/v1/matrix/compatibility/{partner.id}/interpret",
                               headers=headers, json={"lang": lang})
         return captured["messages"][-1]["content"]
@@ -239,3 +239,58 @@ class TestMatrixCompatibilityInterpretPrompt:
         user, _ = pro_user
         prompt = await self._capture(client, pro_headers, user.id, lang="en")
         assert "predetermined" in prompt.lower()
+
+
+def _fake_stream_completed(messages, max_tokens=900, lang="ru", on_finish=None):
+    async def _gen():
+        yield 'data: {"text": "reading"}\n\n'
+        if on_finish:
+            on_finish("stop")
+        yield "data: [DONE]\n\n"
+    return _gen()
+
+
+class TestMatrixCompatibilityInterpretCaching:
+    """TZ-120: same pair of birth dates + same partner name -> same prompt
+    every time. A repeat view must not re-bill the LLM — but the prompt
+    embeds the partner's *name*, so two differently-named partners sharing
+    a birth date must NOT collide into the same cache entry."""
+
+    async def test_second_identical_request_does_not_call_the_llm_again(self, client, pro_headers, pro_user):
+        user, _ = pro_user
+        partner = await _make_partner(user.id, label="Alex")
+
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            first = await client.post(f"/v1/matrix/compatibility/{partner.id}/interpret",
+                                      headers=pro_headers, json={"lang": "ru"})
+        assert first.status_code == 200
+
+        with patch("app.core.cached_stream.safe_groq_stream") as mock_llm:
+            second = await client.post(f"/v1/matrix/compatibility/{partner.id}/interpret",
+                                       headers=pro_headers, json={"lang": "ru"})
+            mock_llm.assert_not_called()
+        assert second.status_code == 200
+
+    async def test_same_birth_date_different_partner_name_is_a_separate_entry(self, client, pro_headers, pro_user):
+        user, _ = pro_user
+        alex = await _make_partner(user.id, label="Alex")
+        sam = await _make_partner(user.id, label="Sam")  # same BIRTH_2 date, different name
+
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            await client.post(f"/v1/matrix/compatibility/{alex.id}/interpret",
+                              headers=pro_headers, json={"lang": "ru"})
+
+        captured = {}
+
+        def _capturing(messages, max_tokens=900, lang="ru", on_finish=None):
+            captured["messages"] = messages
+            return _fake_stream_completed(messages, max_tokens, lang, on_finish)
+
+        with patch("app.core.cached_stream.safe_groq_stream", _capturing):
+            res = await client.post(f"/v1/matrix/compatibility/{sam.id}/interpret",
+                                    headers=pro_headers, json={"lang": "ru"})
+        assert res.status_code == 200
+        # Reaching the (mocked) LLM at all — rather than being served Alex's
+        # cached text — is the actual assertion; the captured prompt should
+        # also carry Sam's own name, not Alex's.
+        assert "Sam" in captured["messages"][-1]["content"]

@@ -155,7 +155,7 @@ class TestMatrixInterpretAccess:
             assert res.status_code == 402, point
 
     async def test_pro_user_gets_a_stream(self, client, pro_headers):
-        with patch("app.api.v1.matrix.safe_groq_stream", _fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream):
             res = await client.post("/v1/matrix/interpret", headers=pro_headers,
                                     json={"point": "core", "lang": "ru"})
         assert res.status_code == 200
@@ -179,7 +179,7 @@ class TestMatrixInterpretPrompt:
             captured["messages"] = messages
             return _fake_stream(messages, max_tokens, lang, on_finish)
 
-        with patch("app.api.v1.matrix.safe_groq_stream", _capturing_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _capturing_stream):
             await client.post("/v1/matrix/interpret", headers=headers,
                               json={"point": point, "lang": lang})
         return captured["messages"][-1]["content"]
@@ -198,3 +198,60 @@ class TestMatrixInterpretPrompt:
     async def test_prompt_asks_for_both_light_and_shadow(self, client, pro_headers):
         prompt = await self._capture(client, pro_headers, "personality")
         assert "плюсе" in prompt and "теневом" in prompt
+
+
+def _fake_stream_completed(messages, max_tokens=900, lang="ru", on_finish=None):
+    """Unlike _fake_stream above, this actually signals finish_reason="stop"
+    — required for cached_groq_stream to persist anything, so tests that
+    verify caching itself (not just prompt content) need this instead."""
+    async def _gen():
+        yield 'data: {"text": "reading"}\n\n'
+        if on_finish:
+            on_finish("stop")
+        yield "data: [DONE]\n\n"
+    return _gen()
+
+
+class TestMatrixInterpretCaching:
+    """TZ-120: the base matrix's own points are deterministic per birth
+    date — a second identical request must not re-bill the LLM."""
+
+    async def test_second_identical_request_does_not_call_the_llm_again(self, client, pro_headers):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            first = await client.post("/v1/matrix/interpret", headers=pro_headers,
+                                      json={"point": "core", "lang": "ru"})
+        assert first.status_code == 200
+
+        with patch("app.core.cached_stream.safe_groq_stream") as mock_llm:
+            second = await client.post("/v1/matrix/interpret", headers=pro_headers,
+                                       json={"point": "core", "lang": "ru"})
+            mock_llm.assert_not_called()
+        assert second.status_code == 200
+        assert "reading" in second.text
+
+    async def test_a_different_point_is_a_separate_cache_entry(self, client, pro_headers):
+        """Proves the fixture isn't just always a hit — a genuinely new
+        point must still reach the (mocked) LLM."""
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            await client.post("/v1/matrix/interpret", headers=pro_headers,
+                              json={"point": "core", "lang": "ru"})
+
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed) as mock_llm:
+            res = await client.post("/v1/matrix/interpret", headers=pro_headers,
+                                    json={"point": "talents", "lang": "ru"})
+        assert res.status_code == 200
+        assert "reading" in res.text
+
+    async def test_cache_hit_does_not_consume_the_rate_limit(self, client, pro_headers):
+        """20 (now 40) fresh generations/hour still applies to genuinely new
+        content, but repeat views of the same point must be free — this is
+        the actual fix for "иногда генерации не хватает места"."""
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            await client.post("/v1/matrix/interpret", headers=pro_headers,
+                              json={"point": "core", "lang": "ru"})
+
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream_completed):
+            for _ in range(45):  # well past the 40/hour fresh-generation cap
+                res = await client.post("/v1/matrix/interpret", headers=pro_headers,
+                                        json={"point": "core", "lang": "ru"})
+                assert res.status_code == 200

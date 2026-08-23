@@ -82,7 +82,7 @@ class TestCompositeInterpretSuccess:
         user, _ = pro_user
         partner = await _make_partner(user.id)
 
-        with patch("app.api.v1.compatibility.safe_groq_stream", _fake_stream):
+        with patch("app.core.cached_stream.safe_groq_stream", _fake_stream):
             res = await client.post(
                 "/v1/compatibility/composite/interpret",
                 headers=pro_headers,

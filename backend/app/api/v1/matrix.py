@@ -10,6 +10,16 @@ The matrix is a pure function of the birth date, so unlike tarot/runes there
 is no reading row to persist and nothing to cache against a reading_id — the
 same date always rebuilds the same nine points.
 
+TZ-120: that same determinism means the AI *interpretation* text of any
+point/tail/line/partner-pair is also always the same prompt for the same
+birth date(s) — a repeat view was silently re-billing the LLM for text that
+could only ever come out semantically identical. Every interpret endpoint
+below streams through cached_groq_stream() instead of safe_groq_stream()
+directly, keyed by the actual birth date(s), not by user/child/partner id
+— see app/core/cached_stream.py's module docstring for why. A cache hit
+skips check_rate_limit() entirely (it costs nothing to serve), so the
+20/hour quota is now spent only on genuinely new content.
+
 TZ-114 (Кармический хвост, "Послание кармы") reuses these same nine points —
 no new user input — but its own access model is different, confirmed
 separately with the product owner: unlike the base matrix, it has no free
@@ -49,9 +59,9 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.cached_stream import cached_groq_stream, interpretation_cache_key, name_fingerprint, peek_cached_interpretation
 from app.core.database import get_session
 from app.core.deps import get_current_user
-from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
 from app.data.childrens_matrix import FREE_POINT_ID, build_children_matrix
@@ -135,6 +145,9 @@ async def interpret(
     # body is fully sent. Everything from the DB is already read by here.
     await session.close()
 
+    cache_key = interpretation_cache_key("matrix", bd.isoformat(), req.point, req.lang)
+    cached = await peek_cached_interpretation(cache_key)
+
     ru = req.lang == "ru"
     values = calculate(bd)
     n = values[req.point]
@@ -176,13 +189,16 @@ async def interpret(
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "matrix_interpret", 0, 20)
+    # TZ-120: a cache hit costs nothing, so it skips the rate limit entirely
+    # — the quota is only spent generating content that's actually new.
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "matrix_interpret", 0, 40)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},
     ]
     return StreamingResponse(
-        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -238,6 +254,9 @@ async def karmic_tail_interpret(
     # Same TZ-089/091/097 fix as /matrix/interpret above.
     await session.close()
 
+    cache_key = interpretation_cache_key("karmic_tail", bd.isoformat(), req.lang)
+    cached = await peek_cached_interpretation(cache_key)
+
     ru = req.lang == "ru"
     values = calculate(bd)
     tail = calculate_tail(values)
@@ -270,13 +289,14 @@ async def karmic_tail_interpret(
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "karmic_tail_interpret", 0, 20)
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "karmic_tail_interpret", 0, 40)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},
     ]
     return StreamingResponse(
-        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -313,6 +333,9 @@ async def money_line_interpret(
     # Same TZ-089/091/097 fix as the other streaming endpoints above.
     await session.close()
 
+    cache_key = interpretation_cache_key("money_line", bd.isoformat(), req.lang)
+    cached = await peek_cached_interpretation(cache_key)
+
     ru = req.lang == "ru"
     points = calculate(bd)
     values = calculate_money_line(points)
@@ -348,13 +371,14 @@ async def money_line_interpret(
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "money_line_interpret", 0, 20)
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "money_line_interpret", 0, 40)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},
     ]
     return StreamingResponse(
-        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -501,6 +525,14 @@ async def matrix_child_interpret(
     # Same TZ-089/091/097 fix as the other streaming endpoints above.
     await session.close()
 
+    # Unlike the adult modules above, this prompt embeds the child's name —
+    # a real input, not decoration — so the cache key includes it too
+    # (fingerprinted, not raw) rather than keying on birth date alone.
+    cache_key = interpretation_cache_key(
+        "children_matrix", child.birth_date.isoformat(), name_fingerprint(child.label), req.point, req.lang,
+    )
+    cached = await peek_cached_interpretation(cache_key)
+
     ru = req.lang == "ru"
     values = calculate(child.birth_date)
     n = values[req.point]
@@ -539,13 +571,14 @@ async def matrix_child_interpret(
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "children_matrix_interpret", 0, 20)
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "children_matrix_interpret", 0, 40)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},
     ]
     return StreamingResponse(
-        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -612,6 +645,17 @@ async def matrix_compatibility_interpret(
     # Same TZ-089/091/097 fix as the other streaming endpoints above.
     await session.close()
 
+    # Like the children's matrix prompt, this one embeds the partner's name
+    # — a real input, so it's part of the key (fingerprinted) too. Not
+    # sorting the two birth dates for symmetry here: the name already makes
+    # "compatibility with X" asymmetric between the two people regardless
+    # of date order, so sorting would not create any extra cache sharing.
+    cache_key = interpretation_cache_key(
+        "matrix_compatibility", bd.isoformat(), partner.birth_date.isoformat(),
+        name_fingerprint(partner.label), req.lang,
+    )
+    cached = await peek_cached_interpretation(cache_key)
+
     ru = req.lang == "ru"
     result = build_compatibility(bd, partner.birth_date, req.lang)
     centre, tail = result["centre"], result["karmic_tail"]
@@ -665,13 +709,14 @@ async def matrix_compatibility_interpret(
         )
     prompt += lang_enforce(req.lang)
 
-    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "matrix_compatibility_interpret", 0, 20)
+    if cached is None:
+        await check_rate_limit(str(current_user.id), current_user.subscription_tier, "matrix_compatibility_interpret", 0, 40)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},
     ]
     return StreamingResponse(
-        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        cached_groq_stream(cache_key, msgs, max_tokens=900, lang=req.lang),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
