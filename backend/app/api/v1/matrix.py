@@ -19,10 +19,21 @@ sample at all. Both GET /matrix/karmic-tail and POST
 TZ-115 (Денежная линия, "Послание денег") — third module on the same nine
 points, same access model as TZ-114: no free sample, both GET
 /matrix/money-line and POST /matrix/money-line/interpret reject free users.
+
+TZ-116 (Детская матрица, "Послание детства") — fourth module, same nine
+points reinterpreted for a parent reading about their child. Access model
+is different again, confirmed with the product owner: unlike TZ-114/115,
+there IS a free sample — the "talents" point (the child's main-talent
+hook) is visible to free users, the other eight points and the AI reading
+are Pro. Mirrors natal.py's "one free section, rest gated" shape rather
+than TZ-114/115's all-or-nothing gate.
 """
+from datetime import date
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -31,10 +42,11 @@ from app.core.deps import get_current_user
 from app.core.groq_client import safe_groq_stream
 from app.core.limiter import check_rate_limit
 from app.core.prompts import lang_enforce, system_prompt
+from app.data.childrens_matrix import FREE_POINT_ID, build_children_matrix
 from app.data.destiny_matrix import POINT_IDS, arcana_name, build_matrix, calculate
 from app.data.karmic_tail import KARMIC_TAIL, build_karmic_tail, calculate_tail, tail_code
 from app.data.money_line import MONEY_LINE_POSITIONS, build_money_line, calculate_money_line
-from app.models.user import User, UserProfile
+from app.models.user import User, UserChild, UserProfile
 
 router = APIRouter()
 
@@ -324,6 +336,197 @@ async def money_line_interpret(
     prompt += lang_enforce(req.lang)
 
     await check_rate_limit(str(current_user.id), current_user.subscription_tier, "money_line_interpret", 0, 20)
+    msgs = [
+        {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
+        {"role": "user", "content": prompt},
+    ]
+    return StreamingResponse(
+        safe_groq_stream(msgs, max_tokens=900, lang=req.lang),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---- Child CRUD (TZ-116) — mirrors compatibility.py's partner CRUD ----
+
+def _parse_child_id(child_id: str) -> UUID:
+    try:
+        return UUID(child_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid child_id")
+
+
+async def _get_owned_child(session: AsyncSession, user: User, child_id: str) -> UserChild:
+    child = await session.get(UserChild, _parse_child_id(child_id))
+    if not child or child.user_id != user.id:
+        raise HTTPException(404, "Child not found")
+    return child
+
+
+class ChildCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    birth_date: str
+
+
+@router.get("/children")
+async def list_children(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.exec(
+        select(UserChild).where(UserChild.user_id == current_user.id)
+        .order_by(UserChild.created_at.desc())
+    )
+    return [
+        {"id": str(c.id), "name": c.label, "birth_date": c.birth_date.isoformat()}
+        for c in result.all()
+    ]
+
+
+@router.post("/children")
+async def create_child(
+    req: ChildCreate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    bd = date.fromisoformat(req.birth_date)
+    child = UserChild(user_id=current_user.id, label=req.name, birth_date=bd)
+    session.add(child)
+    await session.commit()
+    await session.refresh(child)
+    return {"id": str(child.id)}
+
+
+@router.delete("/children/{child_id}")
+async def delete_child(
+    child_id: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    child = await _get_owned_child(session, current_user, child_id)
+    await session.delete(child)
+    await session.commit()
+
+
+# ---- Children's Matrix (TZ-116) ----
+
+# Phrased for a parent reading about their child, not for the child reading
+# about themselves — see the module docstring for the access model.
+CHILD_POINT_PROMPT_RU = {
+    "personality": "Личность ребёнка — как его считывают окружающие, первое впечатление",
+    "talents": "Врождённые таланты ребёнка — способности, с которыми он пришёл в этот мир",
+    "ancestry": "Родовые программы — то, что ребёнок несёт по роду фоном",
+    "realization": "Проявление в мире — как ребёнок будет раскрываться в учёбе, деле, окружении",
+    "core": "Точка опоры ребёнка — что даёт ему чувство безопасности и радости",
+    "father_gift": "Дар отцовского рода для ребёнка",
+    "mother_gift": "Дар материнского рода для ребёнка",
+    "father_task": "Задача отцовской линии в жизни ребёнка",
+    "mother_task": "Задача материнской линии в жизни ребёнка",
+}
+
+CHILD_POINT_PROMPT_EN = {
+    "personality": "The child's personality — how others read them, first impression",
+    "talents": "The child's innate talents — abilities they were born with",
+    "ancestry": "Ancestral programs — what the child carries from the family line in the background",
+    "realization": "How the child shows up in the world — school, activities, surroundings",
+    "core": "The child's inner core — what gives them a sense of safety and joy",
+    "father_gift": "The father's line gift for this child",
+    "mother_gift": "The mother's line gift for this child",
+    "father_task": "What the father's line asks to be worked through in this child's life",
+    "mother_task": "What the mother's line asks to be worked through in this child's life",
+}
+
+
+class ChildInterpretRequest(BaseModel):
+    point: str
+    lang: str = "ru"
+
+
+@router.get("/matrix/child/{child_id}")
+async def matrix_child(
+    child_id: str,
+    lang: str = "ru",
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """TZ-116: unlike TZ-114/115's all-or-nothing gate, this has a free
+    sample — the "talents" point — confirmed with the product owner as a
+    stronger conversion hook than a fully paywalled first screen. The other
+    eight points come back locked for free users."""
+    child = await _get_owned_child(session, current_user, child_id)
+    result = build_children_matrix(child.birth_date, lang)
+    free = current_user.subscription_tier == "free"
+    for p in result["points"]:
+        if free and p["id"] != FREE_POINT_ID:
+            p["arcana"] = None
+            p["arcana_name"] = None
+            p["strength"] = None
+            p["support"] = None
+            p["locked"] = True
+        else:
+            p["locked"] = False
+    return {
+        "child": {"id": str(child.id), "name": child.label, "birth_date": child.birth_date.isoformat()},
+        **result,
+    }
+
+
+@router.post("/matrix/child/{child_id}/interpret")
+async def matrix_child_interpret(
+    child_id: str,
+    req: ChildInterpretRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    if current_user.subscription_tier == "free":
+        raise HTTPException(402, "FREE_LIMIT_REACHED")
+    if req.point not in POINT_IDS:
+        raise HTTPException(422, "unknown point")
+
+    child = await _get_owned_child(session, current_user, child_id)
+
+    # Same TZ-089/091/097 fix as the other streaming endpoints above.
+    await session.close()
+
+    ru = req.lang == "ru"
+    values = calculate(child.birth_date)
+    n = values[req.point]
+    labels = CHILD_POINT_PROMPT_RU if ru else CHILD_POINT_PROMPT_EN
+
+    full = ", ".join(
+        f"{labels[pid]}: аркан {values[pid]} ({arcana_name(values[pid], req.lang)})" if ru
+        else f"{labels[pid]}: arcana {values[pid]} ({arcana_name(values[pid], req.lang)})"
+        for pid in POINT_IDS
+    )
+
+    if ru:
+        prompt = (
+            f"Матрица ребёнка по имени {child.label} целиком: {full}.\n\n"
+            f"Разбери одну точку — «{labels[req.point]}», аркан {n} "
+            f"({arcana_name(n, req.lang)}) — для родителя, о ребёнке.\n"
+            f"Структура ответа:\n"
+            f"1. Какая природная склонность стоит за этой энергией у ребёнка\n"
+            f"2. Как родитель может это поддержать и направить, а не ограничить\n"
+            f"3. Один конкретный, посильный ребёнку шаг или совместное действие\n"
+            f"Обращайся к родителю на «ты». Не давай категоричных ярлыков вроде "
+            f"«ему не дано» или «он не способен» — только развивающую рамку. "
+            f"150-250 слов, без воды."
+        )
+    else:
+        prompt = (
+            f"The full matrix of a child named {child.label}: {full}.\n\n"
+            f"Interpret one point — \"{labels[req.point]}\", arcana {n} "
+            f"({arcana_name(n, req.lang)}) — for a parent, about their child.\n"
+            f"Structure:\n"
+            f"1. What natural inclination sits behind this energy in the child\n"
+            f"2. How a parent can support and direct it, not limit it\n"
+            f"3. One concrete, age-appropriate step or shared activity\n"
+            f"Do not hand down flat labels like \"not cut out for it\" or \"can't do "
+            f"it\" — a developmental frame only. 150-250 words, no filler."
+        )
+    prompt += lang_enforce(req.lang)
+
+    await check_rate_limit(str(current_user.id), current_user.subscription_tier, "children_matrix_interpret", 0, 20)
     msgs = [
         {"role": "system", "content": system_prompt(req.lang) + lang_enforce(req.lang)},
         {"role": "user", "content": prompt},

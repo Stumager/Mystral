@@ -250,3 +250,23 @@ class TestMoneyLineInterpretClosesSessionBeforeStreaming:
             )
         assert res.status_code == 200
         assert close_tracker["closed_when_stream_started"] is True
+
+
+class TestChildrenMatrixInterpretClosesSessionBeforeStreaming:
+    """TZ-116 — the 13th streaming endpoint, same module as matrix.py's
+    /matrix/interpret above. Pro-only, so this runs on pro_headers."""
+
+    async def test_interpret(self, client, pro_headers, close_tracker):
+        created = await client.post("/v1/children", headers=pro_headers,
+                                    json={"name": "Kid", "birth_date": "2018-05-01"})
+        child_id = created.json()["id"]
+
+        fake_stream = _fake_stream_factory(close_tracker)
+        with patch("app.api.v1.matrix.safe_groq_stream", fake_stream):
+            res = await client.post(
+                f"/v1/matrix/child/{child_id}/interpret",
+                headers=pro_headers,
+                json={"point": "core", "lang": "ru"},
+            )
+        assert res.status_code == 200
+        assert close_tracker["closed_when_stream_started"] is True

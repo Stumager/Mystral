@@ -614,6 +614,12 @@
     "loading": "O dinheiro está falando...",
     "error": "Algo deu errado. Tente novamente."
   },
+  "childrensMatrix": {
+    "title": "Matriz Infantil",
+    "interpret": "Mensagem da Infância",
+    "loading": "A matriz está falando...",
+    "error": "Algo deu errado. Tente novamente."
+  },
   "onboarding": {
     "title": "Conte-nos sobre você ✨",
     "subtitle": "Para criar seu horóscopo personalizado",

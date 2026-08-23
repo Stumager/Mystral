@@ -167,6 +167,20 @@ class UserPartner(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class UserChild(SQLModel, table=True):
+    """TZ-116: a parent's child, for the Children's Matrix. Deliberately not
+    UserPartner + a role flag — the matrix calculation needs nothing but a
+    birth_date, so this carries none of UserPartner's compatibility-only
+    fields (geocoding, zodiac/chinese sign, life path)."""
+    __tablename__ = "user_children"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    label: str
+    birth_date: date
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Payment(SQLModel, table=True):
     __tablename__ = "payments"
 
