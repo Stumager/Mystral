@@ -3112,3 +3112,65 @@ robots.txt/sitemap.xml, и отдельно оценить чистоту код
 ### Next step
 - Следующая подзадача — PageSpeed Insights (сейчас 99 desktop / 76 mobile,
   мобильный FCP/LCP ~4.1–4.2с на несжатой JS-загрузке SPA-бандла).
+
+## 2026-08-23 — ТЗ-122: PageSpeed — HTTP/2 на хосте, gzip, preconnect
+
+### Контекст
+Продолжение ТЗ-121 (та же исходная просьба, вторая подзадача). PSI:
+desktop 99, mobile 76 (FCP ~4.1с, LCP ~4.2с, TBT 0мс, CLS 0). TBT=0 при
+таком FCP/LCP — сигнал, что дело не в JS на главном потоке, а в сети.
+
+### Разбор
+- Живой `curl -w '%{http_version}'` против `https://mystral.space/` →
+  **HTTP/1.1**. TLS-терминация — на ХОСТОВОМ nginx VPS (не в
+  docker-compose, см. `nginx/mystral.conf`, эталонная копия с ТЗ-084),
+  и там `listen 443 ssl;` без `http2`. Под мобильным throttling'ом
+  Lighthouse (RTT добавляется на каждый round trip) отсутствие
+  мультиплексирования для основных JS/CSS-ресурсов бьёт особенно сильно —
+  единственный найденный фактор, правдоподобно объясняющий 4-кратный
+  разрыв mobile/desktop при нулевом TBT.
+- Проверил `frontend/nginx.conf` (внутренний, деплоится докером) —
+  Cache-Control/gzip/resolver уже были в порядке с ТЗ-090, кроме
+  `gzip_comp_level` (дефолтный 1) и отсутствия `image/svg+xml` в
+  `gzip_types`.
+- Проверил code-splitting (`App.tsx`) — уже сделан с ТЗ-090 (комментарий:
+  370KB/103KB gzip → выделены ленивые чанки на все страницы кроме
+  Home/LoginScreen, которые обязаны быть eager). Сейчас критический путь
+  ≈126KB gzip (index 63.8 + vendor 43.1 + i18n 19). Дальше резать особо
+  нечего без архитектурных изменений — не трогал.
+- Живым profiling'ом в Browser pane (`performance.getEntriesByType`)
+  нашёл, что `LoginScreen.tsx` инжектит Telegram Login Widget
+  (`oauth.telegram.org/embed/...`) без preconnect — сам iframe грузится
+  ~1.2с. Не блокирует FCP (грузится после mount через useEffect), но
+  ни `telegram.org`, ни `oauth.telegram.org` не имели preconnect-подсказки.
+
+### Правки
+- **`nginx/mystral.conf`** (эталонная копия хостового конфига, ТЗ-084):
+  `http2 on;` в оба `listen 443 ssl;` блока (mystral.space,
+  www.mystral.space). Современная директива — `listen 443 ssl http2;`
+  депрекирован с nginx 1.25.1, хост на 1.28.3.
+- **`frontend/nginx.conf`**: `gzip_comp_level 6;`, `gzip_vary on;`,
+  `image/svg+xml` в `gzip_types`.
+- **`frontend/index.html`**: `<link rel="preconnect">` на
+  `telegram.org` и `oauth.telegram.org`.
+
+### Verified
+- `npm run build` (tsc + vite) — чисто.
+- `frontend/nginx.conf` прогнан через `docker run --rm -v
+  .../nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:alpine nginx -t`
+  — синтаксис ok.
+- **`nginx/mystral.conf` НЕ применяется автопуском** — файл вне
+  docker-compose, `.github/workflows/deploy.yml` его не трогает (только
+  `git pull` + пересборка docker-сервисов). Нужно применить руками на VPS:
+  ```
+  sudo nginx -t && sudo systemctl reload nginx
+  ```
+  (файл на сервере уже должен быть обновлён вручную или через отдельный
+  `git pull`/`scp` в `/etc/nginx/sites-available/mystral` — сам этот
+  коммит только держит эталонную копию в репозитории синхронизированной,
+  как заведено с ТЗ-084).
+
+### Next step
+- После применения http2 на VPS — перепрогнать PSI mobile, посмотреть
+  реальный эффект на FCP/LCP, и решить, стоит ли третья подзадача (HTML/
+  разметка) отдельного захода, или mobile уже близко к цели.
