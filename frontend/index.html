@@ -21,6 +21,13 @@
     <meta property="og:url" content="https://mystral.space">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- The Telegram SDK script below and the login widget LoginScreen.tsx
+         injects on mount both hit telegram.org/oauth.telegram.org — this
+         origin never got a preconnect hint, so DNS+TCP+TLS setup for it only
+         started once the browser actually reached those requests instead of
+         running in parallel with everything else in <head>. -->
+    <link rel="preconnect" href="https://telegram.org">
+    <link rel="preconnect" href="https://oauth.telegram.org">
     <!-- TZ-090: a plain rel="stylesheet" here blocks first paint (~1090ms per
          Lighthouse) waiting on fonts.googleapis.com. Load it non-blocking via
          the loadCSS pattern (media="print" is fetched at low priority and
