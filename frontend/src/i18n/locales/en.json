@@ -592,6 +592,7 @@
     "interpret": "Message of the Arcana",
     "loading": "The arcana are speaking...",
     "error": "Something went wrong. Try again.",
+    "more_readings": "More readings",
     "point_personality": "Personality",
     "point_talents": "Talents",
     "point_ancestry": "Ancestral programs",
@@ -606,25 +607,49 @@
     "title": "Karmic Tail",
     "interpret": "Message of Karma",
     "loading": "Karma is speaking...",
-    "error": "Something went wrong. Try again."
+    "error": "Something went wrong. Try again.",
+    "essence_label": "Essence",
+    "task_label": "Work ahead"
   },
   "moneyLine": {
     "title": "Money Line",
     "interpret": "Message of Money",
     "loading": "Money is speaking...",
-    "error": "Something went wrong. Try again."
+    "error": "Something went wrong. Try again.",
+    "position_entry": "Entry into the flow",
+    "position_source": "Income source",
+    "position_block": "Block",
+    "flow_label": "What it gives",
+    "block_label": "What gets in the way"
   },
   "childrensMatrix": {
     "title": "Children's Matrix",
     "interpret": "Message of Childhood",
     "loading": "The matrix is speaking...",
-    "error": "Something went wrong. Try again."
+    "error": "Something went wrong. Try again.",
+    "add_child": "Add a child",
+    "name_placeholder": "Child's name",
+    "name_required": "Enter a name",
+    "no_children": "No children added yet",
+    "strength_label": "Natural strength",
+    "support_label": "How to support",
+    "add": "Add",
+    "cancel": "Cancel",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year",
+    "free_hint": "The child's talent point is free — the other points and reading are Pro"
   },
   "matrixCompatibility": {
     "title": "Matrix Compatibility",
     "interpret": "Message of the Couple",
     "loading": "Fate is speaking...",
-    "error": "Something went wrong. Try again."
+    "error": "Something went wrong. Try again.",
+    "intro": "There's no predetermined good or bad combination — only something worth discussing together. The reading below is a conversation starter, not a verdict.",
+    "select_partner_hint": "Choose a partner for the reading",
+    "centre_label": "Centre of the combined matrix",
+    "karmic_tail_label": "The couple's karmic tail",
+    "another_partner": "Choose another partner"
   },
   "onboarding": {
     "title": "Tell us about you ✨",

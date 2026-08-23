@@ -592,6 +592,7 @@
     "interpret": "Mensaje de los Arcanos",
     "loading": "Los arcanos están hablando...",
     "error": "Algo salió mal. Inténtalo de nuevo.",
+    "more_readings": "Más mensajes",
     "point_personality": "Personalidad",
     "point_talents": "Talentos",
     "point_ancestry": "Programas ancestrales",
@@ -606,25 +607,49 @@
     "title": "Cola Kármica",
     "interpret": "Mensaje del Karma",
     "loading": "El karma está hablando...",
-    "error": "Algo salió mal. Inténtalo de nuevo."
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "essence_label": "Esencia",
+    "task_label": "Trabajo por delante"
   },
   "moneyLine": {
     "title": "Línea del Dinero",
     "interpret": "Mensaje del Dinero",
     "loading": "El dinero está hablando...",
-    "error": "Algo salió mal. Inténtalo de nuevo."
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "position_entry": "Entrada al flujo",
+    "position_source": "Fuente de ingresos",
+    "position_block": "Bloqueo",
+    "flow_label": "Qué aporta",
+    "block_label": "Qué lo bloquea"
   },
   "childrensMatrix": {
     "title": "Matriz Infantil",
     "interpret": "Mensaje de la Infancia",
     "loading": "La matriz está hablando...",
-    "error": "Algo salió mal. Inténtalo de nuevo."
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "add_child": "Añadir un hijo/a",
+    "name_placeholder": "Nombre del niño/a",
+    "name_required": "Indica un nombre",
+    "no_children": "Todavía no has añadido ningún hijo/a",
+    "strength_label": "Fortaleza natural",
+    "support_label": "Cómo apoyar",
+    "add": "Añadir",
+    "cancel": "Cancelar",
+    "day": "Día",
+    "month": "Mes",
+    "year": "Año",
+    "free_hint": "El punto de talento del niño/a es gratuito — los demás puntos y la lectura son Pro"
   },
   "matrixCompatibility": {
     "title": "Compatibilidad de Matrices",
     "interpret": "Mensaje de la Pareja",
     "loading": "El destino está hablando...",
-    "error": "Algo salió mal. Inténtalo de nuevo."
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "intro": "No existe una combinación buena o mala predeterminada — solo algo que vale la pena hablar juntos. La lectura de abajo es para iniciar una conversación, no un veredicto.",
+    "select_partner_hint": "Elige un compañero/a para el análisis",
+    "centre_label": "Centro de la matriz combinada",
+    "karmic_tail_label": "La cola kármica de la pareja",
+    "another_partner": "Elegir otro compañero/a"
   },
   "onboarding": {
     "title": "Cuéntanos sobre ti ✨",

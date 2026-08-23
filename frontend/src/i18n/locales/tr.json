@@ -592,6 +592,7 @@
     "interpret": "Arkanaların Mesajı",
     "loading": "Arkanalar konuşuyor...",
     "error": "Bir şeyler ters gitti. Tekrar dene.",
+    "more_readings": "Daha fazla mesaj",
     "point_personality": "Kişilik",
     "point_talents": "Yetenekler",
     "point_ancestry": "Soy programları",
@@ -606,25 +607,49 @@
     "title": "Karmik Kuyruk",
     "interpret": "Karma Mesajı",
     "loading": "Karma konuşuyor...",
-    "error": "Bir şeyler ters gitti. Tekrar dene."
+    "error": "Bir şeyler ters gitti. Tekrar dene.",
+    "essence_label": "Öz",
+    "task_label": "Önümüzdeki çalışma"
   },
   "moneyLine": {
     "title": "Para Hattı",
     "interpret": "Para Mesajı",
     "loading": "Para konuşuyor...",
-    "error": "Bir şeyler ters gitti. Tekrar dene."
+    "error": "Bir şeyler ters gitti. Tekrar dene.",
+    "position_entry": "Akışa giriş",
+    "position_source": "Gelir kaynağı",
+    "position_block": "Engel",
+    "flow_label": "Ne verir",
+    "block_label": "Neyi engeller"
   },
   "childrensMatrix": {
     "title": "Çocuk Matrisi",
     "interpret": "Çocukluk Mesajı",
     "loading": "Matris konuşuyor...",
-    "error": "Bir şeyler ters gitti. Tekrar dene."
+    "error": "Bir şeyler ters gitti. Tekrar dene.",
+    "add_child": "Çocuk ekle",
+    "name_placeholder": "Çocuğun adı",
+    "name_required": "Bir isim gir",
+    "no_children": "Henüz eklenmiş bir çocuk yok",
+    "strength_label": "Doğal güç",
+    "support_label": "Nasıl destek olunur",
+    "add": "Ekle",
+    "cancel": "İptal",
+    "day": "Gün",
+    "month": "Ay",
+    "year": "Yıl",
+    "free_hint": "Çocuğun yetenek noktası ücretsizdir — diğer noktalar ve yorum Pro'dur"
   },
   "matrixCompatibility": {
     "title": "Matris Uyumu",
     "interpret": "Çift Mesajı",
     "loading": "Kader konuşuyor...",
-    "error": "Bir şeyler ters gitti. Tekrar dene."
+    "error": "Bir şeyler ters gitti. Tekrar dene.",
+    "intro": "Önceden belirlenmiş iyi ya da kötü bir kombinasyon yoktur — yalnızca birlikte konuşmaya değer bir şey vardır. Aşağıdaki yorum bir sohbet başlatıcısıdır, bir hüküm değil.",
+    "select_partner_hint": "Yorum için bir partner seç",
+    "centre_label": "Ortak matrisin merkezi",
+    "karmic_tail_label": "Çiftin karmik kuyruğu",
+    "another_partner": "Başka bir partner seç"
   },
   "onboarding": {
     "title": "Kendinden bahset ✨",

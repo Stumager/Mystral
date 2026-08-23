@@ -6,10 +6,17 @@ export type MatrixPoint = {
   id: string;
   pos: MatrixPointPos;
   square: "personal" | "ancestral";
-  arcana: number;
-  arcana_name: string;
-  light: string;
-  shadow: string;
+  // TZ-119: Children's Matrix free tier sends locked points with arcana:
+  // null instead of omitting them, so the octagram still draws all nine
+  // positions — just with a lock glyph instead of a number.
+  arcana: number | null;
+  arcana_name: string | null;
+  // Not every module has light/shadow keywords (money line/karmic tail
+  // don't) — optional rather than dropped, since the octagram itself
+  // never reads these fields anyway (only the detail card below it does).
+  light?: string;
+  shadow?: string;
+  locked?: boolean;
 };
 
 type Props = {
@@ -99,6 +106,8 @@ export function DestinyOctagram({ points, selected, onSelect, size = 320 }: Prop
         const accent = p.square === "personal" ? GOLD : INDIGO;
         const r = isCentre ? 25 : 20;
 
+        const isLocked = p.arcana === null;
+
         return (
           <g
             key={p.id}
@@ -106,7 +115,7 @@ export function DestinyOctagram({ points, selected, onSelect, size = 320 }: Prop
             style={{ cursor: "pointer" }}
             role="button"
             tabIndex={0}
-            aria-label={`${p.arcana_name} — ${p.arcana}`}
+            aria-label={isLocked ? "Pro" : `${p.arcana_name} — ${p.arcana}`}
             onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(p.id); } }}
           >
             {isSel && <circle cx={x} cy={y} r={r + 6} fill="none" stroke={accent} strokeWidth="1" opacity=".45" />}
@@ -115,18 +124,19 @@ export function DestinyOctagram({ points, selected, onSelect, size = 320 }: Prop
               fill={isCentre ? "rgba(201,168,76,.16)" : "rgba(7,6,15,.92)"}
               stroke={isSel ? GOLD_LIGHT : accent}
               strokeWidth={isSel ? 2 : 1.3}
+              opacity={isLocked ? 0.45 : 1}
             />
             <text
               x={x} y={y} textAnchor="middle" dominantBaseline="central"
               className="font-cinzel"
               style={{
-                fontSize: isCentre ? 20 : 17,
-                fill: isSel ? GOLD_LIGHT : isCentre ? GOLD_LIGHT : "#EDE7DA",
+                fontSize: isLocked ? 13 : isCentre ? 20 : 17,
+                fill: isLocked ? "#8A8170" : isSel ? GOLD_LIGHT : isCentre ? GOLD_LIGHT : "#EDE7DA",
                 letterSpacing: ".02em",
                 userSelect: "none",
               }}
             >
-              {p.arcana}
+              {isLocked ? "🔒" : p.arcana}
             </text>
           </g>
         );

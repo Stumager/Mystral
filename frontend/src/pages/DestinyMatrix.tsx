@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DestinyOctagram, MatrixPoint } from "../components/DestinyOctagram";
+import { MatrixChildren } from "../components/matrix/MatrixChildren";
+import { MatrixCompatibility } from "../components/matrix/MatrixCompatibility";
+import { MatrixKarmicTail } from "../components/matrix/MatrixKarmicTail";
+import { MatrixMoneyLine } from "../components/matrix/MatrixMoneyLine";
 import { PaywallSheet } from "../components/PaywallSheet";
 import { BottomNav, Button } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +12,13 @@ import { streamRequest } from "../utils/api";
 import { stripMarkdown } from "../utils/markdown";
 
 interface DestinyMatrixProps { onNavigate: (page: string) => void; }
+
+// TZ-119: sub-view state, not a new top-level Page/route — the ticket was
+// explicit about nesting these inside the existing /app/matrix screen
+// rather than inventing new navigation. "main" is the base matrix (plus
+// the karmic tail/money line cards); "children" and "compatibility" swap
+// the whole <main> content for their own list-then-detail flow.
+type MatrixView = "main" | "children" | "compatibility";
 
 interface MatrixData {
   birth_date: string;
@@ -31,6 +42,8 @@ export function DestinyMatrix({ onNavigate }: DestinyMatrixProps) {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [view, setView] = useState<MatrixView>("main");
 
   const [selected, setSelected] = useState<string | null>(null);
   // Kept per point so re-opening a point the user already paid to generate
@@ -138,13 +151,17 @@ export function DestinyMatrix({ onNavigate }: DestinyMatrixProps) {
   return (
     <div className="flex flex-col min-h-screen relative" style={{ background: "var(--gradient-page)", animation: "mystral-fadeup .3s ease-out" }}>
       <header className="flex items-center justify-between px-4 shrink-0 backdrop-blur-md lg:hidden" style={{ height: 46, background: "var(--bg-header)", borderBottom: "1px solid var(--border-gold)" }}>
-        <button className="text-text-muted text-lg w-8" onClick={() => onNavigate("home")}>&#8249;</button>
+        <button className="text-text-muted text-lg w-8" onClick={() => (view === "main" ? onNavigate("home") : setView("main"))}>&#8249;</button>
         <span className="font-cinzel tracking-[.26em]" style={{ fontSize: 13, color: "#E8CD7E" }}>{t("matrix.title")}</span>
         <div className="w-8" />
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pt-6 pb-24 flex flex-col gap-4">
-        {loading ? (
+        {view === "children" ? (
+          <MatrixChildren onPaywall={() => setShowPaywall(true)} onBack={() => setView("main")} />
+        ) : view === "compatibility" ? (
+          <MatrixCompatibility onPaywall={() => setShowPaywall(true)} onBack={() => setView("main")} />
+        ) : loading ? (
           <p className="text-text-muted text-xs text-center animate-pulse">{t("matrix.calculating")}</p>
         ) : error ? (
           <div style={CARD}>
@@ -161,6 +178,12 @@ export function DestinyMatrix({ onNavigate }: DestinyMatrixProps) {
                 {t("matrix.select_hint")}
               </p>
             </div>
+
+            {/* TZ-119 п.1: karmic tail + money line reuse the already-
+                calculated 9 points, no new input — sections right next to
+                the octagram rather than a separate screen. */}
+            <MatrixKarmicTail onPaywall={() => setShowPaywall(true)} />
+            <MatrixMoneyLine onPaywall={() => setShowPaywall(true)} />
 
             {point && (
               <div style={CARD}>
@@ -242,6 +265,53 @@ export function DestinyMatrix({ onNavigate }: DestinyMatrixProps) {
                 {t("matrix.ancestral_centre")}: <span style={{ color: "#B3A9E0" }}>{data.ancestral_centre}</span>
               </p>
             </div>
+
+            {/* TZ-119 п.2/п.3: children's matrix and compatibility need
+                their own list-then-detail flow (CRUD, partner picker), so
+                they're a sub-view of this same screen rather than an
+                inline section like the two cards above. */}
+            <p className="font-cinzel uppercase mt-2" style={{ fontSize: 9, letterSpacing: ".22em", color: "#8A8170" }}>
+              {t("matrix.more_readings")}
+            </p>
+            <button
+              onClick={() => setView("children")}
+              className="w-full flex items-center justify-between"
+              style={{ ...CARD, cursor: "pointer" }}
+            >
+              <span className="flex items-center gap-2">
+                <span className="font-cinzel uppercase" style={{ fontSize: 12, letterSpacing: ".14em", color: "#F0E9DA" }}>
+                  {t("childrensMatrix.title")}
+                </span>
+                {!isPro && (
+                  <span className="font-cinzel" style={{ fontSize: 8.5, letterSpacing: ".16em", padding: "2px 6px", borderRadius: 99, background: "rgba(201,168,76,.16)", border: "1px solid rgba(201,168,76,.32)", color: "#E8CD7E" }}>
+                    PRO
+                  </span>
+                )}
+              </span>
+              <span style={{ color: "#C9A84C", fontSize: 14, opacity: .6 }}>›</span>
+            </button>
+            <button
+              // Unlike Children's Matrix (which has a free sample point),
+              // Compatibility's GET is all-or-nothing Pro on the backend
+              // too — same immediate-paywall behavior as the karmic
+              // tail/money line cards above, not a nav into an empty
+              // partner picker a free user can't do anything with.
+              onClick={() => (isPro ? setView("compatibility") : setShowPaywall(true))}
+              className="w-full flex items-center justify-between"
+              style={{ ...CARD, cursor: "pointer" }}
+            >
+              <span className="flex items-center gap-2">
+                <span className="font-cinzel uppercase" style={{ fontSize: 12, letterSpacing: ".14em", color: "#F0E9DA" }}>
+                  {t("matrixCompatibility.title")}
+                </span>
+                {!isPro && (
+                  <span className="font-cinzel" style={{ fontSize: 8.5, letterSpacing: ".16em", padding: "2px 6px", borderRadius: 99, background: "rgba(201,168,76,.16)", border: "1px solid rgba(201,168,76,.32)", color: "#E8CD7E" }}>
+                    PRO
+                  </span>
+                )}
+              </span>
+              <span style={{ color: "#C9A84C", fontSize: 14, opacity: .6 }}>›</span>
+            </button>
           </>
         ) : null}
       </main>
