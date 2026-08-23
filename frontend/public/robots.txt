@@ -1,9 +1,22 @@
+# Mystral — https://mystral.space
+# Server-rendered content (6 languages: ru + /en /es /pt /tr /uk prefixes)
 User-agent: *
 Allow: /
+
+# Indexable SEO sections
 Allow: /zodiac/
 Allow: /tarot/
 Allow: /runes/
 Allow: /numerology/
+Allow: /natal-chart/
+Allow: /lunar-calendar/
+Allow: /compatibility/
+Allow: /destiny-matrix/
+Allow: /about
+
+# Client-rendered app shell (auth-gated, no content to index) and internals
+Disallow: /app
 Disallow: /admin
 Disallow: /api/
+
 Sitemap: https://mystral.space/sitemap.xml

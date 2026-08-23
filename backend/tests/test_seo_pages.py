@@ -1,14 +1,17 @@
 import re
 import types
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.api.v1.seo_pages import SITEMAP_FALLBACK_LASTMOD
 from app.data.seo_data import (
     DESTINY_ARCANA_SEO, LUNAR_DAY_SEO, NATAL_HOUSES, NATAL_PLANETS, NUMEROLOGY_SEO, RUNE_SEO,
     ZODIAC_SIGNS,
 )
 from app.data.seo_i18n import PREFIX_LANGS
+from app.models.user import SeoContent
 
 
 class TestZodiacPages:
@@ -73,6 +76,33 @@ class TestZodiacCtaRedirect:
     async def test_numerology_cta_unchanged(self, client):
         res = await client.get("/numerology/life-path-1")
         assert '<a href="/" class="cta-btn">' in res.text
+
+
+class TestNumerologyHub:
+    """The hub was a straight 404 in production (Search Console flagged it),
+    unlike every other section (zodiac/tarot/runes/natal-chart/lunar-calendar/
+    compatibility/destiny-matrix all had one) — added to match that pattern."""
+
+    async def test_numerology_hub_returns_html(self, client):
+        res = await client.get("/numerology")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/html")
+
+    async def test_numerology_hub_lists_all_numbers(self, client):
+        res = await client.get("/numerology")
+        for n in NUMEROLOGY_SEO:
+            assert f'/numerology/{n["slug"]}' in res.text
+
+    async def test_numerology_hub_in_header_nav(self, client):
+        res = await client.get("/zodiac/scorpio")
+        assert '<a href="/numerology">' in res.text
+
+    @pytest.mark.parametrize("lang", PREFIX_LANGS)
+    async def test_numerology_hub_all_langs(self, client, lang):
+        res = await client.get(f"/{lang}/numerology")
+        assert res.status_code == 200
+        for n in NUMEROLOGY_SEO:
+            assert f'/{lang}/numerology/{n["slug"]}' in res.text
 
 
 class TestTarotPages:
@@ -498,6 +528,35 @@ class TestSitemap:
         res = await client.get("/sitemap.xml")
         assert "<loc>https://mystral.space/" in res.text
 
+    async def test_sitemap_homepage_uses_fixed_fallback_not_today(self, client):
+        """Regression guard: <lastmod> used to be date.today() recomputed on
+        every request, so literally every one of the ~1300 URLs claimed to
+        have changed today, every day — a known anti-pattern that erodes
+        Google's trust in the freshness signal. The homepage (and the four
+        plain-listing hubs) have no generated content to date it from, so
+        they fall back to a fixed constant instead."""
+        res = await client.get("/sitemap.xml")
+        block = re.search(r"<url>\s*<loc>https://mystral\.space/</loc>.*?</url>", res.text, re.DOTALL)
+        assert block, "homepage <url> block not found"
+        assert f"<lastmod>{SITEMAP_FALLBACK_LASTMOD}</lastmod>" in block.group(0)
+
+    async def test_sitemap_lastmod_reflects_real_generation_date(self, client, db_session):
+        """A leaf page backed by a real SeoContent row must date its
+        <lastmod> from SeoContent.generated_at, not the fallback constant —
+        proves the sitemap actually reads the DB rather than always
+        stamping every URL with the same placeholder date."""
+        db_session.add(SeoContent(
+            page_type="zodiac", slug="scorpio", lang="ru",
+            content='{"intro": "x", "sections": [], "faq": [], "cta_text": "x"}',
+            generated_at=datetime(2020, 6, 15),
+        ))
+        await db_session.commit()
+
+        res = await client.get("/sitemap.xml")
+        block = re.search(r"<url>\s*<loc>https://mystral\.space/zodiac/scorpio</loc>.*?</url>", res.text, re.DOTALL)
+        assert block, "zodiac/scorpio <url> block not found"
+        assert "<lastmod>2020-06-15</lastmod>" in block.group(0)
+
 
 class TestHealth:
     async def test_health(self, client):
@@ -679,11 +738,14 @@ class TestRuRegression:
         res = await client.get("/zodiac/scorpio")
         assert "/ru/zodiac" not in res.text
 
-    async def test_numerology_breadcrumb_jsonld_no_dead_hub(self, client):
-        # the numerology hub does not exist; JSON-LD must not reference it
+    async def test_numerology_breadcrumb_jsonld_links_to_hub(self, client):
+        # the numerology hub now exists (was a 404 dead link in Search
+        # Console before this fix) — JSON-LD and the visible breadcrumb
+        # must both reference it, matching every other leaf page type.
         res = await client.get("/numerology/life-path-1")
         assert res.status_code == 200
-        assert '"item":"https://mystral.space/numerology"' not in res.text
+        assert '"item":"https://mystral.space/numerology"' in res.text
+        assert '<a href="/numerology">' in res.text
 
 
 class TestSitemapI18n:
@@ -713,11 +775,9 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 218 paths x 6 languages (168 from TZ-083 + 26 from
-        # TZ-094: 1 compatibility hub + 12 compat signs + 12 houses + 1
-        # ascendant + 1 from TZ-111: /about + 23 from TZ-113: 1 destiny-matrix
-        # hub + 22 arcana leaf pages)
-        assert count == 1309, f"sitemap has {count} URLs"
+        # 1 homepage + 219 paths x 6 languages (218 as of TZ-113 [see prior
+        # history] + 1 from this fix: the previously-missing /numerology hub)
+        assert count == 1315, f"sitemap has {count} URLs"
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

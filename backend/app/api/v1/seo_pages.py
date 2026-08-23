@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.core.seo_generator import get_seo_content
+from app.models.user import SeoContent
 from app.data.seo_art import HERO_SVG
 from app.data.seo_data import (
     ASCENDANT_SEO, COMPATIBILITY_PILLAR, DESTINY_ARCANA_BY_SLUG, DESTINY_ARCANA_SEO,
@@ -246,6 +248,20 @@ async def rune_page(slug: str, request: Request, session: AsyncSession = Depends
         aett_label=t["aett_fmt"].format(aett=rune["aett"]),
         h1=t["rune_h1"].format(**rune),
         today=TODAY(),
+    ))
+
+
+@router.get("/numerology", response_class=HTMLResponse)
+@router.get("/{lang}/numerology", response_class=HTMLResponse)
+async def numerology_hub(request: Request):
+    lang = _resolve_lang(request.path_params.get("lang"))
+    redirect = _legacy_lang_redirect(request, lang, "/numerology")
+    if redirect:
+        return redirect
+    t = UI[lang]
+    return templates.TemplateResponse(request, "seo/numerology_hub.html", _ctx(
+        lang, "/numerology", t["numerology_hub_title"], t["numerology_hub_desc"],
+        nums=[localize_num(n, lang) for n in NUMEROLOGY_SEO],
     ))
 
 
@@ -555,43 +571,85 @@ async def constellation_svg(slug: str, request: Request):
     return Response(content=svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
 
-@router.get("/sitemap.xml", response_class=Response)
-async def sitemap():
-    today = date.today().isoformat()
-    paths = [("/zodiac", "0.9"), ("/tarot", "0.9"), ("/runes", "0.9"), ("/natal-chart", "0.9"),
-             ("/lunar-calendar", "0.9"), ("/compatibility", "0.9"), ("/destiny-matrix", "0.9"),
-             ("/about", "0.5")]
-    for s in ZODIAC_SIGNS:
-        paths.append((f"/zodiac/{s['slug']}", "0.9"))
-    for c in TAROT_CARDS:
-        paths.append((f"/tarot/{c['slug']}", "0.8"))
-    for r in RUNE_SEO:
-        paths.append((f"/runes/{r['slug']}", "0.8"))
-    for n in NUMEROLOGY_SEO:
-        paths.append((f"/numerology/{n['slug']}", "0.7"))
-    for p in NATAL_PLANETS:
-        paths.append((f"/natal-chart/planets/{p['slug']}", "0.8"))
-    for d in LUNAR_DAY_SEO:
-        paths.append((f"/lunar-calendar/day/{d['slug']}", "0.8"))
-    for h in NATAL_HOUSES:
-        paths.append((f"/natal-chart/houses/{h['slug']}", "0.8"))
-    paths.append(("/natal-chart/ascendant", "0.8"))
-    for s in ZODIAC_SIGNS:
-        paths.append((f"/compatibility/{s['slug']}", "0.8"))
-    for a in DESTINY_ARCANA_SEO:
-        paths.append((f"/destiny-matrix/arcana/{a['slug']}", "0.8"))
+# Fallback <lastmod> for URLs with no per-language generated content behind
+# them (the homepage and the four plain-listing hubs) — a fixed date rather
+# than date.today() recomputed on every crawl. Google explicitly warns
+# against a sitemap where every single URL always claims "changed today";
+# it erodes trust in the freshness signal for the pages where lastmod is
+# actually meaningful. Matches the hardcoded datePublished already used in
+# every seo/*.html Article schema block. Bump by hand when this shell
+# (nav, hub listings, homepage copy) actually changes.
+SITEMAP_FALLBACK_LASTMOD = "2026-01-01"
 
-    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n')
-    # The SPA homepage has no per-language URLs — one plain entry, no hreflang.
-    xml += f"<url><loc>https://mystral.space/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n"
-    for path, prio in paths:
-        links = "".join(
-            f'<xhtml:link rel="alternate" hreflang="{hl}" href="{url}"/>'
-            for hl, url in hreflang_alternates(path)
-        )
+# path -> (page_type, slug) for entries backed by a real SeoContent row, so
+# <lastmod> reflects when that page's text was actually last generated
+# instead of a constant. Leaf pages (tarot/rune/etc.) are added in the loop
+# below; this covers only the hub/pillar paths, which use a fixed slug.
+_PILLAR_CONTENT = {
+    "/natal-chart": ("natal_pillar", NATAL_PILLAR["slug"]),
+    "/lunar-calendar": ("lunar_pillar", LUNAR_PILLAR["slug"]),
+    "/compatibility": ("compatibility_pillar", COMPATIBILITY_PILLAR["slug"]),
+    "/destiny-matrix": ("destiny_pillar", DESTINY_PILLAR["slug"]),
+}
+
+
+@router.get("/sitemap.xml", response_class=Response)
+async def sitemap(session: AsyncSession = Depends(get_session)):
+    # (path, priority, page_type_or_None, slug_or_None) — page_type/slug are
+    # None for the four plain-listing hubs, /about and the homepage, which
+    # have no SeoContent row to date a real <lastmod> from.
+    paths: list[tuple[str, str, Optional[str], Optional[str]]] = [
+        ("/zodiac", "0.9", None, None), ("/tarot", "0.9", None, None),
+        ("/runes", "0.9", None, None), ("/numerology", "0.9", None, None),
+        ("/natal-chart", "0.9", *_PILLAR_CONTENT["/natal-chart"]),
+        ("/lunar-calendar", "0.9", *_PILLAR_CONTENT["/lunar-calendar"]),
+        ("/compatibility", "0.9", *_PILLAR_CONTENT["/compatibility"]),
+        ("/destiny-matrix", "0.9", *_PILLAR_CONTENT["/destiny-matrix"]),
+        ("/about", "0.5", None, None),
+    ]
+    for s in ZODIAC_SIGNS:
+        paths.append((f"/zodiac/{s['slug']}", "0.9", "zodiac", s["slug"]))
+    for c in TAROT_CARDS:
+        paths.append((f"/tarot/{c['slug']}", "0.8", "tarot", c["slug"]))
+    for r in RUNE_SEO:
+        paths.append((f"/runes/{r['slug']}", "0.8", "rune", r["slug"]))
+    for n in NUMEROLOGY_SEO:
+        paths.append((f"/numerology/{n['slug']}", "0.7", "numerology", n["slug"]))
+    for p in NATAL_PLANETS:
+        paths.append((f"/natal-chart/planets/{p['slug']}", "0.8", "natal_planet", p["slug"]))
+    for d in LUNAR_DAY_SEO:
+        paths.append((f"/lunar-calendar/day/{d['slug']}", "0.8", "lunar_day", d["slug"]))
+    for h in NATAL_HOUSES:
+        paths.append((f"/natal-chart/houses/{h['slug']}", "0.8", "natal_house", h["slug"]))
+    paths.append(("/natal-chart/ascendant", "0.8", "ascendant", ASCENDANT_SEO["slug"]))
+    for s in ZODIAC_SIGNS:
+        paths.append((f"/compatibility/{s['slug']}", "0.8", "compat_sign", s["slug"]))
+    for a in DESTINY_ARCANA_SEO:
+        paths.append((f"/destiny-matrix/arcana/{a['slug']}", "0.8", "destiny_arcana", a["slug"]))
+
+    # One query for every generated-content date instead of one per URL —
+    # 900+ individual lookups would turn this endpoint into the slowest
+    # thing crawlers hit on the site.
+    result = await session.exec(select(SeoContent.page_type, SeoContent.slug, SeoContent.lang, SeoContent.generated_at))
+    lastmod_by_key = {(pt, slug, lang): gen.date().isoformat() for pt, slug, lang, gen in result if gen}
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+        # The SPA homepage has no per-language URLs — one plain entry, no hreflang.
+        f'  <url>\n    <loc>https://mystral.space/</loc>\n    <lastmod>{SITEMAP_FALLBACK_LASTMOD}</lastmod>\n'
+        f'    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>',
+    ]
+    for path, prio, page_type, slug in paths:
+        alternates = hreflang_alternates(path)
         for lang in ALL_LANGS:
-            xml += (f"<url><loc>{abs_url(lang, path)}</loc><lastmod>{today}</lastmod>"
-                    f"<changefreq>weekly</changefreq><priority>{prio}</priority>{links}</url>\n")
-    xml += "</urlset>"
-    return Response(content=xml, media_type="application/xml")
+            lastmod = lastmod_by_key.get((page_type, slug, lang), SITEMAP_FALLBACK_LASTMOD) if page_type else SITEMAP_FALLBACK_LASTMOD
+            alt_lines = "".join(
+                f'\n    <xhtml:link rel="alternate" hreflang="{hl}" href="{url}"/>' for hl, url in alternates
+            )
+            lines.append(
+                f'  <url>\n    <loc>{abs_url(lang, path)}</loc>\n    <lastmod>{lastmod}</lastmod>\n'
+                f'    <changefreq>weekly</changefreq>\n    <priority>{prio}</priority>{alt_lines}\n  </url>'
+            )
+    lines.append("</urlset>")
+    return Response(content="\n".join(lines) + "\n", media_type="application/xml")
