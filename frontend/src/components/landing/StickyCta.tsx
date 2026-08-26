@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, TelegramIcon } from "../icons/AstroIcons";
+import { ArrowRightIcon } from "../icons/AstroIcons";
 
 interface Props {
   ru: boolean;
@@ -105,14 +105,13 @@ export function StickyCta({ ru, watchRef, appUrl }: Props) {
           </p>
         </div>
 
-        <a href={appUrl} target="_blank" rel="noopener noreferrer" className="sc-btn" style={{
+        <a href={appUrl} className="sc-btn" style={{
           display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0,
           borderRadius: 13,
           background: "linear-gradient(100deg,#A9882F,#C9A84C 50%,#E8CD7E)", color: "#1A1206",
           fontWeight: 600, fontSize: 14.5, whiteSpace: "nowrap",
           boxShadow: "0 12px 28px -10px rgba(201,168,76,.6)",
         }}>
-          <TelegramIcon size={17} strokeWidth={1.6} />
           {ru ? "Открыть" : "Open"}
           <span className="sc-btn-arrow" style={{ display: "inline-flex" }}>
             <ArrowRightIcon size={16} strokeWidth={1.7} />
