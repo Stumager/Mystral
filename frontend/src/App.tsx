@@ -18,6 +18,7 @@ const Compatibility = lazy(() => import("./pages/Compatibility").then(m => ({ de
 const DestinyMatrix = lazy(() => import("./pages/DestinyMatrix").then(m => ({ default: m.DestinyMatrix })));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
+const Landing = lazy(() => import("./pages/Landing").then(m => ({ default: m.Landing })));
 const LunarCalendar = lazy(() => import("./pages/LunarCalendar").then(m => ({ default: m.LunarCalendar })));
 const Privacy = lazy(() => import("./pages/Privacy").then(m => ({ default: m.Privacy })));
 const Terms = lazy(() => import("./pages/Terms").then(m => ({ default: m.Terms })));
@@ -155,6 +156,7 @@ function AppInner() {
 
   // Public pages (no auth required)
   const path = window.location.pathname;
+  if (path === "/landing") return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
   if (path === "/privacy") return <Suspense fallback={<PageFallback />}><Privacy /></Suspense>;
   if (path === "/terms") return <Suspense fallback={<PageFallback />}><Terms /></Suspense>;
 
