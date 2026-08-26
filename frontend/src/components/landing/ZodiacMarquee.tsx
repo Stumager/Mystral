@@ -37,7 +37,12 @@ export function ZodiacMarquee({ ru }: { ru: boolean }) {
       maskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
       WebkitMaskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)",
     }}>
-      <div style={{
+      {/* Continuously moving decoration needs a way to stop: hovering pauses
+          it, and a reduced-motion request never starts it. */}
+      <style>{`
+        .zm-track:hover { animation-play-state: paused; }
+      `}</style>
+      <div className="zm-track" style={{
         display: "flex", width: "max-content",
         animation: reduced ? undefined : "mystral-marquee 46s linear infinite",
       }}>

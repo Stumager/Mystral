@@ -775,9 +775,23 @@ class TestSitemapI18n:
     async def test_sitemap_full_count(self, client):
         res = await client.get("/sitemap.xml")
         count = res.text.count("<loc>")
-        # 1 homepage + 219 paths x 6 languages (218 as of TZ-113 [see prior
-        # history] + 1 from this fix: the previously-missing /numerology hub)
-        assert count == 1315, f"sitemap has {count} URLs"
+        # 1 homepage + 1 marketing landing + 219 paths x 6 languages (218 as
+        # of TZ-113 [see prior history] + 1: the previously-missing
+        # /numerology hub)
+        assert count == 1316, f"sitemap has {count} URLs"
+
+    async def test_sitemap_includes_marketing_landing(self, client):
+        """/landing is client-rendered like the homepage, so it is easy to
+        forget in the sitemap — it has no SeoContent row to drive it."""
+        res = await client.get("/sitemap.xml")
+        assert "<loc>https://mystral.space/landing</loc>" in res.text
+
+    async def test_sitemap_landing_has_no_hreflang_alternates(self, client):
+        """The landing switches language in-app rather than by URL prefix, so
+        declaring /es/landing etc. would point crawlers at 404s."""
+        res = await client.get("/sitemap.xml")
+        for lang in ("en", "es", "pt", "tr", "uk"):
+            assert f"<loc>https://mystral.space/{lang}/landing</loc>" not in res.text
 
     async def test_sitemap_is_wellformed_xml(self, client):
         import xml.etree.ElementTree as ET

@@ -27,6 +27,7 @@ interface Advantage { value: string; label: string; desc: string; }
 
 interface Copy {
   pageTitle: string;
+  pageDescription: string;
   nav: { features: string; pricing: string; reviews: string; faq: string; signIn: string; cta: string };
   hero: {
     eyebrow: string; title: string; titleAccent: string; sub: string;
@@ -53,6 +54,7 @@ interface Copy {
 
 const COPY_RU: Copy = {
   pageTitle: "Mystral — эзотерическая платформа. Гороскопы, Таро, натальная карта",
+  pageDescription: "Натальная карта с домами и аспектами, расклады Таро на 78 картах, нумерология, руны и лунный календарь — с AI-интерпретацией. Попробуйте бесплатно, без регистрации.",
   nav: { features: "Возможности", pricing: "Тарифы", reviews: "Отзывы", faq: "Вопросы", signIn: "Войти", cta: "Открыть Mystral" },
   hero: {
     eyebrow: "Эзотерическая платформа",
@@ -142,6 +144,7 @@ const COPY_RU: Copy = {
 
 const COPY_EN: Copy = {
   pageTitle: "Mystral — esoteric platform. Horoscopes, Tarot, natal chart",
+  pageDescription: "A natal chart with houses and aspects, 78-card Tarot spreads, numerology, runes and a lunar calendar — with AI interpretation. Try it free, no sign-up.",
   nav: { features: "Features", pricing: "Pricing", reviews: "Reviews", faq: "FAQ", signIn: "Sign in", cta: "Open Mystral" },
   hero: {
     eyebrow: "Esoteric platform",
@@ -254,6 +257,44 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
+const LANDING_URL = "https://mystral.space/landing";
+
+/**
+ * Points the document's SEO tags at this page while it is mounted, restoring
+ * whatever `index.html` declared when the visitor navigates back into the app.
+ *
+ * Without this the landing inherits the app shell's title and description, so
+ * a crawler (and every link preview) describes the marketing page as the
+ * Telegram Mini App.
+ */
+function useLandingMeta(title: string, description: string) {
+  useEffect(() => {
+    const setMeta = (selector: string, attr: string, value: string) => {
+      const el = document.head.querySelector<HTMLMetaElement | HTMLLinkElement>(selector);
+      if (!el) return undefined;
+      const previous = el.getAttribute(attr);
+      el.setAttribute(attr, value);
+      return () => { if (previous !== null) el.setAttribute(attr, previous); };
+    };
+
+    const previousTitle = document.title;
+    document.title = title;
+
+    const restorers = [
+      setMeta('meta[name="description"]', "content", description),
+      setMeta('link[rel="canonical"]', "href", LANDING_URL),
+      setMeta('meta[property="og:title"]', "content", title),
+      setMeta('meta[property="og:description"]', "content", description),
+      setMeta('meta[property="og:url"]', "content", LANDING_URL),
+    ];
+
+    return () => {
+      document.title = previousTitle;
+      restorers.forEach(restore => restore?.());
+    };
+  }, [title, description]);
+}
+
 function Container({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <div style={{ maxWidth: 1160, margin: "0 auto", padding: "0 24px", ...style }}>{children}</div>;
 }
@@ -316,7 +357,7 @@ export function Landing() {
   const c = ru ? COPY_RU : COPY_EN;
   const heroRef = useRef<HTMLElement>(null);
 
-  useEffect(() => { document.title = c.pageTitle; }, [c.pageTitle]);
+  useLandingMeta(c.pageTitle, c.pageDescription);
 
   const openApp = () => window.open(BOT_APP_URL, "_blank", "noopener,noreferrer");
 
@@ -329,6 +370,28 @@ export function Landing() {
     // themselves instead.
     <div className="mystral-landing" style={{ minHeight: "100vh", background: "#07060F" }}>
       <style>{`
+        /* Anchor links glide instead of teleporting, and stop clear of the
+           68px sticky header rather than under it. Scoped to no-preference so
+           it never overrides a reduced-motion request. */
+        @media (prefers-reduced-motion: no-preference) {
+          html { scroll-behavior: smooth; }
+        }
+        .mystral-landing :target,
+        .mystral-landing section[id] { scroll-margin-top: 88px; }
+
+        /* Keyboard users get a visible ring on every control. The custom
+           backgrounds below would otherwise swallow the UA default. */
+        .mystral-landing a:focus-visible,
+        .mystral-landing button:focus-visible,
+        .mystral-landing summary:focus-visible,
+        .mystral-landing input:focus-visible,
+        .mystral-landing details:focus-visible {
+          outline: 2px solid #E8CD7E;
+          outline-offset: 3px;
+        }
+        /* Removes the ~300ms tap delay without disabling pinch-zoom. */
+        .mystral-landing a, .mystral-landing button, .mystral-landing summary { touch-action: manipulation; }
+
         .ml-btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
         .ml-btn-secondary:hover { border-color: rgba(201,168,76,.55); background: rgba(255,255,255,.07); }
         .ml-card { transition: transform .25s ease, border-color .25s ease, background .25s ease; }
@@ -339,6 +402,11 @@ export function Landing() {
         .ml-faq summary::-webkit-details-marker { display: none; }
         .ml-faq .chev { transition: transform .25s ease; }
         .ml-faq[open] .chev { transform: rotate(45deg); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ml-btn-primary:hover, .ml-card:hover { transform: none; }
+          .ml-card, .ml-faq .chev { transition: none; }
+        }
       `}</style>
 
       <Header c={c} />
@@ -407,7 +475,7 @@ function Hero({ c, heroRef }: { c: Copy; heroRef: React.RefObject<HTMLElement> }
               <PrimaryButton href={BOT_APP_URL} big icon={<TelegramIcon size={19} strokeWidth={1.6} />}>{c.hero.ctaPrimary}</PrimaryButton>
               <SecondaryButton href="/" big>{c.hero.ctaSecondary}</SecondaryButton>
             </div>
-            <p style={{ fontSize: 12.5, color: "#6E6757", marginTop: 16 }}>{c.hero.note}</p>
+            <p style={{ fontSize: 12.5, color: "#8A8170", marginTop: 16 }}>{c.hero.note}</p>
           </div>
 
           <Reveal>
@@ -602,7 +670,7 @@ function Pricing({ c }: { c: Copy }) {
                 ))}
               </div>
               <div style={{ marginTop: 24 }}><PrimaryButton href={BOT_APP_URL}>{c.pricing.proCta}</PrimaryButton></div>
-              <p style={{ fontSize: 11.5, color: "#6E6757", marginTop: 12 }}>{c.pricing.starsNote}</p>
+              <p style={{ fontSize: 11.5, color: "#8A8170", marginTop: 12 }}>{c.pricing.starsNote}</p>
             </div>
           </Reveal>
         </div>
@@ -699,8 +767,8 @@ function Footer({ c }: { c: Copy }) {
             { label: "Terms", href: "/terms" },
           ]} />
         </div>
-        <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "#5A5347", marginTop: 40, maxWidth: 720 }}>{c.footer.disclaimer}</p>
-        <p style={{ fontSize: 12.5, color: "#6E6757", marginTop: 16 }}>{c.footer.copyright}</p>
+        <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "#827A69", marginTop: 40, maxWidth: 720 }}>{c.footer.disclaimer}</p>
+        <p style={{ fontSize: 12.5, color: "#8A8170", marginTop: 16 }}>{c.footer.copyright}</p>
       </Container>
     </footer>
   );

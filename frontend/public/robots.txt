@@ -13,6 +13,8 @@ Allow: /lunar-calendar/
 Allow: /compatibility/
 Allow: /destiny-matrix/
 Allow: /about
+# Marketing landing — client-rendered but public, no auth gate
+Allow: /landing
 
 # Client-rendered app shell (auth-gated, no content to index) and internals
 Disallow: /app

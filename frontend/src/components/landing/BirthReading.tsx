@@ -193,7 +193,7 @@ export function BirthReading({ ru, onOpenApp }: Props) {
               {ru ? "Полный разбор" : "Full reading"}
               <ArrowRightIcon size={17} strokeWidth={1.7} />
             </button>
-            <p style={{ fontSize: 12.5, color: "#6E6757", maxWidth: 340, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12.5, color: "#8A8170", maxWidth: 340, lineHeight: 1.55 }}>
               {ru
                 ? "Это верхушка. С временем и местом рождения приложение строит натальную карту с домами и аспектами."
                 : "This is the surface. With birth time and place the app builds a natal chart with houses and aspects."}

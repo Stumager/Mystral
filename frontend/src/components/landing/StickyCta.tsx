@@ -74,7 +74,16 @@ export function StickyCta({ ru, watchRef, appUrl }: Props) {
           .sc-bar { padding: 10px 10px 10px 14px; gap: 8px; }
           .sc-title { font-size: 15px; }
           .sc-btn { padding: 0 13px; font-size: 14px; }
-          .sc-close { width: 30px; height: 30px; margin-left: 6px; }
+          .sc-close { width: 34px; height: 34px; margin-left: 6px; }
+        }
+        /* The dismiss control is visually small, so the tap area is grown
+           past its bounds instead — a 36px box is under the 44px guidance
+           and this costs no layout. */
+        .sc-close { position: relative; }
+        .sc-close::after {
+          content: ""; position: absolute; top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          width: 44px; height: 44px;
         }
       `}</style>
 

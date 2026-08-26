@@ -581,6 +581,11 @@ async def constellation_svg(slug: str, request: Request):
 # (nav, hub listings, homepage copy) actually changes.
 SITEMAP_FALLBACK_LASTMOD = "2026-01-01"
 
+# /landing is newer than the shell above and would look stale to a crawler
+# carrying the 2026-01-01 fallback on its first submission. Own constant,
+# bumped by hand when the landing's content actually changes.
+LANDING_LASTMOD = "2026-08-26"
+
 # path -> (page_type, slug) for entries backed by a real SeoContent row, so
 # <lastmod> reflects when that page's text was actually last generated
 # instead of a constant. Leaf pages (tarot/rune/etc.) are added in the loop
@@ -639,6 +644,11 @@ async def sitemap(session: AsyncSession = Depends(get_session)):
         # The SPA homepage has no per-language URLs — one plain entry, no hreflang.
         f'  <url>\n    <loc>https://mystral.space/</loc>\n    <lastmod>{SITEMAP_FALLBACK_LASTMOD}</lastmod>\n'
         f'    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>',
+        # The marketing landing. Same situation as the homepage: one client-
+        # rendered URL that switches language in-app rather than by prefix,
+        # so no hreflang alternates to declare.
+        f'  <url>\n    <loc>https://mystral.space/landing</loc>\n    <lastmod>{LANDING_LASTMOD}</lastmod>\n'
+        f'    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>',
     ]
     for path, prio, page_type, slug in paths:
         alternates = hreflang_alternates(path)

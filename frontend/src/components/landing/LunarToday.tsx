@@ -117,7 +117,7 @@ export function LunarToday({ ru }: Props) {
             </p>
           )}
 
-          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "#6E6757", marginTop: 12, maxWidth: 400 }}>
+          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "#8A8170", marginTop: 12, maxWidth: 400 }}>
             {ru
               ? "Не картинка для красоты — реальный расчёт на сегодня, тот же, что видят пользователи внутри. Завтра здесь будет другое число."
               : "Not decoration — the real calculation for today, the same one users see inside. Tomorrow this shows a different number."}
