@@ -113,6 +113,12 @@ html, body {
   0%,100% { opacity:.5 }
   50% { opacity:.9 }
 }
+/* Landing marquee. The track holds its items twice and shifts exactly -50%,
+   so copy #2 sits where copy #1 started when the loop restarts. */
+@keyframes mystral-marquee {
+  from { transform: translateX(0) }
+  to { transform: translateX(-50%) }
+}
 @keyframes mystral-spin { to { transform: rotate(360deg) } }
 @keyframes mystral-spin-rev { to { transform: rotate(-360deg) } }
 /* QA-023: tarot spread deal-in. Applied to a wrapper around each card so it
