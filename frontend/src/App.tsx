@@ -19,6 +19,19 @@ const DestinyMatrix = lazy(() => import("./pages/DestinyMatrix").then(m => ({ de
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
 const Landing = lazy(() => import("./pages/Landing").then(m => ({ default: m.Landing })));
+
+// PageSpeed (2026-08-27): a visitor landing directly on /landing previously
+// only started fetching this chunk once AuthProvider's init() resolved and
+// AppInner re-rendered past the auth-loading gate below — on throttled
+// mobile that extra render-cycle showed up directly as LCP delay, since the
+// hero's first paint is gated on this exact import resolving. Firing it here,
+// at module-eval time, lets the browser start the fetch immediately and in
+// parallel with the auth check, while every other route still only pays for
+// this chunk lazily (it's still 28 KB gzip that Home/Tarot/etc. visitors
+// never download).
+if (window.location.pathname === "/landing") {
+  import("./pages/Landing");
+}
 const LunarCalendar = lazy(() => import("./pages/LunarCalendar").then(m => ({ default: m.LunarCalendar })));
 const Privacy = lazy(() => import("./pages/Privacy").then(m => ({ default: m.Privacy })));
 const Terms = lazy(() => import("./pages/Terms").then(m => ({ default: m.Terms })));
@@ -127,6 +140,16 @@ function AppInner() {
     if (page === "home") backButton.hide(); else backButton.show();
   }, [page]);
 
+  // Public pages (no auth required) — checked before the isLoading gate below
+  // so a visitor here never waits on AuthProvider's init() (TMA / stored-token
+  // check) just to see a page that never needed auth state. That gate used to
+  // sit first, which meant /landing's LCP was hostage to an unrelated network
+  // round-trip for any returning visitor with a saved token (PageSpeed, 2026-08-27).
+  const path = window.location.pathname;
+  if (path === "/landing") return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
+  if (path === "/privacy") return <Suspense fallback={<PageFallback />}><Privacy /></Suspense>;
+  if (path === "/terms") return <Suspense fallback={<PageFallback />}><Terms /></Suspense>;
+
   if (isLoading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07060F", gap: 20 }}>
@@ -153,12 +176,6 @@ function AppInner() {
     localStorage.setItem("mystral_ref_code", refMatch[1]);
     window.history.replaceState(null, "", "/");
   }
-
-  // Public pages (no auth required)
-  const path = window.location.pathname;
-  if (path === "/landing") return <Suspense fallback={<PageFallback />}><Landing /></Suspense>;
-  if (path === "/privacy") return <Suspense fallback={<PageFallback />}><Privacy /></Suspense>;
-  if (path === "/terms") return <Suspense fallback={<PageFallback />}><Terms /></Suspense>;
 
   if (page === "admin" || window.location.hash.replace(/\/+$/, "") === "#admin")
     return <Suspense fallback={<PageFallback />}><Admin /></Suspense>;
