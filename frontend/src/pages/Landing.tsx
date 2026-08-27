@@ -4,7 +4,7 @@ import { Logo } from "../components/Logo";
 import { ReviewsBlock } from "../components/ReviewsBlock";
 import {
   CheckIcon, CompatibilityIcon, MatrixIcon, MoonIcon, NatalIcon,
-  NumerologyIcon, PlusIcon, RuneIcon, SparkIcon, SunIcon, TarotIcon, ZodiacIcon,
+  NumerologyIcon, PlusIcon, RuneIcon, SparkIcon, SunIcon, TarotIcon, TelegramIcon, ZodiacIcon,
 } from "../components/icons/AstroIcons";
 import { BirthReading } from "../components/landing/BirthReading";
 import { LunarToday } from "../components/landing/LunarToday";
@@ -14,6 +14,9 @@ import { StickyCta } from "../components/landing/StickyCta";
 import { TarotDraw } from "../components/landing/TarotDraw";
 import { ZodiacMarquee } from "../components/landing/ZodiacMarquee";
 
+// Kept only for the CTA that sits next to a site alternative (see PrimaryButton
+// usages below) — everywhere a button stands alone, it goes to the site.
+const BOT_APP_URL = "https://t.me/Mystrallbot/app";
 const BOT_SUPPORT_URL = "https://t.me/Mystrallbot?start=support";
 const CONTACT_EMAIL = "sasha.nechunaev1234@gmail.com";
 
@@ -60,7 +63,7 @@ const COPY_RU: Copy = {
     title: "Узнай, что говорят звёзды —",
     titleAccent: "каждый день",
     sub: "Натальная карта, расклады Таро, нумерология, руны и лунный календарь — персонально для вас, с AI-интерпретацией на русском языке.",
-    ctaPrimary: "Попробовать бесплатно",
+    ctaPrimary: "Открыть в Telegram",
     ctaSecondary: "Войти через email",
     note: "Бесплатно начать · без банковской карты",
     demoLabel: "Пример разбора",
@@ -132,7 +135,7 @@ const COPY_RU: Copy = {
       { q: "Что с моими данными?", a: "Данные хранятся на защищённых серверах в ЕС с шифрованием TLS и не передаются третьим лицам в рекламных целях. Подробнее — в Политике конфиденциальности." },
     ],
   },
-  final: { title: "Твои звёзды ждут", sub: "Открой Mystral и получи первый разбор — бесплатно, за минуту.", cta: "Открыть Mystral", ctaSecondary: "Войти через email" },
+  final: { title: "Твои звёзды ждут", sub: "Открой Mystral и получи первый разбор — бесплатно, за минуту.", cta: "Открыть в Telegram", ctaSecondary: "Войти через email" },
   footer: {
     tagline: "Эзотерическая платформа для вашего пути.",
     product: "Продукт", support: "Поддержка", legal: "Документы",
@@ -150,7 +153,7 @@ const COPY_EN: Copy = {
     title: "Know what the stars are saying —",
     titleAccent: "every day",
     sub: "Natal chart, Tarot spreads, numerology, runes and a lunar calendar — personalized for you, with AI interpretation.",
-    ctaPrimary: "Try for free",
+    ctaPrimary: "Open in Telegram",
     ctaSecondary: "Sign in with email",
     note: "Free to start · no card required",
     demoLabel: "Sample reading",
@@ -222,7 +225,7 @@ const COPY_EN: Copy = {
       { q: "What about my data?", a: "Data is stored on secured EU servers with TLS encryption and is never shared with third parties for advertising. See the Privacy Policy for details." },
     ],
   },
-  final: { title: "Your stars are waiting", sub: "Open Mystral and get your first reading — free, in a minute.", cta: "Open Mystral", ctaSecondary: "Sign in with email" },
+  final: { title: "Your stars are waiting", sub: "Open Mystral and get your first reading — free, in a minute.", cta: "Open in Telegram", ctaSecondary: "Sign in with email" },
   footer: {
     tagline: "An esoteric platform for your path.",
     product: "Product", support: "Support", legal: "Legal",
@@ -446,7 +449,7 @@ function Header({ c }: { c: Copy }) {
           <a href="/" className="hidden lg:inline-flex ml-nav-link" style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(201,168,76,.25)" }}>
             {c.nav.signIn}
           </a>
-          <PrimaryButton href="/">{c.nav.cta}</PrimaryButton>
+          <PrimaryButton href={BOT_APP_URL}>{c.nav.cta}</PrimaryButton>
         </div>
       </Container>
     </header>
@@ -471,7 +474,7 @@ function Hero({ c, heroRef }: { c: Copy; heroRef: React.RefObject<HTMLElement> }
             </h1>
             <p style={{ fontSize: 17, lineHeight: 1.65, color: "#A89E8B", marginTop: 20, maxWidth: 480 }}>{c.hero.sub}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 30 }}>
-              <PrimaryButton href="/" big>{c.hero.ctaPrimary}</PrimaryButton>
+              <PrimaryButton href={BOT_APP_URL} big icon={<TelegramIcon size={19} strokeWidth={1.6} />}>{c.hero.ctaPrimary}</PrimaryButton>
               <SecondaryButton href="/" big>{c.hero.ctaSecondary}</SecondaryButton>
             </div>
             <p style={{ fontSize: 12.5, color: "#8A8170", marginTop: 16 }}>{c.hero.note}</p>
@@ -726,7 +729,7 @@ function FinalCta({ c }: { c: Copy }) {
               <h2 className="font-cormorant" style={{ fontSize: "clamp(28px,4.5vw,42px)", color: "#F0E9DA", marginTop: 18 }}>{c.final.title}</h2>
               <p style={{ fontSize: 15.5, color: "#A89E8B", marginTop: 10 }}>{c.final.sub}</p>
               <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: 30 }}>
-                <PrimaryButton href="/" big>{c.final.cta}</PrimaryButton>
+                <PrimaryButton href={BOT_APP_URL} big icon={<TelegramIcon size={19} strokeWidth={1.6} />}>{c.final.cta}</PrimaryButton>
                 <SecondaryButton href="/" big>{c.final.ctaSecondary}</SecondaryButton>
               </div>
             </div>
